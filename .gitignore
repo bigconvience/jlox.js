@@ -1,0 +1,105 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.class
+*.dex
+*.apk
+*.ap_
+
+# Compile work directory #
+##########################
+bin/
+gen/
+obj/
+tmp/
+out/
+proguard/
+proguard_logs/
+build/
+target/
+classes/
+*.jar
+# Jar #
+###########
+thirdparty.jar
+
+# ide #
+#######
+project.properties
+build.xml
+.loadpath
+.buildpath
+.metadata
+.checkstyle
+local.properties
+*.pydevproject
+*.tmp
+*.launch
+*.bak
+*.swp
+*~.nib
+*.iml
+*.project
+.settings/
+.externalToolBuilders/
+.svn/
+.idea/
+.gradle/
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+# *.7z
+# *.dmg
+# *.gz
+# *.iso
+# *.jar
+# *.rar
+# *.tar
+# *.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# 特殊需求
+#######
+presentation/src/main/assets/fonts/IconFont.ttf
+# Intermediate and built stuff.
+.sass-cache/
+/build/
+/gen/
+clox
+*.class
+exercises/chapter01_introduction/3/linked_list
+.idea/
+*.iml
+
+
+# I keep a scratch file at the top level to try stuff out.
+temp.lox
+
+# XCode user-specific stuff.
+xcuserdata/
+
+# Dart stuff.
+/tool/.dart_tool/
+/tool/.packages

@@ -39,7 +39,7 @@ class Parser {
     }
   }
   private Stmt classDeclaration() {
-    Token name = consume(IDENTIFIER, "Expect class name.");
+    Token name = consume(TOK_IDENTIFIER, "Expect class name.");
     consume(LEFT_BRACE, "Expect '{' before class body.");
 
     List<Stmt.Function> methods = new ArrayList<>();
@@ -130,7 +130,7 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
   private Stmt varDeclaration() {
-    Token name = consume(IDENTIFIER, "Expect variable name.");
+    Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
     if (match(EQUAL)) {
@@ -154,7 +154,7 @@ class Parser {
     return new Stmt.Expression(expr);
   }
   private Stmt.Function function(String kind) {
-    Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+    Token name = consume(TOK_IDENTIFIER, "Expect " + kind + " name.");
     consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
     List<Token> parameters = new ArrayList<>();
     if (!check(RIGHT_PAREN)) {
@@ -163,7 +163,7 @@ class Parser {
           error(peek(), "Cannot have more than 255 parameters.");
         }
 
-        parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+        parameters.add(consume(TOK_IDENTIFIER, "Expect parameter name."));
       } while (match(COMMA));
     }
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
@@ -300,7 +300,7 @@ class Parser {
       if (match(LEFT_PAREN)) {
         expr = finishCall(expr);
       } else if (match(DOT)) {
-        Token name = consume(IDENTIFIER,
+        Token name = consume(TOK_IDENTIFIER,
             "Expect property name after '.'.");
         expr = new Expr.Get(expr, name);
       } else {
@@ -316,13 +316,13 @@ class Parser {
     if (match(TOK_TRUE)) return new Expr.Literal(true);
     if (match(NIL)) return new Expr.Literal(null);
 
-    if (match(NUMBER, STRING)) {
+    if (match(NUMBER, TOK_STRING)) {
       return new Expr.Literal(previous().literal);
     }
 
     if (match(TOK_THIS)) return new Expr.This(previous());
 
-    if (match(IDENTIFIER)) {
+    if (match(TOK_IDENTIFIER)) {
       return new Expr.Variable(previous());
     }
 

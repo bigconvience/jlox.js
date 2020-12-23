@@ -12,10 +12,10 @@ class Scanner {
 
   static {
     keywords = new HashMap<>();
-    keywords.put("and",    AND);
-    keywords.put("nil",    NIL);
-    keywords.put("or",     OR);
-    keywords.put("print",  PRINT);
+    keywords.put("and", AND);
+    keywords.put("nil", NIL);
+    keywords.put("or", OR);
+    keywords.put("print", PRINT);
 
     // 关键字 @https://ecma-international.org/ecma-262/10.0/index.html#sec-reserved-words
     keywords.put("null", TOK_NULL);
@@ -25,8 +25,8 @@ class Scanner {
     keywords.put("else", TOK_ELSE);
     keywords.put("return", TOK_RETURN);
 
-    keywords.put("var",  TOK_VAR);
-    keywords.put("let",  TOK_LET);
+    keywords.put("var", TOK_VAR);
+    keywords.put("let", TOK_LET);
     keywords.put("this", TOK_THIS);
     keywords.put("delete", TOK_DELETE);
     keywords.put("void", TOK_VOID);
@@ -35,8 +35,8 @@ class Scanner {
     keywords.put("in", TOK_IN);
     keywords.put("instance", TOK_INSTANCEOF);
     keywords.put("do", TOK_DO);
-    keywords.put("while",  WHILE);
-    keywords.put("for",    FOR);
+    keywords.put("while", WHILE);
+    keywords.put("for", FOR);
     keywords.put("break", TOK_BREAK);
     keywords.put("continue", TOK_CONTINUE);
     keywords.put("switch", TOK_SWITCH);
@@ -68,6 +68,7 @@ class Scanner {
     keywords.put("yield", TOK_YIELD);
     keywords.put("await", TOK_AWAIT);
   }
+
   private final String source;
   private final List<Token> tokens = new ArrayList<>();
   private int start = 0;
@@ -77,6 +78,7 @@ class Scanner {
   Scanner(String source) {
     this.source = source;
   }
+
   List<Token> scanTokens() {
     while (!isAtEnd()) {
       // We are at the beginning of the next lexeme.
@@ -87,28 +89,61 @@ class Scanner {
     tokens.add(new Token(EOF, "", null, line));
     return tokens;
   }
+
   private void scanToken() {
     char c = advance();
     switch (c) {
-      case '(': addToken(LEFT_PAREN); break;
-      case ')': addToken(RIGHT_PAREN); break;
-      case '{': addToken(LEFT_BRACE); break;
-      case '}': addToken(RIGHT_BRACE); break;
-      case ',': addToken(COMMA); break;
-      case '.': addToken(DOT); break;
-      case '-': addToken(MINUS); break;
-      case '+': addToken(PLUS); break;
-      case ';': addToken(SEMICOLON); break;
-      case '*': addToken(STAR); break; // [slash]
-      case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
-      case '=': addToken(match('=') ? EQUAL_EQUAL : EQUAL); break;
-      case '<': addToken(match('=') ? LESS_EQUAL : LESS); break;
-      case '>': addToken(match('=') ? GREATER_EQUAL : GREATER); break;
+      case '(':
+        addToken(LEFT_PAREN);
+        break;
+      case ')':
+        addToken(RIGHT_PAREN);
+        break;
+      case '{':
+        addToken(LEFT_BRACE);
+        break;
+      case '}':
+        addToken(RIGHT_BRACE);
+        break;
+      case ',':
+        addToken(COMMA);
+        break;
+      case '.':
+        addToken(DOT);
+        break;
+      case '-':
+        addToken(MINUS);
+        break;
+      case '+':
+        addToken(PLUS);
+        break;
+      case ';':
+        addToken(SEMICOLON);
+        break;
+      case '*':
+        addToken(STAR);
+        break; // [slash]
+      case '!':
+        addToken(match('=') ? BANG_EQUAL : BANG);
+        break;
+      case '=':
+        addToken(match('=') ? EQUAL_EQUAL : EQUAL);
+        break;
+      case '<':
+        addToken(match('=') ? LESS_EQUAL : LESS);
+        break;
+      case '>':
+        addToken(match('=') ? GREATER_EQUAL : GREATER);
+        break;
       case '/':
         if (match('/')) {
           // A comment goes until the end of the line.
-          while (peek() != '\n' && !isAtEnd()) advance();
-        } if (match('*')) {
+          while (peek() != '\n' && !isAtEnd()) {
+            advance();
+          }
+          break;
+        }
+        if (match('*')) {
           while (!isAtEnd() && (peek() != '*' || peekNext() != '/')) {
             if (peek() == '\n') {
               line++;
@@ -116,16 +151,17 @@ class Scanner {
             advance();
           }
           if (peek() == '*' && peekNext() == '/') {
-              advance();
-              advance();
+            advance();
+            advance();
           } else {
             Lox.error(line, "Need */ for comment");
           }
-      } else {
+        } else {
           addToken(SLASH);
         }
         break;
 
+      case '\f':
       case ' ':
       case '\r':
       case '\t':
@@ -137,7 +173,9 @@ class Scanner {
         break;
 
       case '\'':
-      case '"': string(c); break;
+      case '\"':
+        string(c);
+        break;
 
       default:
         if (isDigit(c)) {
@@ -150,6 +188,7 @@ class Scanner {
         break;
     }
   }
+
   private void identifier() {
     while (isAlphaNumeric(peek())) advance();
 
@@ -157,9 +196,10 @@ class Scanner {
     String text = source.substring(start, current);
 
     TokenType type = keywords.get(text);
-    if (type == null) type = IDENTIFIER;
+    if (type == null) type = TOK_IDENTIFIER;
     addToken(type);
   }
+
   private void number() {
     while (isDigit(peek())) advance();
 
@@ -172,8 +212,14 @@ class Scanner {
     }
 
     addToken(NUMBER,
-        Double.parseDouble(source.substring(start, current)));
+      Double.parseDouble(source.substring(start, current)));
   }
+
+  /**
+   * https://ecma-international.org/ecma-262/10.0/index.html#sec-literals-string-literals
+   *
+   * @param quote
+   */
   private void string(char quote) {
     while (peek() != quote && !isAtEnd()) {
       if (peek() == '\n') line++;
@@ -191,8 +237,9 @@ class Scanner {
 
     // Trim the surrounding quotes.
     String value = source.substring(start + 1, current - 1);
-    addToken(STRING, value);
+    addToken(TOK_STRING, value);
   }
+
   private boolean match(char expected) {
     if (isAtEnd()) return false;
     if (source.charAt(current) != expected) return false;
@@ -200,30 +247,36 @@ class Scanner {
     current++;
     return true;
   }
+
   private char peek() {
     if (isAtEnd()) return '\0';
     return source.charAt(current);
   }
+
   private char peekNext() {
     if (current + 1 >= source.length()) return '\0';
     return source.charAt(current + 1);
   } // [peek-next]
+
   private boolean isAlpha(char c) {
     return (c >= 'a' && c <= 'z') ||
-           (c >= 'A' && c <= 'Z') ||
-            c == '$' ||
-            c == '_';
+      (c >= 'A' && c <= 'Z') ||
+      c == '$' ||
+      c == '_';
   }
 
   private boolean isAlphaNumeric(char c) {
     return isAlpha(c) || isDigit(c);
   }
+
   private boolean isDigit(char c) {
     return c >= '0' && c <= '9';
   } // [is-digit]
+
   private boolean isAtEnd() {
     return current >= source.length();
   }
+
   private char advance() {
     current++;
     return source.charAt(current - 1);

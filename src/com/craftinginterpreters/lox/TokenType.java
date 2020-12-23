@@ -18,7 +18,7 @@ enum TokenType {
     LESS, LESS_EQUAL,
 
     // Literals.
-    IDENTIFIER, STRING, NUMBER,
+     NUMBER,
 
     // Keywords.
     AND,  NIL, OR,
@@ -28,7 +28,7 @@ enum TokenType {
     TOK_NUMBER,
     TOK_STRING,
     TOK_TEMPLATE,
-    TOK_IDENT,
+    TOK_IDENTIFIER,
     TOK_REGEXP,
 
     // Punctuators:: https://ecma-international.org/ecma-262/10.0/index.html#prod-Punctuator

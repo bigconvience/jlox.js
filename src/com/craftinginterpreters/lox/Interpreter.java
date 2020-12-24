@@ -146,17 +146,17 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     switch (expr.operator.type) {
       case BANG_EQUAL: return !isEqual(left, right);
-      case EQUAL_EQUAL: return isEqual(left, right);
-      case GREATER:
+      case TOK_EQ: return isEqual(left, right);
+      case TOK_GT:
         checkNumberOperands(expr.operator, left, right);
         return (double)left > (double)right;
-      case GREATER_EQUAL:
+      case TOK_GTE:
         checkNumberOperands(expr.operator, left, right);
         return (double)left >= (double)right;
-      case LESS:
+      case TOK_LT:
         checkNumberOperands(expr.operator, left, right);
         return (double)left < (double)right;
-      case LESS_EQUAL:
+      case TOK_LTE:
         checkNumberOperands(expr.operator, left, right);
         return (double)left <= (double)right;
       case MINUS:
@@ -176,7 +176,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case SLASH:
         checkNumberOperands(expr.operator, left, right);
         return (double)left / (double)right;
-      case STAR:
+      case TOK_STAR:
         checkNumberOperands(expr.operator, left, right);
         return (double)left * (double)right;
     }

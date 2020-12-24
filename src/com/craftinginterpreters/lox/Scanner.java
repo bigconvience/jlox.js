@@ -80,7 +80,7 @@ class Scanner {
   }
 
   List<Token> scanTokens() {
-    while (!isAtEnd()) {
+    while (!isAtEnd() && !Lox.hadError) {
       // We are at the beginning of the next lexeme.
       start = current;
       scanToken();
@@ -109,31 +109,123 @@ class Scanner {
         addToken(COMMA);
         break;
       case '.':
-        addToken(DOT);
+        if (match('.') && match('.')) {
+          addToken(TOK_ELLIPSIS);
+        } else if (isDigit(peekNext())) {
+          number(c);
+        } else {
+          addToken(DOT);
+        }
         break;
       case '-':
-        addToken(MINUS);
+        if (match('=')) {
+          addToken(TOK_MINUS_ASSIGN);
+        } else if (match('-')) {
+          addToken(TOK_DEC);
+        } else {
+          addToken(MINUS);
+        }
         break;
       case '+':
-        addToken(PLUS);
+        if (match('=')) {
+          addToken(TOK_PLUS_ASSIGN);
+        } else if (match('+')) {
+          addToken(TOK_INC);
+        } else {
+          addToken(PLUS);
+        }
         break;
       case ';':
         addToken(SEMICOLON);
         break;
       case '*':
-        addToken(STAR);
+        if (match('=')) {
+          addToken(TOK_MUL_ASSIGN);
+        } else if (match('*')) {
+          if (match('=')) {
+            addToken(TOK_POW_ASSIGN);
+          } else {
+            addToken(TOK_POW);
+          }
+        } else {
+          addToken(TOK_STAR);
+        }
         break; // [slash]
+      case '%':
+        if (match('=')) {
+          addToken(TOK_MOD_ASSIGN);
+        } else {
+          addToken(TOK_MOD);
+        }
+        break;
       case '!':
-        addToken(match('=') ? BANG_EQUAL : BANG);
+        if (match('=')) {
+          addToken(match('=') ? TOK_STRICT_NEQ : TOK_NEQ);
+        } else {
+          addToken(BANG);
+        }
+        break;
+      case '&':
+        if (match('=')) {
+          addToken(TOK_AND_ASSIGN);
+        } else if (match('&')){
+          addToken(match('=') ? TOK_LAND_ASSIGN : TOK_LAND);
+        } else {
+          addToken(TOK_AND);
+        }
+        break;
+      case '|':
+        if (match('=')) {
+          addToken(TOK_OR_ASSIGN);
+        } else if (match('|')){
+          addToken(match('=') ? TOK_LOR_ASSIGN : TOK_LOR);
+        } else {
+          addToken(TOK_OR);
+        }
+        break;
+      case '^':
+        addToken(match('=')?TOK_XOR_ASSIGN:TOK_XOR);
+        break;
+      case '?':
+        if (match('?')) {
+          addToken(match('=') ? TOK_DOUBLE_QUESTION_MARK_ASSIGN : TOK_DOUBLE_QUESTION_MARK);
+        } else if (match('.') && !isDigit(peek())){
+          addToken(TOK_QUESTION_MARK_DOT);
+        } else {
+          addToken(TOK_QUESTION);
+        }
         break;
       case '=':
-        addToken(match('=') ? EQUAL_EQUAL : EQUAL);
+        if (match('=')) {
+          addToken(match('=') ? TOK_STRICT_EQ : TOK_EQ);
+        } else {
+          addToken(match('>') ? TOK_ARROW : TOK_ASSIGN);
+        }
         break;
       case '<':
-        addToken(match('=') ? LESS_EQUAL : LESS);
+        if (match('=')) {
+          addToken(TOK_LTE);
+        } else if(match('<')) {
+          addToken(match('=') ? TOK_SHL_ASSIGN : TOK_SHL);
+        } else {
+          addToken(TOK_LT);
+        }
         break;
       case '>':
-        addToken(match('=') ? GREATER_EQUAL : GREATER);
+        if (match('=')) {
+          addToken(TOK_GTE);
+        } else if (match('>')) {
+          if (match('>')) {
+            addToken(match('=') ? TOK_SHR_ASSIGN : TOK_SHR);
+          } else {
+            addToken(match('=') ? TOK_SAR_ASSIGN : TOK_SAR);
+          }
+        } else {
+          addToken(TokenType.TOK_GT);
+        }
+        break;
+      case '`':
+        template(c);
         break;
       case '/':
         if (match('/')) {
@@ -141,9 +233,7 @@ class Scanner {
           while (peek() != '\n' && !isAtEnd()) {
             advance();
           }
-          break;
-        }
-        if (match('*')) {
+        } else if (match('*')) {
           while (!isAtEnd() && (peek() != '*' || peekNext() != '/')) {
             if (peek() == '\n') {
               line++;
@@ -156,11 +246,18 @@ class Scanner {
           } else {
             Lox.error(line, "Need */ for comment");
           }
+        } else if (match('=')) {
+          addToken(TOK_DIV_ASSIGN);
         } else {
           addToken(SLASH);
         }
         break;
-
+      case '\\':
+      case '#':
+        if (match('u')) {
+          //todo
+        }
+        break;
       case '\f':
       case ' ':
       case '\r':
@@ -179,7 +276,7 @@ class Scanner {
 
       default:
         if (isDigit(c)) {
-          number();
+          number(c);
         } else if (isAlpha(c)) {
           identifier();
         } else {
@@ -200,19 +297,79 @@ class Scanner {
     addToken(type);
   }
 
-  private void number() {
-    while (isDigit(peek())) advance();
-
-    // Look for a fractional part.
-    if (peek() == '.' && isDigit(peekNext())) {
-      // Consume the "."
-      advance();
-
-      while (isDigit(peek())) advance();
+  //https://ecma-international.org/ecma-262/10.0/index.html#prod-NumericLiteral
+  private void number(char c) {
+    int radix = 0;
+    if (c == '0') {
+      if (match('x') || match('X')) {
+        radix = 16;
+      } else if (match('o') || match('O')) {
+        radix = 8;
+      } else if (match('b') || match('B')) {
+        radix = 2;
+      }
+      while (toDigit(peek()) < radix) {
+        advance();
+      }
+      addToken(TOK_NUMBER,
+        Integer.parseInt(source.substring(start + 2, current), radix));
+      return;
     }
 
-    addToken(NUMBER,
+    radix = 10;
+
+    while (toDigit(peek()) < radix) {
+      advance();
+    }
+    if (c != '.'
+      && peek() != '.'
+      && peek() != 'e'
+      && peek() != 'E') {
+      addToken(TOK_NUMBER,
+        Integer.parseInt(source.substring(start, current), radix));
+      return;
+    }
+
+    if (c == '.') {
+      if (!isDigit(peek())) {
+       unknowToken(c);
+      }
+    } else if (peek() == '.') {
+      advance();
+    }
+    while (isDigit(peek())) {
+      advance();
+    }
+
+    if (match('e') || match('E')) {
+      match('+');
+      match('-');
+      if (!isDigit(peek())) {
+        unknowToken(peek());
+        return;
+      }
+      while (isDigit(peek())) {
+        advance();
+      }
+    }
+    addToken(TOK_NUMBER,
       Double.parseDouble(source.substring(start, current)));
+  }
+
+  private void unknowToken(char c) {
+    Lox.error(line, "Uncaught SyntaxError: Unexpected token '"+c+"'");
+  }
+
+
+  private int toDigit(int c) {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    else if (c >= 'A' && c <= 'Z')
+      return c - 'A' + 10;
+    else if (c >= 'a' && c <= 'z')
+      return c - 'a' + 10;
+    else
+      return 36;
   }
 
   /**
@@ -289,5 +446,10 @@ class Scanner {
   private void addToken(TokenType type, Object literal) {
     String text = source.substring(start, current);
     tokens.add(new Token(type, text, literal, line));
+  }
+
+  //todo
+  private void template(char c) {
+
   }
 }

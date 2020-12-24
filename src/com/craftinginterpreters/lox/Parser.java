@@ -133,7 +133,7 @@ class Parser {
     Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
-    if (match(EQUAL)) {
+    if (match(TOK_ASSIGN)) {
       initializer = expression();
     }
 
@@ -185,7 +185,7 @@ class Parser {
   private Expr assignment() {
     Expr expr = or();
 
-    if (match(EQUAL)) {
+    if (match(TOK_ASSIGN)) {
       Token equals = previous();
       Expr value = assignment();
 
@@ -227,7 +227,7 @@ class Parser {
   private Expr equality() {
     Expr expr = comparison();
 
-    while (match(BANG_EQUAL, EQUAL_EQUAL)) {
+    while (match(BANG_EQUAL, TokenType.TOK_EQ)) {
       Token operator = previous();
       Expr right = comparison();
       expr = new Expr.Binary(expr, operator, right);
@@ -238,7 +238,7 @@ class Parser {
   private Expr comparison() {
     Expr expr = addition();
 
-    while (match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL)) {
+    while (match(TokenType.TOK_GT, TokenType.TOK_GTE, TokenType.TOK_LT, TokenType.TOK_LTE)) {
       Token operator = previous();
       Expr right = addition();
       expr = new Expr.Binary(expr, operator, right);
@@ -261,7 +261,7 @@ class Parser {
   private Expr multiplication() {
     Expr expr = unary();
 
-    while (match(SLASH, STAR)) {
+    while (match(SLASH, TOK_STAR)) {
       Token operator = previous();
       Expr right = unary();
       expr = new Expr.Binary(expr, operator, right);
@@ -316,7 +316,7 @@ class Parser {
     if (match(TOK_TRUE)) return new Expr.Literal(true);
     if (match(NIL)) return new Expr.Literal(null);
 
-    if (match(NUMBER, TOK_STRING)) {
+    if (match(TOK_NUMBER, TOK_STRING)) {
       return new Expr.Literal(previous().literal);
     }
 

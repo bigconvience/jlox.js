@@ -9,22 +9,18 @@ package com.craftinginterpreters.lox;
 enum TokenType {
     // Single-character tokens.
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, TOK_STAR, TOK_MOD,
 
     // One or two character tokens.
     BANG, BANG_EQUAL,
-    EQUAL, EQUAL_EQUAL,
-    GREATER, GREATER_EQUAL,
-    LESS, LESS_EQUAL,
-
-    // Literals.
-     NUMBER,
+    TOK_ASSIGN,
 
     // Keywords.
     AND,  NIL, OR,
     PRINT,
 
     //CommonToken:: https://ecma-international.org/ecma-262/10.0/index.html#sec-tokens
+    // Literals.
     TOK_NUMBER,
     TOK_STRING,
     TOK_TEMPLATE,
@@ -42,8 +38,11 @@ enum TokenType {
     // >>>= @https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unsigned_right_shift_assignment
     TOK_SHR_ASSIGN,
     TOK_AND_ASSIGN,
+    TOK_AND,
     TOK_XOR_ASSIGN,
+    TOK_XOR,
     TOK_OR_ASSIGN,
+    TOK_OR,
 
     TOK_POW_ASSIGN,
     TOK_LAND_ASSIGN,
@@ -73,6 +72,7 @@ enum TokenType {
     TOK_ELLIPSIS,
     TOK_DOUBLE_QUESTION_MARK,
     TOK_QUESTION_MARK_DOT,
+    TOK_QUESTION,
     TOK_ERROR,
     TOK_PRIVATE_NAME,
     TOK_EOF,

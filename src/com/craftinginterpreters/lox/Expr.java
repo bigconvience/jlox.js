@@ -21,8 +21,10 @@ abstract class Expr {
   // Nested Expr classes here...
 //> expr-assign
   static class Assign extends Expr {
-    Assign(Token name, Expr value) {
+    Assign(Token name, Expr.Variable left, TokenType operator, Expr value) {
       this.name = name;
+      this.left = left;
+      this.operator = operator;
       this.value = value;
     }
 
@@ -32,9 +34,11 @@ abstract class Expr {
     }
 
     final Token name;
+    final Expr.Variable left;
+    final TokenType operator;
     final Expr value;
   }
-//< expr-assign
+  //< expr-assign
 //> expr-binary
   static class Binary extends Expr {
     Binary(Expr left, Token operator, Expr right) {
@@ -52,7 +56,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-//< expr-binary
+  //< expr-binary
 //> expr-call
   static class Call extends Expr {
     Call(Expr callee, Token paren, List<Expr> arguments) {
@@ -70,7 +74,7 @@ abstract class Expr {
     final Token paren;
     final List<Expr> arguments;
   }
-//< expr-call
+  //< expr-call
 //> expr-get
   static class Get extends Expr {
     Get(Expr object, Token name) {
@@ -86,7 +90,7 @@ abstract class Expr {
     final Expr object;
     final Token name;
   }
-//< expr-get
+  //< expr-get
 //> expr-grouping
   static class Grouping extends Expr {
     Grouping(Expr expression) {
@@ -100,7 +104,7 @@ abstract class Expr {
 
     final Expr expression;
   }
-//< expr-grouping
+  //< expr-grouping
 //> expr-literal
   static class Literal extends Expr {
     Literal(Object value) {
@@ -114,7 +118,7 @@ abstract class Expr {
 
     final Object value;
   }
-//< expr-literal
+  //< expr-literal
 //> expr-logical
   static class Logical extends Expr {
     Logical(Expr left, Token operator, Expr right) {
@@ -132,7 +136,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-//< expr-logical
+  //< expr-logical
 //> expr-set
   static class Set extends Expr {
     Set(Expr object, Token name, Expr value) {
@@ -150,7 +154,7 @@ abstract class Expr {
     final Token name;
     final Expr value;
   }
-//< expr-set
+  //< expr-set
 //> expr-this
   static class This extends Expr {
     This(Token keyword) {
@@ -164,7 +168,7 @@ abstract class Expr {
 
     final Token keyword;
   }
-//< expr-this
+  //< expr-this
 //> expr-unary
   static class Unary extends Expr {
     Unary(Token operator, Expr right) {
@@ -180,7 +184,7 @@ abstract class Expr {
     final Token operator;
     final Expr right;
   }
-//< expr-unary
+  //< expr-unary
 //> expr-variable
   static class Variable extends Expr {
     Variable(Token name) {

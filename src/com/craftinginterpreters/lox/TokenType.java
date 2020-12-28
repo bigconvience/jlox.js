@@ -14,6 +14,9 @@ enum TokenType {
     // One or two character tokens.
     BANG, BANG_EQUAL,
     TOK_ASSIGN,
+    TOK_AND,
+    TOK_XOR,
+    TOK_OR,
 
     // Keywords.
     AND,  NIL, OR,
@@ -38,13 +41,10 @@ enum TokenType {
     // >>>= @https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unsigned_right_shift_assignment
     TOK_SHR_ASSIGN,
     TOK_AND_ASSIGN,
-    TOK_AND,
     TOK_XOR_ASSIGN,
-    TOK_XOR,
     TOK_OR_ASSIGN,
-    TOK_OR,
-
     TOK_POW_ASSIGN,
+
     TOK_LAND_ASSIGN,
     TOK_LOR_ASSIGN,
     // ??= @https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_nullish_assignment

@@ -182,22 +182,56 @@ class Parser {
     consume(RIGHT_BRACE, "Expect '}' after block.");
     return statements;
   }
-  private Expr assignment() {
+
+  private Expr condition() {
+    Expr expr = coalesce();
+
+    return expr;
+  }
+
+  private Expr coalesce() {
     Expr expr = or();
 
-    if (match(TOK_ASSIGN)) {
-      Token equals = previous();
+    return expr;
+  }
+
+  private Expr assignment() {
+
+    if (match(TOK_YIELD)) {
+      return null;
+    }
+
+    Expr expr = condition();
+
+    if (match(TOK_ASSIGN,
+      TOK_MUL_ASSIGN,
+      TOK_DIV_ASSIGN,
+      TOK_MOD_ASSIGN,
+      TOK_PLUS_ASSIGN,
+      TOK_MINUS_ASSIGN,
+      TOK_SHL_ASSIGN,
+      TOK_SAR_ASSIGN,
+      TOK_SHR_ASSIGN,
+      TOK_AND_ASSIGN,
+      TOK_XOR_ASSIGN,
+      TOK_OR_ASSIGN,
+      TOK_POW_ASSIGN,
+      TOK_LAND_ASSIGN,
+      TOK_LOR_ASSIGN,
+      TOK_LAND_ASSIGN,
+      TOK_LOR_ASSIGN,TOK_DOUBLE_QUESTION_MARK_ASSIGN)) {
+      Token operator = previous();
       Expr value = assignment();
 
       if (expr instanceof Expr.Variable) {
         Token name = ((Expr.Variable)expr).name;
-        return new Expr.Assign(name, value);
+        return new Expr.Assign(name, (Expr.Variable) expr, operator.type, value);
       } else if (expr instanceof Expr.Get) {
         Expr.Get get = (Expr.Get)expr;
         return new Expr.Set(get.object, get.name, value);
       }
 
-      error(equals, "Invalid assignment target."); // [no-throw]
+      error(operator, "Invalid assignment target."); // [no-throw]
     }
 
     return expr;
@@ -276,8 +310,15 @@ class Parser {
       return new Expr.Unary(operator, right);
     }
 
-    return call();
+    return postfix();
   }
+
+  private Expr postfix() {
+    Expr expr = call();
+
+    return expr;
+  }
+
   private Expr finishCall(Expr callee) {
     List<Expr> arguments = new ArrayList<>();
     if (!check(RIGHT_PAREN)) {

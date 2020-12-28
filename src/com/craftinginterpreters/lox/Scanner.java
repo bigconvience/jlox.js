@@ -312,7 +312,7 @@ class Scanner {
         advance();
       }
       addToken(TOK_NUMBER,
-        Integer.parseInt(source.substring(start + 2, current), radix));
+        (double)Integer.parseInt(source.substring(start + 2, current), radix));
       return;
     }
 
@@ -326,7 +326,7 @@ class Scanner {
       && peek() != 'e'
       && peek() != 'E') {
       addToken(TOK_NUMBER,
-        Integer.parseInt(source.substring(start, current), radix));
+        (double)Integer.parseInt(source.substring(start, current), radix));
       return;
     }
 

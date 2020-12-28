@@ -258,6 +258,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitConditionExpr(Expr.Condition expr) {
+    Object first = evaluate(expr.first);
+    return isTruthy(first) ? evaluate(expr.middle) : evaluate(expr.last);
+  }
+
+  @Override
   public Object visitBinaryExpr(Expr.Binary expr) {
     Object left = evaluate(expr.left);
     Object right = evaluate(expr.right); // [left]

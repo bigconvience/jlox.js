@@ -101,6 +101,11 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
   }
 
   @Override
+  public String visitConditionExpr(Expr.Condition expr) {
+    return parenthesize2("?:", expr.first, expr.middle, expr.last);
+  }
+
+  @Override
   public String visitBinaryExpr(Expr.Binary expr) {
     return parenthesize(expr.operator.lexeme, expr.left, expr.right);
   }

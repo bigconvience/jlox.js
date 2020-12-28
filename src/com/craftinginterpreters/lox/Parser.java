@@ -186,6 +186,13 @@ class Parser {
   private Expr condition() {
     Expr expr = coalesce();
 
+    if (match(TOK_QUESTION)) {
+      Expr middle = assignment();
+      if (match(TOK_COLON)) {
+        Expr last = assignment();
+         return new Expr.Condition(expr, middle, last);
+      }
+    }
     return expr;
   }
 

@@ -17,6 +17,8 @@ enum TokenType {
     TOK_AND,
     TOK_XOR,
     TOK_OR,
+    TOK_QUESTION,
+    TOK_COLON,
 
     // Keywords.
     AND,  NIL, OR,
@@ -72,7 +74,6 @@ enum TokenType {
     TOK_ELLIPSIS,
     TOK_DOUBLE_QUESTION_MARK,
     TOK_QUESTION_MARK_DOT,
-    TOK_QUESTION,
     TOK_ERROR,
     TOK_PRIVATE_NAME,
     TOK_EOF,

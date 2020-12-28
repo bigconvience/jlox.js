@@ -6,6 +6,7 @@ import java.util.List;
 abstract class Expr {
   interface Visitor<R> {
     R visitAssignExpr(Assign expr);
+    R visitConditionExpr(Condition expr);
     R visitBinaryExpr(Binary expr);
     R visitCallExpr(Call expr);
     R visitGetExpr(Get expr);
@@ -39,6 +40,24 @@ abstract class Expr {
     final Expr value;
   }
   //< expr-assign
+
+  static class Condition extends Expr {
+    Condition(Expr first, Expr middle, Expr last) {
+      this.first = first;
+      this.middle = middle;
+      this.last = last;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitConditionExpr(this);
+    }
+
+    final Expr first;
+    final Expr middle;
+    final Expr last;
+  }
+
 //> expr-binary
   static class Binary extends Expr {
     Binary(Expr left, Token operator, Expr right) {

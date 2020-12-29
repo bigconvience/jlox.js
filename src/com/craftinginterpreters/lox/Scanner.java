@@ -165,6 +165,9 @@ class Scanner {
           addToken(BANG);
         }
         break;
+      case '~':
+        addToken(BITWISE_BANG);
+        break;
       case '&':
         if (match('=')) {
           addToken(TOK_AND_ASSIGN);

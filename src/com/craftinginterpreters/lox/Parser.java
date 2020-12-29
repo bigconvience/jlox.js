@@ -7,7 +7,8 @@ import java.util.List;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
-  private static class ParseError extends RuntimeException {}
+  private static class ParseError extends RuntimeException {
+  }
 
   private final List<Token> tokens;
   private int current = 0;
@@ -15,6 +16,7 @@ class Parser {
   Parser(List<Token> tokens) {
     this.tokens = tokens;
   }
+
   List<Stmt> parse() {
     List<Stmt> statements = new ArrayList<>();
     while (!isAtEnd()) {
@@ -23,9 +25,11 @@ class Parser {
 
     return statements; // [parse-error-handling]
   }
+
   private Expr expression() {
     return assignment();
   }
+
   private Stmt declaration() {
     try {
       if (match(TOK_CLASS)) return classDeclaration();
@@ -38,6 +42,7 @@ class Parser {
       return null;
     }
   }
+
   private Stmt classDeclaration() {
     Token name = consume(TOK_IDENTIFIER, "Expect class name.");
     consume(LEFT_BRACE, "Expect '{' before class body.");
@@ -51,6 +56,7 @@ class Parser {
 
     return new Stmt.Class(name, methods);
   }
+
   private Stmt statement() {
     if (match(FOR)) return forStatement();
     if (match(TOK_IF)) return ifStatement();
@@ -61,6 +67,7 @@ class Parser {
 
     return expressionStatement();
   }
+
   private Stmt forStatement() {
     consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
@@ -88,8 +95,8 @@ class Parser {
 
     if (increment != null) {
       body = new Stmt.Block(Arrays.asList(
-          body,
-          new Stmt.Expression(increment)));
+        body,
+        new Stmt.Expression(increment)));
     }
 
     if (condition == null) condition = new Expr.Literal(true);
@@ -101,6 +108,7 @@ class Parser {
 
     return body;
   }
+
   private Stmt ifStatement() {
     consume(LEFT_PAREN, "Expect '(' after 'if'.");
     Expr condition = expression();
@@ -114,11 +122,13 @@ class Parser {
 
     return new Stmt.If(condition, thenBranch, elseBranch);
   }
+
   private Stmt printStatement() {
     Expr value = expression();
     consume(SEMICOLON, "Expect ';' after value.");
     return new Stmt.Print(value);
   }
+
   private Stmt returnStatement() {
     Token keyword = previous();
     Expr value = null;
@@ -129,6 +139,7 @@ class Parser {
     consume(SEMICOLON, "Expect ';' after return value.");
     return new Stmt.Return(keyword, value);
   }
+
   private Stmt varDeclaration() {
     Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
 
@@ -140,6 +151,7 @@ class Parser {
     consume(SEMICOLON, "Expect ';' after variable declaration.");
     return new Stmt.Var(name, initializer);
   }
+
   private Stmt whileStatement() {
     consume(LEFT_PAREN, "Expect '(' after 'while'.");
     Expr condition = expression();
@@ -148,11 +160,13 @@ class Parser {
 
     return new Stmt.While(condition, body);
   }
+
   private Stmt expressionStatement() {
     Expr expr = expression();
     consume(SEMICOLON, "Expect ';' after expression.");
     return new Stmt.Expression(expr);
   }
+
   private Stmt.Function function(String kind) {
     Token name = consume(TOK_IDENTIFIER, "Expect " + kind + " name.");
     consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
@@ -172,6 +186,7 @@ class Parser {
     List<Stmt> body = block();
     return new Stmt.Function(name, parameters, body);
   }
+
   private List<Stmt> block() {
     List<Stmt> statements = new ArrayList<>();
 
@@ -190,7 +205,7 @@ class Parser {
       Expr middle = assignment();
       if (match(TOK_COLON)) {
         Expr last = assignment();
-         return new Expr.Condition(expr, middle, last);
+        return new Expr.Condition(expr, middle, last);
       }
     }
     return expr;
@@ -229,15 +244,15 @@ class Parser {
       TOK_LAND_ASSIGN,
       TOK_LOR_ASSIGN,
       TOK_LAND_ASSIGN,
-      TOK_LOR_ASSIGN,TOK_DOUBLE_QUESTION_MARK_ASSIGN)) {
+      TOK_LOR_ASSIGN, TOK_DOUBLE_QUESTION_MARK_ASSIGN)) {
       Token operator = previous();
       Expr value = assignment();
 
       if (expr instanceof Expr.Variable) {
-        Token name = ((Expr.Variable)expr).name;
+        Token name = ((Expr.Variable) expr).name;
         return new Expr.Assign(name, (Expr.Variable) expr, operator.type, value);
       } else if (expr instanceof Expr.Get) {
-        Expr.Get get = (Expr.Get)expr;
+        Expr.Get get = (Expr.Get) expr;
         return new Expr.Set(get.object, get.name, value);
       }
 
@@ -246,6 +261,7 @@ class Parser {
 
     return expr;
   }
+
   private Expr or() {
     Expr expr = and();
 
@@ -257,6 +273,7 @@ class Parser {
 
     return expr;
   }
+
   private Expr and() {
     Expr expr = bitwiseOr();
 
@@ -314,11 +331,12 @@ class Parser {
 
     return expr;
   }
+
   private Expr comparison() {
     Expr expr = bitwiseShift();
 
     while (match(TokenType.TOK_GT, TokenType.TOK_GTE, TokenType.TOK_LT, TokenType.TOK_LTE,
-          TOK_IN, TOK_INSTANCEOF)) {
+      TOK_IN, TOK_INSTANCEOF)) {
       Token operator = previous();
       Expr right = addition();
       expr = new Expr.Binary(expr, operator, right);
@@ -338,6 +356,7 @@ class Parser {
 
     return expr;
   }
+
   private Expr addition() {
     Expr expr = multiplication();
 
@@ -351,18 +370,31 @@ class Parser {
   }
 
   private Expr multiplication() {
-    Expr expr = unary();
+    Expr expr = pow();
 
     while (match(SLASH, TOK_STAR, TOK_MOD)) {
       Token operator = previous();
-      Expr right = unary();
+      Expr right = pow();
       expr = new Expr.Binary(expr, operator, right);
     }
 
     return expr;
   }
+
+  private Expr pow() {
+    Expr expr = unary();
+    while (match(TOK_POW)) {
+      Token operator = previous();
+      Expr right = pow();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+    return expr;
+  }
+
   private Expr unary() {
-    if (match(BANG, MINUS)) {
+    if (match(MINUS, PLUS, BANG, BITWISE_BANG,
+      TOK_DEC, TOK_INC,
+      TOK_VOID, TOK_TYPEOF, TOK_DELETE, TOK_AWAIT)) {
       Token operator = previous();
       Expr right = unary();
       return new Expr.Unary(operator, right);
@@ -392,6 +424,7 @@ class Parser {
 
     return new Expr.Call(callee, paren, arguments);
   }
+
   private Expr call() {
     Expr expr = primary();
 
@@ -400,7 +433,7 @@ class Parser {
         expr = finishCall(expr);
       } else if (match(DOT)) {
         Token name = consume(TOK_IDENTIFIER,
-            "Expect property name after '.'.");
+          "Expect property name after '.'.");
         expr = new Expr.Get(expr, name);
       } else {
         break;
@@ -433,6 +466,7 @@ class Parser {
 
     throw error(peek(), "Expect expression.");
   }
+
   private boolean match(TokenType... types) {
     for (TokenType type : types) {
       if (check(type)) {
@@ -443,19 +477,23 @@ class Parser {
 
     return false;
   }
+
   private Token consume(TokenType type, String message) {
     if (check(type)) return advance();
 
     throw error(peek(), message);
   }
+
   private boolean check(TokenType type) {
     if (isAtEnd()) return false;
     return peek().type == type;
   }
+
   private Token advance() {
     if (!isAtEnd()) current++;
     return previous();
   }
+
   private boolean isAtEnd() {
     return peek().type == EOF;
   }
@@ -467,10 +505,12 @@ class Parser {
   private Token previous() {
     return tokens.get(current - 1);
   }
+
   private ParseError error(Token token, String message) {
     Lox.error(token, message);
     return new ParseError();
   }
+
   private void synchronize() {
     advance();
 

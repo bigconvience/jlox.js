@@ -12,7 +12,7 @@ enum TokenType {
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, TOK_STAR, TOK_MOD,
 
     // One or two character tokens.
-    BANG, BANG_EQUAL,
+    BANG, BITWISE_BANG,
     TOK_ASSIGN,
     TOK_BIT_AND,
     TOK_XOR,

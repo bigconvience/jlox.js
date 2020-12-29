@@ -326,6 +326,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case TOK_MOD:
         checkNumberOperands(expr.operator, left, right);
         return (double) left % (double) right;
+      case TOK_POW:
+        checkNumberOperands(expr.operator, left, right);
+        return Math.pow((double) left, (double) right);
     }
 
     // Unreachable.

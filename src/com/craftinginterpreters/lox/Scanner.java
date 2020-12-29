@@ -13,7 +13,6 @@ class Scanner {
   static {
     keywords = new HashMap<>();
     keywords.put("and", AND);
-    keywords.put("nil", NIL);
     keywords.put("or", OR);
     keywords.put("print", PRINT);
 

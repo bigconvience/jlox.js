@@ -7,6 +7,7 @@ abstract class Expr {
   interface Visitor<R> {
     R visitAssignExpr(Assign expr);
     R visitConditionExpr(Condition expr);
+    R visitCoalesceExpr(Coalesce expr);
     R visitBinaryExpr(Binary expr);
     R visitCallExpr(Call expr);
     R visitGetExpr(Get expr);
@@ -56,6 +57,21 @@ abstract class Expr {
     final Expr first;
     final Expr middle;
     final Expr last;
+  }
+
+  static class Coalesce extends Expr {
+    Coalesce(Expr left, Expr right) {
+      this.left = left;
+      this.right = right;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitCoalesceExpr(this);
+    }
+
+    final Expr left;
+    final Expr right;
   }
 
 //> expr-binary

@@ -198,7 +198,10 @@ class Parser {
 
   private Expr coalesce() {
     Expr expr = or();
-
+    if (match(TOK_DOUBLE_QUESTION_MARK)) {
+      Expr right = equality();
+      return new Expr.Coalesce(expr, right);
+    }
     return expr;
   }
 
@@ -362,7 +365,7 @@ class Parser {
   private Expr primary() {
     if (match(TOK_FALSE)) return new Expr.Literal(false);
     if (match(TOK_TRUE)) return new Expr.Literal(true);
-    if (match(NIL)) return new Expr.Literal(null);
+    if (match(TOK_NULL)) return new Expr.Literal(null);
 
     if (match(TOK_NUMBER, TOK_STRING)) {
       return new Expr.Literal(previous().literal);

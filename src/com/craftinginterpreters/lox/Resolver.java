@@ -209,6 +209,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolveLocal(expr, expr.name);
     return null;
   }
+
+  @Override
+  public Void visitCoalesceExpr(Expr.Coalesce expr) {
+    resolve(expr.left);
+    resolve(expr.right);
+    return null;
+  }
+
   private void resolve(Stmt stmt) {
     stmt.accept(this);
   }

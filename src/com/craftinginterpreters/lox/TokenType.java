@@ -21,7 +21,7 @@ enum TokenType {
     TOK_COLON,
 
     // Keywords.
-    AND,  NIL, OR,
+    AND,  OR,
     PRINT,
 
     //CommonToken:: https://ecma-international.org/ecma-262/10.0/index.html#sec-tokens

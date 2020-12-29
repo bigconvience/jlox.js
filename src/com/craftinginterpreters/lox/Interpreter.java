@@ -264,6 +264,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitCoalesceExpr(Expr.Coalesce expr) {
+    Object left = evaluate(expr.left);
+    return left != null ? left : evaluate(expr.right);
+  }
+
+  @Override
   public Object visitBinaryExpr(Expr.Binary expr) {
     Object left = evaluate(expr.left);
     Object right = evaluate(expr.right); // [left]

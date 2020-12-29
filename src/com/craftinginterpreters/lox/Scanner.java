@@ -12,8 +12,6 @@ class Scanner {
 
   static {
     keywords = new HashMap<>();
-    keywords.put("and", AND);
-    keywords.put("or", OR);
     keywords.put("print", PRINT);
 
     // 关键字 @https://ecma-international.org/ecma-262/10.0/index.html#sec-reserved-words
@@ -173,7 +171,7 @@ class Scanner {
         } else if (match('&')){
           addToken(match('=') ? TOK_LAND_ASSIGN : TOK_LAND);
         } else {
-          addToken(TOK_AND);
+          addToken(TOK_BIT_AND);
         }
         break;
       case '|':
@@ -182,11 +180,11 @@ class Scanner {
         } else if (match('|')){
           addToken(match('=') ? TOK_LOR_ASSIGN : TOK_LOR);
         } else {
-          addToken(TOK_OR);
+          addToken(TOK_BIT_OR);
         }
         break;
       case '^':
-        addToken(match('=')?TOK_XOR_ASSIGN:TOK_XOR);
+        addToken(match('=')?TOK_XOR_ASSIGN: TOK_XOR);
         break;
       case '?':
         if (match('?')) {

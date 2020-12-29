@@ -14,6 +14,7 @@ abstract class Expr {
     R visitGroupingExpr(Grouping expr);
     R visitLiteralExpr(Literal expr);
     R visitLogicalExpr(Logical expr);
+    R visitBitwiseExpr(Bitwise expr);
     R visitSetExpr(Set expr);
     R visitThisExpr(This expr);
     R visitUnaryExpr(Unary expr);
@@ -165,6 +166,23 @@ abstract class Expr {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitLogicalExpr(this);
+    }
+
+    final Expr left;
+    final Token operator;
+    final Expr right;
+  }
+
+  static class Bitwise extends Expr {
+    Bitwise(Expr left, Token operator, Expr right) {
+      this.left = left;
+      this.operator = operator;
+      this.right = right;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitBitwiseExpr(this);
     }
 
     final Expr left;

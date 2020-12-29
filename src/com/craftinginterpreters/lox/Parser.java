@@ -249,7 +249,7 @@ class Parser {
   private Expr or() {
     Expr expr = and();
 
-    while (match(OR)) {
+    while (match(TOK_LOR)) {
       Token operator = previous();
       Expr right = and();
       expr = new Expr.Logical(expr, operator, right);
@@ -258,9 +258,9 @@ class Parser {
     return expr;
   }
   private Expr and() {
-    Expr expr = equality();
+    Expr expr = bitwiseOr();
 
-    while (match(AND)) {
+    while (match(TOK_LAND)) {
       Token operator = previous();
       Expr right = equality();
       expr = new Expr.Logical(expr, operator, right);
@@ -268,6 +268,40 @@ class Parser {
 
     return expr;
   }
+
+  private Expr bitwiseOr() {
+    Expr expr = bitwiseXor();
+    while (match(TOK_BIT_OR)) {
+      Token operator = previous();
+      Expr right = equality();
+      expr = new Expr.Bitwise(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private Expr bitwiseXor() {
+    Expr expr = bitwiseAnd();
+    while (match(TOK_XOR)) {
+      Token operator = previous();
+      Expr right = equality();
+      expr = new Expr.Bitwise(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private Expr bitwiseAnd() {
+    Expr expr = equality();
+    while (match(TOK_BIT_AND)) {
+      Token operator = previous();
+      Expr right = equality();
+      expr = new Expr.Bitwise(expr, operator, right);
+    }
+
+    return expr;
+  }
+
   private Expr equality() {
     Expr expr = comparison();
 

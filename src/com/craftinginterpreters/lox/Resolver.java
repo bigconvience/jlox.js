@@ -174,6 +174,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolve(expr.right);
     return null;
   }
+
+  @Override
+  public Void visitBitwiseExpr(Expr.Bitwise expr) {
+    resolve(expr.left);
+    resolve(expr.right);
+    return null;
+  }
+
   @Override
   public Void visitSetExpr(Expr.Set expr) {
     resolve(expr.value);

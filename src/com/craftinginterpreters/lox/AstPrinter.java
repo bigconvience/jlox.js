@@ -142,6 +142,11 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
   }
 
   @Override
+  public String visitBitwiseExpr(Expr.Bitwise expr) {
+    return parenthesize(expr.operator.lexeme, expr.left, expr.right);
+  }
+
+  @Override
   public String visitSetExpr(Expr.Set expr) {
     return parenthesize2("=",
         expr.object, expr.name.lexeme, expr.value);

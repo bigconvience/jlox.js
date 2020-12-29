@@ -160,11 +160,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       }
     }
 
-    switch (expr.operator) {
+    switch (op) {
       case TOK_MUL_ASSIGN:
-        if (value instanceof Number && lvalue instanceof Number) {
-          value = (double) lvalue * (double) value;
-        }
+        checkNumberOperands(expr.name, value, lvalue);
+        value = (double) lvalue * (double) value;
         break;
       case TOK_DIV_ASSIGN:
         if (value instanceof Number && lvalue instanceof Number) {
@@ -373,6 +372,21 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     return evaluate(expr.right);
+  }
+
+  @Override
+  public Object visitBitwiseExpr(Expr.Bitwise expr) {
+    Object left = evaluate(expr.left);
+    Object right = evaluate(expr.right);
+    checkNumberOperands(expr.operator, left, right);
+    TokenType type = expr.operator.type;
+    if (type == TOK_BIT_OR) {
+      return (int) left | (int) right;
+    } else if (type == TOK_XOR) {
+      return (int) left ^ (int) right;
+    } else  {
+      return (int) left & (int) right;
+    }
   }
 
   @Override

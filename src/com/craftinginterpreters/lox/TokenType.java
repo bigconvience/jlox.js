@@ -14,9 +14,9 @@ enum TokenType {
     // One or two character tokens.
     BANG, BANG_EQUAL,
     TOK_ASSIGN,
-    TOK_AND,
+    TOK_BIT_AND,
     TOK_XOR,
-    TOK_OR,
+    TOK_BIT_OR,
     TOK_QUESTION,
     TOK_COLON,
 

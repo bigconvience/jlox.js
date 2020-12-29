@@ -379,13 +379,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object left = evaluate(expr.left);
     Object right = evaluate(expr.right);
     checkNumberOperands(expr.operator, left, right);
+    int leftInt = Utils.toInt(left);
+    int rightInt = Utils.toInt(right);
     TokenType type = expr.operator.type;
     if (type == TOK_BIT_OR) {
-      return (int) left | (int) right;
+      return  leftInt |  rightInt;
     } else if (type == TOK_XOR) {
-      return (int) left ^ (int) right;
+      return  leftInt ^ rightInt;
     } else  {
-      return (int) left & (int) right;
+      return  leftInt & rightInt;
     }
   }
 

@@ -305,7 +305,8 @@ class Parser {
   private Expr equality() {
     Expr expr = comparison();
 
-    while (match(BANG_EQUAL, TokenType.TOK_EQ)) {
+    while (match(TOK_NEQ, TokenType.TOK_EQ,
+      TOK_STRICT_EQ, TOK_STRICT_NEQ)) {
       Token operator = previous();
       Expr right = comparison();
       expr = new Expr.Binary(expr, operator, right);
@@ -314,9 +315,22 @@ class Parser {
     return expr;
   }
   private Expr comparison() {
+    Expr expr = bitwiseShift();
+
+    while (match(TokenType.TOK_GT, TokenType.TOK_GTE, TokenType.TOK_LT, TokenType.TOK_LTE,
+          TOK_IN, TOK_INSTANCEOF)) {
+      Token operator = previous();
+      Expr right = addition();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private Expr bitwiseShift() {
     Expr expr = addition();
 
-    while (match(TokenType.TOK_GT, TokenType.TOK_GTE, TokenType.TOK_LT, TokenType.TOK_LTE)) {
+    while (match(TOK_SHL, TOK_SHR, TOK_SAR)) {
       Token operator = previous();
       Expr right = addition();
       expr = new Expr.Binary(expr, operator, right);
@@ -339,7 +353,7 @@ class Parser {
   private Expr multiplication() {
     Expr expr = unary();
 
-    while (match(SLASH, TOK_STAR)) {
+    while (match(SLASH, TOK_STAR, TOK_MOD)) {
       Token operator = previous();
       Expr right = unary();
       expr = new Expr.Binary(expr, operator, right);

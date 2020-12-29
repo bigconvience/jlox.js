@@ -221,7 +221,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
       case TOK_POW_ASSIGN:
         if (value instanceof Number && lvalue instanceof Number) {
-          value = Math.pow((double) lvalue, (double)value);
+          value = Math.pow((double) lvalue, (double) value);
         }
         break;
 
@@ -274,10 +274,14 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object right = evaluate(expr.right); // [left]
 
     switch (expr.operator.type) {
-      case BANG_EQUAL:
+      case TOK_NEQ:
         return !isEqual(left, right);
       case TOK_EQ:
         return isEqual(left, right);
+      case TOK_STRICT_EQ:
+        return isStrictEqual(left, right);
+      case TOK_STRICT_NEQ:
+        return !isStrictEqual(left, right);
       case TOK_GT:
         checkNumberOperands(expr.operator, left, right);
         return (double) left > (double) right;
@@ -290,6 +294,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case TOK_LTE:
         checkNumberOperands(expr.operator, left, right);
         return (double) left <= (double) right;
+      case TOK_SHL:
+        checkNumberOperands(expr.operator, left, right);
+        return Utils.toInt(left) << Utils.toInt(right);
+      case TOK_SAR:
+        checkNumberOperands(expr.operator, left, right);
+        return Utils.toInt(left) >> Utils.toInt(right);
+      case TOK_SHR:
+        checkNumberOperands(expr.operator, left, right);
+        return Utils.toInt(left) >>> Utils.toInt(right);
       case MINUS:
         checkNumberOperands(expr.operator, left, right);
         return (double) left - (double) right;
@@ -310,6 +323,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case TOK_STAR:
         checkNumberOperands(expr.operator, left, right);
         return (double) left * (double) right;
+      case TOK_MOD:
+        checkNumberOperands(expr.operator, left, right);
+        return (double) left % (double) right;
     }
 
     // Unreachable.
@@ -365,7 +381,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitLogicalExpr(Expr.Logical expr) {
     Object left = evaluate(expr.left);
 
-    if (expr.operator.type == TokenType.OR) {
+    if (expr.operator.type == TokenType.TOK_LOR) {
       if (isTruthy(left)) return left;
     } else {
       if (!isTruthy(left)) return left;
@@ -383,11 +399,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     int rightInt = Utils.toInt(right);
     TokenType type = expr.operator.type;
     if (type == TOK_BIT_OR) {
-      return  leftInt |  rightInt;
+      return leftInt | rightInt;
     } else if (type == TOK_XOR) {
-      return  leftInt ^ rightInt;
-    } else  {
-      return  leftInt & rightInt;
+      return leftInt ^ rightInt;
+    } else {
+      return leftInt & rightInt;
     }
   }
 
@@ -457,7 +473,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     return true;
   }
 
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality
   private boolean isEqual(Object a, Object b) {
+    // todo
+    if (a == null && b == null) return true;
+    if (a == null) return false;
+
+    return a.equals(b);
+  }
+
+  private boolean isStrictEqual(Object a, Object b) {
     // nil is only equal to nil.
     if (a == null && b == null) return true;
     if (a == null) return false;

@@ -152,12 +152,14 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object lvalue = null;
     TokenType op = expr.operator;
 
-    if (op != TOK_DOUBLE_QUESTION_MARK_ASSIGN
-      || op != TOK_ASSIGN) {
-      lvalue = visitVariableExpr(expr.left);
-      if (op != TOK_DOUBLE_QUESTION_MARK_ASSIGN) {
-        value = evaluate(expr.value);
-      }
+
+    if (op == TOK_DOUBLE_QUESTION_MARK_ASSIGN) {
+      lvalue = evaluate(expr.left);
+    } else if (op == TOK_ASSIGN) {
+      value = evaluate(expr.value);
+    } else  {
+      value = evaluate(expr.value);
+      lvalue = evaluate(expr.left);
     }
 
     switch (op) {
@@ -238,7 +240,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         break;
 
       case TOK_DOUBLE_QUESTION_MARK_ASSIGN:
-        if (value == null) {
+        if (lvalue == null) {
           value = evaluate(expr.value);
         }
         break;

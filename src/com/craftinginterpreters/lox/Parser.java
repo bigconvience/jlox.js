@@ -450,7 +450,7 @@ class Parser {
     if (match(TOK_TRUE)) return new Expr.Literal(true);
     if (match(TOK_NULL)) return new Expr.Literal(null);
 
-    if (match(TOK_NUMBER, TOK_STRING)) {
+    if (match(TOK_NUMBER, TOK_STRING, TOK_TEMPLATE)) {
       return new Expr.Literal(previous().literal);
     }
 

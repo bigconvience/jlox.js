@@ -303,6 +303,7 @@ class Scanner {
   //https://ecma-international.org/ecma-262/10.0/index.html#prod-NumericLiteral
   private void number(char c) {
     int radix = 0;
+    int startIndex = start;
     if (c == '0') {
       if (match('x') || match('X')) {
         radix = 16;
@@ -311,11 +312,17 @@ class Scanner {
       } else if (match('b') || match('B')) {
         radix = 2;
       }
-      while (toDigit(peek()) < radix) {
-        advance();
+      if (radix == 0) {
+        radix = 10;
+      } else {
+        startIndex = start + 2;
+        while (toDigit(peek()) < radix) {
+          advance();
+        }
       }
+
       addToken(TOK_NUMBER,
-        (double)Integer.parseInt(source.substring(start + 2, current), radix));
+        (double)Integer.parseInt(source.substring(startIndex, current), radix));
       return;
     }
 

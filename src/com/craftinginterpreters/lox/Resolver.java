@@ -206,6 +206,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolve(expr.right);
     return null;
   }
+
+  @Override
+  public Void visitPostfixExpr(Expr.Postfix expr) {
+    resolve(expr.left);
+    return null;
+  }
+
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
     if (!scopes.isEmpty() &&

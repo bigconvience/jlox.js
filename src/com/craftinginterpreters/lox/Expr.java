@@ -18,6 +18,7 @@ abstract class Expr {
     R visitSetExpr(Set expr);
     R visitThisExpr(This expr);
     R visitUnaryExpr(Unary expr);
+    R visitPostfixExpr(Postfix expr);
     R visitVariableExpr(Variable expr);
   }
 
@@ -238,6 +239,21 @@ abstract class Expr {
     final Expr right;
   }
   //< expr-unary
+
+  static class Postfix extends Expr {
+    Postfix(Token operator, Expr left) {
+      this.operator = operator;
+      this.left = left;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitPostfixExpr(this);
+    }
+
+    final Token operator;
+    final Expr left;
+  }
 //> expr-variable
   static class Variable extends Expr {
     Variable(Token name) {

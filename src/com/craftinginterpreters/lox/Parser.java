@@ -399,13 +399,15 @@ class Parser {
       Expr right = unary();
       return new Expr.Unary(operator, right);
     }
-
     return postfix();
   }
 
   private Expr postfix() {
     Expr expr = call();
-
+    if (match(TOK_DEC, TOK_INC)) {
+      Token token = previous();
+      return new Expr.Postfix(token, expr);
+    }
     return expr;
   }
 

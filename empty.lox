@@ -1,4 +1,4 @@
-print 3**3;
+print 3**2**2;
 var $1;
 var $2 = null;
 $1 = 1 !== 2;

@@ -163,6 +163,11 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
   }
 
   @Override
+  public String visitPostfixExpr(Expr.Postfix expr) {
+    return parenthesize(expr.operator.lexeme, expr.left);
+  }
+
+  @Override
   public String visitVariableExpr(Expr.Variable expr) {
     return expr.name.lexeme;
   }

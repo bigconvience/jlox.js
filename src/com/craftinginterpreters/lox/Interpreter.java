@@ -429,15 +429,52 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitPostfixExpr(Expr.Postfix expr) {
+    Object left = evaluate(expr.left);
+    switch (expr.operator.type) {
+      case TOK_DEC:
+        //todo
+        return null;
+      case TOK_INC:
+        //todo
+        return null;
+    }
+    return null;
+  }
+
+  @Override
   public Object visitUnaryExpr(Expr.Unary expr) {
     Object right = evaluate(expr.right);
 
     switch (expr.operator.type) {
       case BANG:
         return !isTruthy(right);
+      case BITWISE_BANG:
+        return ~Utils.toInt(right);
       case MINUS:
         checkNumberOperand(expr.operator, right);
         return -(double) right;
+      case PLUS:
+        checkNumberOperand(expr.operator, right);
+        return right;
+      case TOK_DEC:
+        //todo
+        return right;
+      case TOK_INC:
+        //todo
+        return right;
+      case TOK_VOID:
+        //todo
+        return right;
+      case TOK_TYPEOF:
+        //todo
+        return right;
+      case TOK_DELETE:
+        //todo
+        return right;
+      case TOK_AWAIT:
+        //todo
+        return right;
     }
 
     // Unreachable.

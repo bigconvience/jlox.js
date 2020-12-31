@@ -14,4 +14,8 @@ public class Utils {
     }
     throw new RuntimeException("need number");
   }
+
+  public static void JSThrowTypeErrorReadOnly(Token token) {
+    throw new RuntimeError(token, token.lexeme + " is read-only");
+  }
 }

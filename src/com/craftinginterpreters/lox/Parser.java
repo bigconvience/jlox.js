@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
@@ -34,7 +35,7 @@ class Parser {
     try {
       if (match(TOK_CLASS)) return classDeclaration();
       if (match(TOK_FUNCTION)) return function("function");
-      if (match(TOK_VAR)) return varDeclaration();
+      if (match(TOK_VAR, TOK_LET, TOK_CONST)) return varDeclaration(previous());
 
       return statement();
     } catch (ParseError error) {
@@ -75,7 +76,7 @@ class Parser {
     if (match(SEMICOLON)) {
       initializer = null;
     } else if (match(TOK_VAR)) {
-      initializer = varDeclaration();
+      initializer = varDeclaration(previous());
     } else {
       initializer = expressionStatement();
     }
@@ -140,7 +141,24 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
 
-  private Stmt varDeclaration() {
+  private Stmt varDeclaration(Token tok) {
+    JSVarDefEnum varDefType = null;
+    switch(tok.type) {
+      case TOK_LET:
+        varDefType = JS_VAR_DEF_LET;
+        break;
+      case TOK_CONST:
+        varDefType = JS_VAR_DEF_CONST;
+        break;
+      case TOK_VAR:
+        varDefType = JS_VAR_DEF_VAR;
+        break;
+      case TOK_CATCH:
+        varDefType = JS_VAR_DEF_CATCH;
+        break;
+      default:
+        error(tok, "unknown declaration token");
+    }
     Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
 
     Expr initializer = null;
@@ -149,7 +167,7 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    return new Stmt.Var(name, initializer);
+    return new Stmt.Var(varDefType, name, initializer);
   }
 
   private Stmt whileStatement() {

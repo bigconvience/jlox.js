@@ -9,6 +9,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
+  private Stmt.Function curFunc;
 
   Resolver(Interpreter interpreter) {
     this.interpreter = interpreter;
@@ -114,6 +115,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       resolve(stmt.initializer);
     }
     define(stmt.name);
+    if (curFunc != null) {
+      curFunc.addVarDef(stmt.name.lexeme, stmt.toVarDef());
+    }
     return null;
   }
   @Override
@@ -124,6 +128,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   }
   @Override
   public Void visitAssignExpr(Expr.Assign expr) {
+    if (curFunc != null) {
+      Token varName = expr.name;
+      JSVarDef varDef = curFunc.getVarDef(varName.lexeme);
+      if (varDef != null && varDef.isConst) {
+         Utils.JSThrowTypeErrorReadOnly(expr.name);
+      }
+    }
     resolve(expr.value);
     resolveLocal(expr, expr.name);
     return null;
@@ -242,6 +253,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       Stmt.Function function, FunctionType type) {
     FunctionType enclosingFunction = currentFunction;
     currentFunction = type;
+    Stmt.Function enclosureFunc = curFunc;
+    curFunc = function;
 
     beginScope();
     for (Token param : function.params) {
@@ -251,6 +264,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolve(function.body);
     endScope();
     currentFunction = enclosingFunction;
+    curFunc = enclosureFunc;
   }
   private void beginScope() {
     scopes.push(new HashMap<String, Boolean>());

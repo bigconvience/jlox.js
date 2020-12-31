@@ -1,7 +1,9 @@
 //> Appendix II stmt
 package com.craftinginterpreters.lox;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 abstract class Stmt {
   interface Visitor<R> {
@@ -67,6 +69,7 @@ abstract class Stmt {
       this.name = name;
       this.params = params;
       this.body = body;
+      vars = new HashMap<>();
     }
 
     @Override
@@ -77,6 +80,15 @@ abstract class Stmt {
     final Token name;
     final List<Token> params;
     final List<Stmt> body;
+    final Map<String, JSVarDef> vars;
+
+    void addVarDef(String name, JSVarDef varDef) {
+      vars.put(name, varDef);
+    }
+
+    JSVarDef getVarDef(String name) {
+      return vars.get(name);
+    }
   }
 //< stmt-function
 //> stmt-if
@@ -129,9 +141,10 @@ abstract class Stmt {
 //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
-    Var(Token name, Expr initializer) {
+    Var(JSVarDefEnum varDefType, Token name, Expr initializer) {
       this.name = name;
       this.initializer = initializer;
+      this.varDefType = varDefType;
     }
 
     @Override
@@ -141,6 +154,14 @@ abstract class Stmt {
 
     final Token name;
     final Expr initializer;
+    final JSVarDefEnum varDefType;
+
+    JSVarDef toVarDef() {
+      JSVarDef def = new JSVarDef();
+      def.name = name;
+      def.isConst = varDefType== JSVarDefEnum.JS_VAR_DEF_CONST;
+      return def;
+    }
   }
 //< stmt-var
 //> stmt-while

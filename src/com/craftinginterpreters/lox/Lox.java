@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 
 public class Lox {
@@ -43,6 +44,12 @@ public class Lox {
       hadError = false;
     }
   }
+
+  private static Stmt.Function  createEvalFunction(List<Stmt> body) {
+    String name = "<eval>";
+    Token token = new Token(TokenType.TOK_STRING, name, name, 0);
+    return new Stmt.Function(token, Collections.emptyList(), body);
+  }
   private static void run(String source) {
     Scanner scanner = new Scanner(source);
     List<Token> tokens = scanner.scanTokens();
@@ -50,16 +57,23 @@ public class Lox {
     List<Stmt> statements = parser.parse();
 
     // Stop if there was a syntax error.
-  if (hadError) return;
+    if (hadError) return;
 
+    Stmt.Function func = createEvalFunction(statements);
     Resolver resolver = new Resolver(interpreter);
-    resolver.resolve(statements);
+    resolver.visitFunctionStmt(func);
 
     // Stop if there was a resolution error.
     if (hadError) return;
 
-    interpreter.interpret(statements);
+    callFunction(func);
   }
+
+  private static void callFunction(Stmt.Function func) {
+    LoxFunction function = new LoxFunction(func, null, false);
+    function.call(interpreter, Collections.emptyList());
+  }
+
   static void error(int line, String message) {
     report(line, "", message);
   }

@@ -132,7 +132,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       Token varName = expr.name;
       JSVarDef varDef = curFunc.getVarDef(varName.lexeme);
       if (varDef != null && varDef.isConst) {
-         Utils.JSThrowTypeErrorReadOnly(expr.name);
+        Lox.error(expr.name, "is read-only");
+        return null;
       }
     }
     resolve(expr.value);

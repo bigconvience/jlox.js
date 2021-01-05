@@ -106,14 +106,14 @@ abstract class Stmt {
       return vars.get(name);
     }
 
-    JSHoistedDef findHoistedDef(String name) {
-      return hoistDef.get(name);
+    JSHoistedDef findHoistedDef(Token name) {
+      return hoistDef.get(name.lexeme);
     }
 
-    JSHoistedDef addHoistedDef(String name) {
+    JSHoistedDef addHoistedDef(Token name) {
       JSHoistedDef hoistedDef = new JSHoistedDef();
       hoistedDef.name = name;
-      hoistDef.put(name, hoistedDef);
+      hoistDef.put(name.lexeme, hoistedDef);
       return hoistedDef;
     }
   }

@@ -9,6 +9,6 @@ package com.craftinginterpreters.lox;
  * @date 2021/1/411:57 PM
  */
 public class JSHoistedDef {
-  String name;
+  Token name;
   boolean isConst;
 }

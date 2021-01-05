@@ -79,6 +79,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolveFunction(stmt, FunctionType.FUNCTION);
     return null;
   }
+
+  void instantiateHostedDef(Stmt.Function fun) {
+    fun.hoistDef.forEach((key, value) -> {
+      declare(value.name);
+      define(value.name);
+    });
+  }
+
   @Override
   public Void visitIfStmt(Stmt.If stmt) {
     resolve(stmt.condition);
@@ -259,6 +267,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       declare(param);
       define(param);
     }
+    instantiateHostedDef(function);
     resolve(function.body);
     endScope();
     currentFunction = enclosingFunction;

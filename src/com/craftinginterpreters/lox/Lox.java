@@ -74,8 +74,7 @@ public class Lox {
   }
 
   private static void callFunction(Stmt.Function func) {
-    LoxFunction function = new LoxFunction(func, null, false);
-    function.call(interpreter, Collections.emptyList());
+    interpreter.evalFunction(func);
   }
 
   static void error(int line, String message) {

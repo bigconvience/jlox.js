@@ -174,11 +174,15 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    defineVar(curFunc, name.lexeme, varDefType);
+    defineVar(curFunc, name, varDefType);
+    if (initializer != null && varDefType == JS_VAR_DEF_VAR) {
+      Expr assign = new Expr.Assign(name, new Expr.Variable(name), TOK_ASSIGN, initializer);
+      return new Stmt.Expression(assign);
+    }
     return new Stmt.Var(varDefType, name, initializer);
   }
 
-  private int defineVar(Stmt.Function func, String name, JSVarDefEnum varDefType) {
+  private int defineVar(Stmt.Function func, Token name, JSVarDefEnum varDefType) {
     switch (varDefType) {
       case JS_VAR_DEF_VAR:
         if (func.isGlobalVar) {
@@ -203,8 +207,8 @@ class Parser {
     return 0;
   }
 
-  private int addScopeVar(Stmt.Function func, String name, JSVarKindEnum varKind) {
-    JSVarDef vd = addVar(func, name);
+  private int addScopeVar(Stmt.Function func, Token name, JSVarKindEnum varKind) {
+    JSVarDef vd = addVar(func, name.lexeme);
     vd.varKind = varKind;
     return 0;
   }

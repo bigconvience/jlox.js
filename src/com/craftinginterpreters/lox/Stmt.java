@@ -8,13 +8,21 @@ import java.util.Map;
 abstract class Stmt {
   interface Visitor<R> {
     R visitBlockStmt(Block stmt);
+
     R visitClassStmt(Class stmt);
+
     R visitExpressionStmt(Expression stmt);
+
     R visitFunctionStmt(Function stmt);
+
     R visitIfStmt(If stmt);
+
     R visitPrintStmt(Print stmt);
+
     R visitReturnStmt(Return stmt);
+
     R visitVarStmt(Var stmt);
+
     R visitWhileStmt(While stmt);
   }
 
@@ -32,7 +40,8 @@ abstract class Stmt {
 
     final List<Stmt> statements;
   }
-//< stmt-block
+
+  //< stmt-block
 //> stmt-class
   static class Class extends Stmt {
     Class(Token name, List<Stmt.Function> methods) {
@@ -48,7 +57,8 @@ abstract class Stmt {
     final Token name;
     final List<Stmt.Function> methods;
   }
-//< stmt-class
+
+  //< stmt-class
 //> stmt-expression
   static class Expression extends Stmt {
     Expression(Expr expression) {
@@ -62,14 +72,16 @@ abstract class Stmt {
 
     final Expr expression;
   }
-//< stmt-expression
+
+  //< stmt-expression
 //> stmt-function
   static class Function extends Stmt {
-    Function(Token name, List<Token> params, List<Stmt> body) {
+    Function(Token name, List<Token> params, final Function parent) {
       this.name = name;
       this.params = params;
-      this.body = body;
+      this.parent = parent;
       vars = new HashMap<>();
+      hoistDef = new HashMap<>();
     }
 
     @Override
@@ -79,8 +91,12 @@ abstract class Stmt {
 
     final Token name;
     final List<Token> params;
-    final List<Stmt> body;
+    final Function parent;
     final Map<String, JSVarDef> vars;
+    final Map<String, JSHoistedDef> hoistDef;
+    List<Stmt> body;
+    int evalType;
+    boolean isGlobalVar;
 
     void addVarDef(String name, JSVarDef varDef) {
       vars.put(name, varDef);
@@ -89,8 +105,20 @@ abstract class Stmt {
     JSVarDef getVarDef(String name) {
       return vars.get(name);
     }
+
+    JSHoistedDef findHoistedDef(String name) {
+      return hoistDef.get(name);
+    }
+
+    JSHoistedDef addHoistedDef(String name) {
+      JSHoistedDef hoistedDef = new JSHoistedDef();
+      hoistedDef.name = name;
+      hoistDef.put(name, hoistedDef);
+      return hoistedDef;
+    }
   }
-//< stmt-function
+
+  //< stmt-function
 //> stmt-if
   static class If extends Stmt {
     If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
@@ -108,7 +136,8 @@ abstract class Stmt {
     final Stmt thenBranch;
     final Stmt elseBranch;
   }
-//< stmt-if
+
+  //< stmt-if
 //> stmt-print
   static class Print extends Stmt {
     Print(Expr expression) {
@@ -122,7 +151,8 @@ abstract class Stmt {
 
     final Expr expression;
   }
-//< stmt-print
+
+  //< stmt-print
 //> stmt-return
   static class Return extends Stmt {
     Return(Token keyword, Expr value) {
@@ -138,7 +168,8 @@ abstract class Stmt {
     final Token keyword;
     final Expr value;
   }
-//< stmt-return
+
+  //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
     Var(JSVarDefEnum varDefType, Token name, Expr initializer) {
@@ -156,14 +187,9 @@ abstract class Stmt {
     final Expr initializer;
     final JSVarDefEnum varDefType;
 
-    JSVarDef toVarDef() {
-      JSVarDef def = new JSVarDef();
-      def.name = name;
-      def.isConst = varDefType== JSVarDefEnum.JS_VAR_DEF_CONST;
-      return def;
-    }
   }
-//< stmt-var
+
+  //< stmt-var
 //> stmt-while
   static class While extends Stmt {
     While(Expr condition, Stmt body) {

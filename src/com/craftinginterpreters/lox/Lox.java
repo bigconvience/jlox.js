@@ -45,23 +45,27 @@ public class Lox {
     }
   }
 
-  private static Stmt.Function  createEvalFunction(List<Stmt> body) {
+  private static Stmt.Function createEvalFunction() {
     String name = "<eval>";
     Token token = new Token(TokenType.TOK_STRING, name, name, 0);
-    return new Stmt.Function(token, Collections.emptyList(), body);
+    Stmt.Function func = new Stmt.Function(token, Collections.emptyList(), null);
+    func.evalType = JSEval.JS_EVAL_TYPE_GLOBAL;
+    func.isGlobalVar = true;
+    return func;
   }
   private static void run(String source) {
     Scanner scanner = new Scanner(source);
     List<Token> tokens = scanner.scanTokens();
-    Parser parser = new Parser(tokens);
-    List<Stmt> statements = parser.parse();
+
+    Stmt.Function func = createEvalFunction();
+    Parser parser = new Parser(tokens, func);
+    Stmt.Function evalFunc = parser.parseProgram();
 
     // Stop if there was a syntax error.
     if (hadError) return;
 
-    Stmt.Function func = createEvalFunction(statements);
     Resolver resolver = new Resolver(interpreter);
-    resolver.visitFunctionStmt(func);
+    resolver.visitFunctionStmt(evalFunc);
 
     // Stop if there was a resolution error.
     if (hadError) return;

@@ -1,14 +1,14 @@
 package com.craftinginterpreters.lox;
 
+
 /**
  * @author benpeng.jiang
- * @title: JSVarDef
+ * @title: JSHoistedDef
  * @projectName LoxScript
  * @description: TODO
- * @date 2020/12/313:47 PM
+ * @date 2021/1/411:57 PM
  */
-public class JSVarDef {
+public class JSHoistedDef {
   String name;
   boolean isConst;
-  JSVarKindEnum varKind;
 }

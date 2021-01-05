@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
+import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
@@ -13,9 +14,10 @@ class Parser {
 
   private final List<Token> tokens;
   private int current = 0;
-
-  Parser(List<Token> tokens) {
+  private Stmt.Function curFunc;
+  Parser(List<Token> tokens, Stmt.Function curFunc) {
     this.tokens = tokens;
+    this.curFunc = curFunc;
   }
 
   List<Stmt> parse() {
@@ -25,6 +27,11 @@ class Parser {
     }
 
     return statements; // [parse-error-handling]
+  }
+
+  Stmt.Function parseProgram() {
+    curFunc.body = parse();
+    return curFunc;
   }
 
   private Expr expression() {
@@ -167,7 +174,46 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
+    defineVar(curFunc, name.lexeme, varDefType);
     return new Stmt.Var(varDefType, name, initializer);
+  }
+
+  private int defineVar(Stmt.Function func, String name, JSVarDefEnum varDefType) {
+    switch (varDefType) {
+      case JS_VAR_DEF_VAR:
+        if (func.isGlobalVar) {
+          JSHoistedDef hd = func.findHoistedDef(name);
+          hd = func.addHoistedDef(name);
+        }
+        break;
+      case JS_VAR_DEF_LET:
+      case JS_VAR_DEF_CONST:
+      case JS_VAR_DEF_CATCH:
+        JSVarKindEnum varKind;
+        if (varDefType == JS_VAR_DEF_FUNCTION_DECL)
+          varKind = JS_VAR_FUNCTION_DECL;
+        else if (varDefType == JS_VAR_DEF_NEW_FUNCTION_DECL)
+          varKind = JS_VAR_NEW_FUNCTION_DECL;
+        else
+          varKind = JS_VAR_NORMAL;
+        addScopeVar(func, name, varKind);
+        break;
+    }
+
+    return 0;
+  }
+
+  private int addScopeVar(Stmt.Function func, String name, JSVarKindEnum varKind) {
+    JSVarDef vd = addVar(func, name);
+    vd.varKind = varKind;
+    return 0;
+  }
+
+  private JSVarDef addVar(Stmt.Function func, String name) {
+    JSVarDef vd = new JSVarDef();
+    vd.name = name;
+    func.addVarDef(name, vd);
+    return vd;
   }
 
   private Stmt whileStatement() {
@@ -186,6 +232,7 @@ class Parser {
   }
 
   private Stmt.Function function(String kind) {
+    Stmt.Function func = curFunc;
     Token name = consume(TOK_IDENTIFIER, "Expect " + kind + " name.");
     consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
     List<Token> parameters = new ArrayList<>();
@@ -200,9 +247,14 @@ class Parser {
     }
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
+    func = new Stmt.Function(name, parameters, func);
+    curFunc = func;
+
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
     List<Stmt> body = block();
-    return new Stmt.Function(name, parameters, body);
+    func.body = body;
+    curFunc = func.parent;
+    return func;
   }
 
   private List<Stmt> block() {

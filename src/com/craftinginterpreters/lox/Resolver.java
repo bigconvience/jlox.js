@@ -115,9 +115,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       resolve(stmt.initializer);
     }
     define(stmt.name);
-    if (curFunc != null) {
-      curFunc.addVarDef(stmt.name.lexeme, stmt.toVarDef());
-    }
     return null;
   }
   @Override

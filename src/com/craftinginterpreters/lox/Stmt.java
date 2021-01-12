@@ -1,6 +1,7 @@
 //> Appendix II stmt
 package com.craftinginterpreters.lox;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,7 @@ abstract class Stmt {
       this.parent = parent;
       vars = new HashMap<>();
       hoistDef = new HashMap<>();
+      scopes = new ArrayList<>();
     }
 
     @Override
@@ -92,11 +94,13 @@ abstract class Stmt {
     final Token name;
     final List<Token> params;
     final Function parent;
+    final List<JSVarScope> scopes;
     final Map<String, JSVarDef> vars;
     final Map<String, JSHoistedDef> hoistDef;
     List<Stmt> body;
     int evalType;
     boolean isGlobalVar;
+    int scopeLevel;
 
     void addVarDef(String name, JSVarDef varDef) {
       vars.put(name, varDef);

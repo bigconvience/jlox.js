@@ -2,6 +2,7 @@
 package com.craftinginterpreters.lox;
 
 import java.util.List;
+import java.util.Map;
 
 abstract class Expr {
   interface Visitor<R> {
@@ -13,6 +14,7 @@ abstract class Expr {
     R visitGetExpr(Get expr);
     R visitGroupingExpr(Grouping expr);
     R visitLiteralExpr(Literal expr);
+    R visitObjectLiteralExpr(ObjectLiteral expr);
     R visitLogicalExpr(Logical expr);
     R visitBitwiseExpr(Bitwise expr);
     R visitSetExpr(Set expr);
@@ -156,6 +158,18 @@ abstract class Expr {
     final Object value;
   }
   //< expr-literal
+  static class ObjectLiteral extends Expr {
+    ObjectLiteral(Map<String, Expr> value) {
+      this.prop = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitObjectLiteralExpr(this);
+    }
+
+    final Map<String, Expr> prop;
+  }
 //> expr-logical
   static class Logical extends Expr {
     Logical(Expr left, Token operator, Expr right) {

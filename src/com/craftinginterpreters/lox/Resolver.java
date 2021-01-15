@@ -185,6 +185,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   public Void visitLiteralExpr(Expr.Literal expr) {
     return null;
   }
+
+  @Override
+  public Void visitObjectLiteralExpr(Expr.ObjectLiteral expr) {
+    return null;
+  }
+
   @Override
   public Void visitLogicalExpr(Expr.Logical expr) {
     resolve(expr.left);

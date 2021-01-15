@@ -381,6 +381,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   }
 
   @Override
+  public Object visitObjectLiteralExpr(Expr.ObjectLiteral expr) {
+    JSObject jsObject = new JSObject();
+    for(Map.Entry<String, Expr> entry: expr.prop.entrySet()) {
+     Object value = entry.getValue().accept(this);
+     jsObject.defineProperty(entry.getKey(), value);
+    }
+    return jsObject;
+  }
+
+  @Override
   public Object visitLogicalExpr(Expr.Logical expr) {
     Object left = evaluate(expr.left);
 

@@ -1,8 +1,6 @@
 package com.craftinginterpreters.lox;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
@@ -540,7 +538,44 @@ class Parser {
       return new Expr.Grouping(expr);
     }
 
+    if (match(LEFT_BRACE)) {
+      Expr.ObjectLiteral literal = parseObjectLiteral();
+      return literal;
+    }
+
+    if (match(LEFT_BRACKET)) {
+      Expr.Literal literal = parseArrayLiteral();
+      return literal;
+    }
+
     throw error(peek(), "Expect expression.");
+  }
+
+  private Expr.ObjectLiteral parseObjectLiteral() {
+    Map<String, Expr> prop = new HashMap<>();
+    Expr.ObjectLiteral literal = new Expr.ObjectLiteral(prop);
+    while (!match(RIGHT_BRACE)) {
+      String name = parsePropertyName();
+      match(TOK_COLON);
+      Expr expr = assignment();
+      prop.put(name, expr);
+      match(COMMA);
+    }
+
+    return literal;
+  }
+
+  private String parsePropertyName() {
+    if (match(TOK_IDENTIFIER, TOK_STRING)) {
+      return previous().lexeme;
+    } else if (match(TOK_NUMBER)) {
+      return previous().lexeme;
+    }
+    return null;
+  }
+
+  private Expr.Literal parseArrayLiteral() {
+      return new Expr.Literal(null);
   }
 
   private boolean match(TokenType... types) {

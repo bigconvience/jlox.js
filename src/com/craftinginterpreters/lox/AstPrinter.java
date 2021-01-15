@@ -137,6 +137,11 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
   }
 
   @Override
+  public String visitObjectLiteralExpr(Expr.ObjectLiteral expr) {
+    return expr.prop.toString();
+  }
+
+  @Override
   public String visitLogicalExpr(Expr.Logical expr) {
     return parenthesize(expr.operator.lexeme, expr.left, expr.right);
   }

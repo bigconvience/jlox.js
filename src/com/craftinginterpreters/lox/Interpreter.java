@@ -366,6 +366,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       return ((LoxInstance) object).get(expr.name);
     }
 
+    if (object instanceof JSObject) {
+      return ((JSObject) object).getValue(expr.name.lexeme);
+    }
+
     throw new RuntimeError(expr.name,
       "Only instances have properties.");
   }
@@ -424,13 +428,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
   public Object visitSetExpr(Expr.Set expr) {
     Object object = evaluate(expr.object);
 
-    if (!(object instanceof LoxInstance)) { // [order]
-      throw new RuntimeError(expr.name, "Only instances have fields.");
+    if (object instanceof LoxInstance) {
+      Object value = evaluate(expr.value);
+      ((LoxInstance) object).set(expr.name, value);
+      return value;
+    } else if (object instanceof JSObject) {
+      Object value = evaluate(expr.value);
+      ((JSObject) object).setProp(expr.name.lexeme, value);
+      return value;
     }
-
-    Object value = evaluate(expr.value);
-    ((LoxInstance) object).set(expr.name, value);
-    return value;
+    throw new RuntimeError(expr.name, "Only instances have fields.");
   }
 
   @Override

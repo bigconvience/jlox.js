@@ -18,4 +18,5 @@ public class Utils {
   public static void JSThrowTypeErrorReadOnly(Token token) {
     throw new RuntimeError(token, token.lexeme + " is read-only");
   }
+
 }

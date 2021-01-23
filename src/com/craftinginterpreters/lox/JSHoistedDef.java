@@ -8,7 +8,5 @@ package com.craftinginterpreters.lox;
  * @description: TODO
  * @date 2021/1/411:57 PM
  */
-public class JSHoistedDef {
-  Token name;
-  boolean isConst;
+public class JSHoistedDef extends JSVarDef{
 }

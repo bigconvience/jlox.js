@@ -1,14 +1,4 @@
-print 3**2**2;
-var $1;
-var $2 = null;
-$1 = 1 !== 2;
-/*
-*ddd
-*/
 {
-  var $a = "inner"; //aaa
-  print $a;
+    let f;
+    var f
 }
-
-print $1;
-print $2;

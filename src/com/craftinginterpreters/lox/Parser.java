@@ -13,12 +13,14 @@ class Parser {
   private final List<Token> tokens;
   private int current = 0;
   private Stmt.Function curFunc;
+
   Parser(List<Token> tokens, Stmt.Function curFunc) {
     this.tokens = tokens;
     this.curFunc = curFunc;
   }
 
   List<Stmt> parse() {
+    ParserUtils.pushScope(curFunc);
     List<Stmt> statements = new ArrayList<>();
     while (!isAtEnd()) {
       statements.add(declaration());
@@ -148,7 +150,7 @@ class Parser {
 
   private Stmt varDeclaration(Token tok) {
     JSVarDefEnum varDefType = null;
-    switch(tok.type) {
+    switch (tok.type) {
       case TOK_LET:
         varDefType = JS_VAR_DEF_LET;
         break;
@@ -180,43 +182,75 @@ class Parser {
     return new Stmt.Var(varDefType, name, initializer);
   }
 
-  private int defineVar(Stmt.Function func, Token name, JSVarDefEnum varDefType) {
+
+
+
+  private int defineVar(Stmt.Function fd, Token name, JSVarDefEnum varDefType) {
+    JSVarDef vd;
+    JSHoistedDef hd;
     switch (varDefType) {
-      case JS_VAR_DEF_VAR:
-        if (func.isGlobalVar) {
-          JSHoistedDef hd = func.findHoistedDef(name);
-          hd = func.addHoistedDef(name);
-        }
-        break;
       case JS_VAR_DEF_LET:
       case JS_VAR_DEF_CONST:
       case JS_VAR_DEF_CATCH:
-        JSVarKindEnum varKind;
-        if (varDefType == JS_VAR_DEF_FUNCTION_DECL)
-          varKind = JS_VAR_FUNCTION_DECL;
-        else if (varDefType == JS_VAR_DEF_NEW_FUNCTION_DECL)
-          varKind = JS_VAR_NEW_FUNCTION_DECL;
-        else
-          varKind = JS_VAR_NORMAL;
-        addScopeVar(func, name, varKind);
+        vd = ParserUtils.findLexicalDef(fd, name, fd.curScope);
+        if (vd != null && vd.scope == fd.curScope) {
+          error(name, "invalid redefinition of lexical identifier");
+        }
+
+        if (fd.isGlobalVar) {
+          hd = ParserUtils.findHoistedDef(fd, name);
+          if (hd != null && ParserUtils.isChildScope(hd.scope, fd.curScope)) {
+            error(name, "invalid redefinition of global identifier");
+          }
+        }
+
+        if (fd.isEval
+          && fd.evalType == JSEval.JS_EVAL_TYPE_GLOBAL
+          && fd.curScope.prev == null) {
+          hd = ParserUtils.addHoistedDef(fd, name, true);
+            hd.isConst = varDefType == JS_VAR_DEF_CONST;
+        } else {
+          JSVarKindEnum varKind;
+          if (varDefType == JS_VAR_DEF_FUNCTION_DECL)
+            varKind = JS_VAR_FUNCTION_DECL;
+          else if (varDefType == JS_VAR_DEF_NEW_FUNCTION_DECL)
+            varKind = JS_VAR_NEW_FUNCTION_DECL;
+          else
+            varKind = JS_VAR_NORMAL;
+          vd = ParserUtils.addScopeVar(fd, name, varKind);
+          vd.isLexical = true;
+          vd.isConst = varDefType == JS_VAR_DEF_CONST;
+        }
+        break;
+
+      case JS_VAR_DEF_VAR:
+        if (fd.isGlobalVar) {
+          vd = ParserUtils.findLexicalDef(fd, name, fd.curScope);
+          if (vd != null) {
+            invalid_lexical_redefinition:
+            error(name, "invalid redefinition of lexical identifier");
+          }
+          if (fd.isGlobalVar) {
+            hd = ParserUtils.findHoistedDef(fd, name);
+            if (hd != null && hd.isLexical
+              && hd.scope == fd.curScope && fd.evalType == JSEval.JS_EVAL_TYPE_MODULE) {
+              error(name, "invalid redefinition of lexical identifier");
+            }
+            hd =  ParserUtils.addHoistedDef(fd, name, false);
+          } else {
+            vd = ParserUtils.findVar(fd, name);
+            if (vd != null) {
+              break;
+            }
+            vd = ParserUtils.addVar(fd, name);
+          }
+        }
         break;
     }
 
     return 0;
   }
 
-  private int addScopeVar(Stmt.Function func, Token name, JSVarKindEnum varKind) {
-    JSVarDef vd = addVar(func, name.lexeme);
-    vd.varKind = varKind;
-    return 0;
-  }
-
-  private JSVarDef addVar(Stmt.Function func, String name) {
-    JSVarDef vd = new JSVarDef();
-    vd.name = name;
-    func.addVarDef(name, vd);
-    return vd;
-  }
 
   private Stmt whileStatement() {
     consume(LEFT_PAREN, "Expect '(' after 'while'.");
@@ -260,6 +294,7 @@ class Parser {
   }
 
   private List<Stmt> block() {
+    ParserUtils.pushScope(curFunc);
     List<Stmt> statements = new ArrayList<>();
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
@@ -267,6 +302,7 @@ class Parser {
     }
 
     consume(RIGHT_BRACE, "Expect '}' after block.");
+    ParserUtils.popScope(curFunc);
     return statements;
   }
 
@@ -575,7 +611,7 @@ class Parser {
   }
 
   private Expr.Literal parseArrayLiteral() {
-      return new Expr.Literal(null);
+    return new Expr.Literal(null);
   }
 
   private boolean match(TokenType... types) {

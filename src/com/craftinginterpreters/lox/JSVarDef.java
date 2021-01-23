@@ -8,7 +8,9 @@ package com.craftinginterpreters.lox;
  * @date 2020/12/313:47 PM
  */
 public class JSVarDef {
-  String name;
+  Token name;
   boolean isConst;
+  boolean isLexical;
+  JSVarScope scope;
   JSVarKindEnum varKind;
 }

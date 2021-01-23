@@ -82,6 +82,7 @@ abstract class Stmt {
       this.params = params;
       this.parent = parent;
       vars = new HashMap<>();
+      args = new HashMap<>();
       hoistDef = new HashMap<>();
       scopes = new ArrayList<>();
     }
@@ -96,17 +97,24 @@ abstract class Stmt {
     final Function parent;
     final List<JSVarScope> scopes;
     final Map<String, JSVarDef> vars;
+    final Map<String, JSVarDef> args;
     final Map<String, JSHoistedDef> hoistDef;
     List<Stmt> body;
     int evalType;
+    boolean isEval;
     boolean isGlobalVar;
-    int scopeLevel;
+    JSVarScope curScope;
 
     void addVarDef(String name, JSVarDef varDef) {
       vars.put(name, varDef);
     }
 
     JSVarDef getVarDef(String name) {
+      return vars.get(name);
+    }
+
+
+    JSVarDef getArgDef(String name) {
       return vars.get(name);
     }
 

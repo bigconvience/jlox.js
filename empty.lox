@@ -1,4 +1,11 @@
+let x;
+let y = 2;
+
+// Block local
 {
-    let f;
-    var f
+  let y;
+  let x = 3;
+
+  print x;
 }
+

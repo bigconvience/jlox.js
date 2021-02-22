@@ -27,7 +27,7 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     StringBuilder builder = new StringBuilder();
     builder.append("(class " + stmt.name.lexeme);
 
-    for (Stmt.Function method : stmt.methods) {
+    for (JSFunctionDef method : stmt.methods) {
       builder.append(" " + print(method));
     }
 
@@ -41,9 +41,9 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
   }
 
   @Override
-  public String visitFunctionStmt(Stmt.Function stmt) {
+  public String visitFunctionStmt(JSFunctionDef stmt) {
     StringBuilder builder = new StringBuilder();
-    builder.append("(fun " + stmt.name.lexeme + "(");
+    builder.append("(fun " + stmt.funcName + "(");
 
     for (Token param : stmt.params) {
       if (param != stmt.params.get(0)) builder.append(" ");

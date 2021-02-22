@@ -12,15 +12,20 @@ class Parser {
 
   private final List<Token> tokens;
   private int current = 0;
-  private Stmt.Function curFunc;
+  private JSFunctionDef curFunc;
+  private Scanner scanner;
+  JSContext ctx;
+  String fileName;
 
-  Parser(List<Token> tokens, Stmt.Function curFunc) {
-    this.tokens = tokens;
+  Parser(Scanner scanner, JSContext ctx, JSFunctionDef curFunc) {
+    this.scanner = scanner;
+    this.tokens = scanner.scanTokens();
+    this.ctx = ctx;
     this.curFunc = curFunc;
   }
 
   List<Stmt> parse() {
-    ParserUtils.pushScope(curFunc);
+    pushScope();
     List<Stmt> statements = new ArrayList<>();
     while (!isAtEnd()) {
       statements.add(declaration());
@@ -29,9 +34,13 @@ class Parser {
     return statements; // [parse-error-handling]
   }
 
-  Stmt.Function parseProgram() {
+  boolean parseProgram() {
+    boolean success = true;
+    JSFunctionDef fd = curFunc;
+    fd.isGlobalVar = (fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL);
+
     curFunc.body = parse();
-    return curFunc;
+    return success;
   }
 
   private Expr expression() {
@@ -55,7 +64,7 @@ class Parser {
     Token name = consume(TOK_IDENTIFIER, "Expect class name.");
     consume(LEFT_BRACE, "Expect '{' before class body.");
 
-    List<Stmt.Function> methods = new ArrayList<>();
+    List<JSFunctionDef> methods = new ArrayList<>();
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
       methods.add(function("method"));
     }
@@ -185,7 +194,7 @@ class Parser {
 
 
 
-  private int defineVar(Stmt.Function fd, Token name, JSVarDefEnum varDefType) {
+  private int defineVar(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
     JSVarDef vd;
     JSHoistedDef hd;
     switch (varDefType) {
@@ -267,8 +276,9 @@ class Parser {
     return new Stmt.Expression(expr);
   }
 
-  private Stmt.Function function(String kind) {
-    Stmt.Function func = curFunc;
+  private JSFunctionDef function(String kind) {
+    boolean isExpr = false;
+    JSFunctionDef fd = curFunc;
     Token name = consume(TOK_IDENTIFIER, "Expect " + kind + " name.");
     consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
     List<Token> parameters = new ArrayList<>();
@@ -283,18 +293,19 @@ class Parser {
     }
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
-    func = new Stmt.Function(name, parameters, func);
-    curFunc = func;
+    fd = ParserUtils.jsNewFunctionDef(ctx, fd, false, isExpr, fileName, name.line);
+    fd.funcName = name.lexeme;
+    curFunc = fd;
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
     List<Stmt> body = block();
-    func.body = body;
-    curFunc = func.parent;
-    return func;
+    fd.body = body;
+    curFunc = fd.parent;
+    return fd;
   }
 
   private List<Stmt> block() {
-    ParserUtils.pushScope(curFunc);
+    pushScope();
     List<Stmt> statements = new ArrayList<>();
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
@@ -302,7 +313,7 @@ class Parser {
     }
 
     consume(RIGHT_BRACE, "Expect '}' after block.");
-    ParserUtils.popScope(curFunc);
+    popScope();
     return statements;
   }
 
@@ -677,6 +688,24 @@ class Parser {
       }
 
       advance();
+    }
+  }
+
+  public int pushScope() {
+    if (curFunc != null) {
+      JSFunctionDef fd = curFunc;
+      fd.addScope();
+      int scope = fd.getScopeCount();
+      fd.scopeLevel = scope;
+      return scope;
+    }
+    return 0;
+  }
+
+  public void popScope() {
+    if (curFunc != null) {
+      JSVarScope varScope = curFunc.curScope;
+      curFunc.curScope = varScope.prev;
     }
   }
 }

@@ -9,7 +9,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
-  private Stmt.Function curFunc;
+  private JSFunctionDef curFunc;
 
   Resolver(Interpreter interpreter) {
     this.interpreter = interpreter;
@@ -51,7 +51,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     beginScope();
     scopes.peek().put("this", true);
 
-    for (Stmt.Function method : stmt.methods) {
+    for (JSFunctionDef method : stmt.methods) {
       FunctionType declaration = FunctionType.METHOD;
       if (method.name.lexeme.equals("init")) {
         declaration = FunctionType.INITIALIZER;
@@ -72,7 +72,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return null;
   }
   @Override
-  public Void visitFunctionStmt(Stmt.Function stmt) {
+  public Void visitFunctionStmt(JSFunctionDef stmt) {
     declare(stmt.name);
     define(stmt.name);
 
@@ -80,7 +80,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return null;
   }
 
-  void instantiateHostedDef(Stmt.Function fun) {
+  void instantiateHostedDef(JSFunctionDef fun) {
     fun.hoistDef.forEach((key, value) -> {
       declare(value.name);
       define(value.name);
@@ -262,10 +262,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     expr.accept(this);
   }
   private void resolveFunction(
-      Stmt.Function function, FunctionType type) {
+    JSFunctionDef function, FunctionType type) {
     FunctionType enclosingFunction = currentFunction;
     currentFunction = type;
-    Stmt.Function enclosureFunc = curFunc;
+    JSFunctionDef enclosureFunc = curFunc;
     curFunc = function;
 
     beginScope();

@@ -17,6 +17,7 @@ public class JSEvaluator {
   public static final int JS_EVAL_TYPE_MODULE = 1;
   public static final int JS_EVAL_TYPE_DIRECT = 2;
   public static final int JS_EVAL_TYPE_INDIRECT = 3;
+  public static final int JS_EVAL_TYPE_MASK = 3;
 
   public static int evalFile(JSContext ctx, String filename, boolean module) throws IOException {
     int ret, evalFlags;
@@ -45,8 +46,8 @@ public class JSEvaluator {
     return ret;
   }
 
-  public static JSValue JSEvalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flats, int scope_idx) {
-    return ctx.evalInternal(ctx, thisObject, input, filename, flats, scope_idx);
+  public static JSValue JSEvalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flags, int scope_idx) {
+    return ctx.evalInternal(ctx, thisObject, input, filename, flags, scope_idx);
   }
 
 }

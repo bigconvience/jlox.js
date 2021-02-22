@@ -3,11 +3,11 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 class LoxFunction implements LoxCallable {
-  private final Stmt.Function declaration;
+  private final JSFunctionDef declaration;
   private final Environment closure;
   private final boolean isInitializer;
 
-  LoxFunction(Stmt.Function declaration, Environment closure,
+  LoxFunction(JSFunctionDef declaration, Environment closure,
               boolean isInitializer) {
     this.isInitializer = isInitializer;
     this.closure = closure;

@@ -1,10 +1,7 @@
 //> Appendix II stmt
 package com.craftinginterpreters.lox;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 abstract class Stmt {
   interface Visitor<R> {
@@ -14,7 +11,7 @@ abstract class Stmt {
 
     R visitExpressionStmt(Expression stmt);
 
-    R visitFunctionStmt(Function stmt);
+    R visitFunctionStmt(JSFunctionDef stmt);
 
     R visitIfStmt(If stmt);
 
@@ -45,7 +42,7 @@ abstract class Stmt {
   //< stmt-block
 //> stmt-class
   static class Class extends Stmt {
-    Class(Token name, List<Stmt.Function> methods) {
+    Class(Token name, List<JSFunctionDef> methods) {
       this.name = name;
       this.methods = methods;
     }
@@ -56,7 +53,7 @@ abstract class Stmt {
     }
 
     final Token name;
-    final List<Stmt.Function> methods;
+    final List<JSFunctionDef> methods;
   }
 
   //< stmt-class
@@ -72,62 +69,6 @@ abstract class Stmt {
     }
 
     final Expr expression;
-  }
-
-  //< stmt-expression
-//> stmt-function
-  static class Function extends Stmt {
-    Function(Token name, List<Token> params, final Function parent) {
-      this.name = name;
-      this.params = params;
-      this.parent = parent;
-      vars = new HashMap<>();
-      args = new HashMap<>();
-      hoistDef = new HashMap<>();
-      scopes = new ArrayList<>();
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitFunctionStmt(this);
-    }
-
-    final Token name;
-    final List<Token> params;
-    final Function parent;
-    final List<JSVarScope> scopes;
-    final Map<String, JSVarDef> vars;
-    final Map<String, JSVarDef> args;
-    final Map<String, JSHoistedDef> hoistDef;
-    List<Stmt> body;
-    int evalType;
-    boolean isEval;
-    boolean isGlobalVar;
-    JSVarScope curScope;
-
-    void addVarDef(String name, JSVarDef varDef) {
-      vars.put(name, varDef);
-    }
-
-    JSVarDef getVarDef(String name) {
-      return vars.get(name);
-    }
-
-
-    JSVarDef getArgDef(String name) {
-      return vars.get(name);
-    }
-
-    JSHoistedDef findHoistedDef(Token name) {
-      return hoistDef.get(name.lexeme);
-    }
-
-    JSHoistedDef addHoistedDef(Token name) {
-      JSHoistedDef hoistedDef = new JSHoistedDef();
-      hoistedDef.name = name;
-      hoistDef.put(name.lexeme, hoistedDef);
-      return hoistedDef;
-    }
   }
 
   //< stmt-function

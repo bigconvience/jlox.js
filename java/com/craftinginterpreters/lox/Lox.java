@@ -12,7 +12,6 @@ import java.util.List;
 import static com.craftinginterpreters.lox.JSEvaluator.JS_EVAL_TYPE_GLOBAL;
 
 public class Lox {
-  private static final Interpreter interpreter = new Interpreter();
   static boolean hadError = false;
   static boolean hadRuntimeError = false;
 
@@ -47,39 +46,18 @@ public class Lox {
     }
   }
 
-  private static Stmt.Function createEvalFunction() {
-    String name = "<eval>";
-    Token token = new Token(TokenType.TOK_STRING, name, name, 0);
-    Stmt.Function func = new Stmt.Function(token, Collections.emptyList(), null);
-    func.evalType = JS_EVAL_TYPE_GLOBAL;
-    func.isGlobalVar = true;
-    return func;
-  }
+
   private static void run(String source, String filename) {
     JSContext ctx = new JSContext();
     JSEvaluator.JSEval(ctx, source, filename, JS_EVAL_TYPE_GLOBAL);
 
-    Scanner scanner = new Scanner(source);
-    List<Token> tokens = scanner.scanTokens();
-
-    Stmt.Function func = createEvalFunction();
-    Parser parser = new Parser(tokens, func);
-    Stmt.Function evalFunc = parser.parseProgram();
-
     // Stop if there was a syntax error.
     if (hadError) return;
 
-    Resolver resolver = new Resolver(interpreter);
-    resolver.visitFunctionStmt(evalFunc);
 
     // Stop if there was a resolution error.
     if (hadError) return;
 
-    callFunction(func);
-  }
-
-  private static void callFunction(Stmt.Function func) {
-    interpreter.evalFunction(func);
   }
 
   static void error(int line, String message) {

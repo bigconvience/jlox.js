@@ -15,15 +15,12 @@ public class JSVarScope {
   public JSVarScope next;
   public int level;
   final Map<String, JSVarDef> vars;
+  int first = -1;
+  int parent = -1;
 
-  public JSVarScope(JSVarScope prev) {
+  public JSVarScope() {
+    first = parent = -1;
     vars = new HashMap<>();
-    this.prev = prev;
-    if (prev != null) {
-      level = prev.level + 1;
-    } else {
-      level = 1;
-    }
   }
 
   public void addVar(JSVarDef varDef) {

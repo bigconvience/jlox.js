@@ -25,7 +25,7 @@ public class ParserUtils {
       scope = scope.prev;
     }
 
-    if (fd.isEval && fd.evalType == JSEval.JS_EVAL_TYPE_GLOBAL) {
+    if (fd.isEval && fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL) {
       return findLexicalHoistedDef(fd, name);
     }
     return null;

@@ -205,7 +205,7 @@ class Parser {
         }
 
         if (fd.isEval
-          && fd.evalType == JSEval.JS_EVAL_TYPE_GLOBAL
+          && fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL
           && fd.curScope.prev == null) {
           hd = ParserUtils.addHoistedDef(fd, name, true);
             hd.isConst = varDefType == JS_VAR_DEF_CONST;
@@ -233,7 +233,7 @@ class Parser {
           if (fd.isGlobalVar) {
             hd = ParserUtils.findHoistedDef(fd, name);
             if (hd != null && hd.isLexical
-              && hd.scope == fd.curScope && fd.evalType == JSEval.JS_EVAL_TYPE_MODULE) {
+              && hd.scope == fd.curScope && fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
             hd =  ParserUtils.addHoistedDef(fd, name, false);

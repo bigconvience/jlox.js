@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
+import static com.craftinginterpreters.lox.JSEvaluator.JS_EVAL_TYPE_GLOBAL;
+
 public class Lox {
   private static final Interpreter interpreter = new Interpreter();
   static boolean hadError = false;
@@ -26,7 +28,7 @@ public class Lox {
   }
   private static void runFile(String path) throws IOException {
     byte[] bytes = Files.readAllBytes(Paths.get(path));
-    run(new String(bytes, Charset.defaultCharset()));
+    run(new String(bytes, Charset.defaultCharset()), path);
 
     // Indicate an error in the exit code.
     if (hadError) System.exit(65);
@@ -40,7 +42,7 @@ public class Lox {
       System.out.print("> ");
       String line = reader.readLine();
       if (line == null) break;
-      run(line);
+      run(line, "<prompt>");
       hadError = false;
     }
   }
@@ -49,11 +51,14 @@ public class Lox {
     String name = "<eval>";
     Token token = new Token(TokenType.TOK_STRING, name, name, 0);
     Stmt.Function func = new Stmt.Function(token, Collections.emptyList(), null);
-    func.evalType = JSEval.JS_EVAL_TYPE_GLOBAL;
+    func.evalType = JS_EVAL_TYPE_GLOBAL;
     func.isGlobalVar = true;
     return func;
   }
-  private static void run(String source) {
+  private static void run(String source, String filename) {
+    JSContext ctx = new JSContext();
+    JSEvaluator.JSEval(ctx, source, filename, JS_EVAL_TYPE_GLOBAL);
+
     Scanner scanner = new Scanner(source);
     List<Token> tokens = scanner.scanTokens();
 

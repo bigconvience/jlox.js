@@ -7,6 +7,9 @@ import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
+  static final int GLOBAL_VAR_OFFSET = 0x40000000;
+  static final int ARGUMENT_VAR_OFFSET = 0x20000000;
+
   private static class ParseError extends RuntimeException {
   }
 
@@ -25,7 +28,6 @@ class Parser {
   }
 
   List<Stmt> parse() {
-    pushScope();
     List<Stmt> statements = new ArrayList<>();
     while (!isAtEnd()) {
       statements.add(declaration());
@@ -192,32 +194,46 @@ class Parser {
   }
 
 
-
-
   private int defineVar(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
     JSVarDef vd;
-    JSHoistedDef hd;
+    JSHoistedDef hf;
+    String varName = name.lexeme;
+    int idx = -1;
     switch (varDefType) {
       case JS_VAR_DEF_LET:
       case JS_VAR_DEF_CONST:
       case JS_VAR_DEF_CATCH:
-        vd = ParserUtils.findLexicalDef(fd, name, fd.curScope);
-        if (vd != null && vd.scope == fd.curScope) {
-          error(name, "invalid redefinition of lexical identifier");
+        vd = fd.findLexicalDef(varName);
+        if (vd != null) {
+          if (!vd.isGlobalVar) {
+            if (vd.scope == fd.curScope) {
+              error(name, "invalid redefinition of lexical identifier");
+            }
+          } else {
+            if (fd.scopeLevel == 1) {
+              error(name, "invalid redefinition of lexical identifier");
+            }
+          }
+        }
+
+        if (fd.findVarInChildScope(varName) != null) {
+          error(name, "invalid redefinition of variable, find a scope caterpillar");
         }
 
         if (fd.isGlobalVar) {
-          hd = ParserUtils.findHoistedDef(fd, name);
-          if (hd != null && ParserUtils.isChildScope(hd.scope, fd.curScope)) {
+          hf = fd.findHoistedDef(name);
+          if (hf != null && fd.isChildScope(hf.scopeLevel, fd.scopeLevel)) {
             error(name, "invalid redefinition of global identifier");
           }
         }
 
-        if (fd.isEval
-          && fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL
-          && fd.curScope.prev == null) {
-          hd = ParserUtils.addHoistedDef(fd, name, true);
-            hd.isConst = varDefType == JS_VAR_DEF_CONST;
+        if (fd.isEval &&
+          (fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL ||
+            fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE)
+          && fd.scopeLevel == 1) {
+          hf = fd.addHoistedDef(-1, varName, -1, true);
+          hf.isConst = varDefType == JS_VAR_DEF_CONST;
+          idx = GLOBAL_VAR_OFFSET;
         } else {
           JSVarKindEnum varKind;
           if (varDefType == JS_VAR_DEF_FUNCTION_DECL)
@@ -226,38 +242,46 @@ class Parser {
             varKind = JS_VAR_NEW_FUNCTION_DECL;
           else
             varKind = JS_VAR_NORMAL;
-          vd = ParserUtils.addScopeVar(fd, name, varKind);
-          vd.isLexical = true;
-          vd.isConst = varDefType == JS_VAR_DEF_CONST;
+          idx = fd.addScopeVar(varName, varKind);
+          vd = fd.getVar(idx);
+          if (vd != null) {
+            vd.isLexical = true;
+            vd.isConst = varDefType == JS_VAR_DEF_CONST;
+          }
         }
         break;
 
       case JS_VAR_DEF_VAR:
         if (fd.isGlobalVar) {
-          vd = ParserUtils.findLexicalDef(fd, name, fd.curScope);
+          vd = fd.findLexicalDef(varName);
           if (vd != null) {
             invalid_lexical_redefinition:
             error(name, "invalid redefinition of lexical identifier");
           }
           if (fd.isGlobalVar) {
-            hd = ParserUtils.findHoistedDef(fd, name);
-            if (hd != null && hd.isLexical
-              && hd.scope == fd.curScope && fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE) {
+            hf = fd.findHoistedDef(varName);
+            if (hf != null && hf.isLexical
+              && hf.scopeLevel == fd.scopeLevel && fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
-            hd =  ParserUtils.addHoistedDef(fd, name, false);
+            hf = fd.addHoistedDef(-1,  varName, -1, false);
+            idx = GLOBAL_VAR_OFFSET;
           } else {
-            vd = ParserUtils.findVar(fd, name);
-            if (vd != null) {
+            idx = fd.findVar(varName);
+            if (idx >= 0) {
               break;
             }
-            vd = ParserUtils.addVar(fd, name);
+            idx = fd.addVar(varName);
+            if (idx >= 0) {
+              vd = fd.getVar(idx);
+              vd.funcPoolOrScopeIdx = fd.scopeLevel;
+            }
           }
         }
         break;
     }
 
-    return 0;
+    return idx;
   }
 
 

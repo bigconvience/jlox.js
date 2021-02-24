@@ -10,7 +10,7 @@ import java.util.List;
  * @date 2021/2/222:00 PM
  */
 public class JSContext {
-  private static final Interpreter interpreter = new Interpreter();
+  private static Interpreter interpreter;
 
   public JSValue globalObj;
 
@@ -29,6 +29,7 @@ public class JSContext {
     parser.fileName = filename;
     parser.parseProgram();
 
+    interpreter = new Interpreter(ctx);
     Resolver resolver = new Resolver(interpreter);
     resolver.visitFunctionStmt(fd);
     interpreter.evalFunction(fd);

@@ -187,7 +187,7 @@ class Parser {
     consume(SEMICOLON, "Expect ';' after variable declaration.");
     defineVar(curFunc, name, varDefType);
     if (initializer != null && varDefType == JS_VAR_DEF_VAR) {
-      Expr assign = new Expr.Assign(name, new Expr.Variable(name), TOK_ASSIGN, initializer);
+      Expr assign = new Expr.Assign(name, new Expr.Variable(name, curFunc.scopeLevel), TOK_ASSIGN, initializer);
       return new Stmt.Expression(assign);
     }
     return new Stmt.Var(varDefType, name, initializer);
@@ -600,7 +600,7 @@ class Parser {
     if (match(TOK_THIS)) return new Expr.This(previous());
 
     if (match(TOK_IDENTIFIER)) {
-      return new Expr.Variable(previous());
+      return new Expr.Variable(previous(), curFunc.scopeLevel);
     }
 
     if (match(LEFT_PAREN)) {

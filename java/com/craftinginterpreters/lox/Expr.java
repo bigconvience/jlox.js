@@ -270,8 +270,9 @@ abstract class Expr {
   }
 //> expr-variable
   static class Variable extends Expr {
-    Variable(Token name) {
+    Variable(Token name, int scopeLevel) {
       this.name = name;
+      this.scopeLevel = scopeLevel;
     }
 
     @Override
@@ -280,6 +281,7 @@ abstract class Expr {
     }
 
     final Token name;
+    final int scopeLevel;
   }
 //< expr-variable
 

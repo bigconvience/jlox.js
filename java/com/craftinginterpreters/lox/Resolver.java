@@ -10,9 +10,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
   private JSFunctionDef curFunc;
+  private final JSContext ctx;
 
   Resolver(Interpreter interpreter) {
     this.interpreter = interpreter;
+    ctx = interpreter.jsContext;
   }
   private enum FunctionType {
     NONE,
@@ -238,14 +240,29 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
-    if (!scopes.isEmpty() &&
-        scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
-      Lox.error(expr.name,
-          "Cannot read local variable in its own initializer.");
+    String varName = expr.name.lexeme;
+    int scope = expr.scopeLevel;
+    resolveScopeVar(varName, scope);
+    return null;
+  }
+
+  private int resolveScopeVar(String varName, int scopeLevel) {
+    int var_idx = -1;
+    JSFunctionDef fd = curFunc;
+    JSVarDef vd;
+    for (int idx = fd.scopes.get(scopeLevel).first; idx >=0; ) {
+      vd = fd.getVar(idx);
+      if (vd.varName.equals(varName)) {
+
+        var_idx = idx;
+        break;
+      } else {
+
+      }
+      idx = vd.scopeNext;
     }
 
-    resolveLocal(expr, expr.name);
-    return null;
+    return var_idx;
   }
 
   @Override

@@ -718,9 +718,7 @@ class Parser {
   public int pushScope() {
     if (curFunc != null) {
       JSFunctionDef fd = curFunc;
-      fd.addScope();
-      int scope = fd.getScopeCount();
-      fd.scopeLevel = scope;
+      int scope = fd.addScope();
       return scope;
     }
     return 0;

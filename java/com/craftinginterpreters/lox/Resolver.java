@@ -1,9 +1,6 @@
 package com.craftinginterpreters.lox;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Interpreter interpreter;
@@ -11,10 +8,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private FunctionType currentFunction = FunctionType.NONE;
   private JSFunctionDef curFunc;
   private final JSContext ctx;
+  private final List<Stmt> stmtOut;
 
   Resolver(Interpreter interpreter) {
     this.interpreter = interpreter;
     ctx = interpreter.jsContext;
+    stmtOut = new ArrayList<>();
   }
   private enum FunctionType {
     NONE,
@@ -292,6 +291,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
     instantiateHostedDef(function);
     resolve(function.body);
+    enterScope(function, 1);
     endScope();
     currentFunction = enclosingFunction;
     curFunc = enclosureFunc;
@@ -326,5 +326,24 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     // Not found. Assume it is global.
+  }
+
+  private void enterScope(JSFunctionDef s, int scope) {
+    if (scope == 1) {
+      instantiateHostedDef(s);
+    }
+
+    for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >=0; ) {
+      JSVarDef vd = s.vars.get(scopeIdx);
+      if (vd.scopeLevel == scopeIdx) {
+        if (ParserUtils.isFuncDecl(vd.varKind)) {
+
+        } else {
+
+        }
+      } else {
+        break;
+      }
+    }
   }
 }

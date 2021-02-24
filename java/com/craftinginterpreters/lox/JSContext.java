@@ -24,9 +24,10 @@ public class JSContext {
     fd.evalType = evalType;
     fd.funcName = "<eval>";
 
-
     Parser parser = new Parser(scanner, this, fd);
     parser.fileName = filename;
+
+    parser.pushScope();
     parser.parseProgram();
 
     interpreter = new Interpreter(ctx);

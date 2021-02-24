@@ -35,7 +35,6 @@ public class JSFunctionDef extends Stmt {
   }
 
 
-
   final Token name = null;
   final List<Token> params;
   final JSFunctionDef parent;
@@ -91,11 +90,11 @@ public class JSFunctionDef extends Stmt {
   }
 
   int addScope() {
-      JSVarScope varScope = new JSVarScope();
-      scopes.add(varScope);
-      int scope = getScopeCount();
-      scopeLevel = scope;
-      return scope;
+    int scope = getScopeCount();
+    JSVarScope varScope = new JSVarScope();
+    scopes.add(varScope);
+    scopeLevel = scope;
+    return scope;
   }
 
   public JSVarDef findLexicalDef(String varName) {
@@ -123,7 +122,7 @@ public class JSFunctionDef extends Stmt {
   }
 
   JSHoistedDef findHoistedDef(String varName) {
-    for (JSHoistedDef hf: hoistedDef) {
+    for (JSHoistedDef hf : hoistedDef) {
       if (hf.varName.equals(varName)) {
         return hf;
       }
@@ -132,7 +131,7 @@ public class JSFunctionDef extends Stmt {
   }
 
   public JSVarDef findVarInChildScope(String name) {
-    for (JSVarDef vd: vars) {
+    for (JSVarDef vd : vars) {
       if (vd != null && vd.name.equals(name) && vd.scopeLevel == 0) {
         if (isChildScope(vd.funcPoolOrScopeIdx, scopeLevel)) {
           return vd;
@@ -146,7 +145,7 @@ public class JSFunctionDef extends Stmt {
 
   public boolean isChildScope(int scope, int parentScope) {
     while (scope > 0) {
-      if(scope == parentScope) {
+      if (scope == parentScope) {
         return true;
       }
       scope = scopes.get(scope).parent;
@@ -154,9 +153,9 @@ public class JSFunctionDef extends Stmt {
     return false;
   }
 
-  public  JSHoistedDef addHoistedDef(int cpoolIdx, String varName,
-                                     int varIdx,
-                                     boolean isLexical) {
+  public JSHoistedDef addHoistedDef(int cpoolIdx, String varName,
+                                    int varIdx,
+                                    boolean isLexical) {
     JSHoistedDef hf = new JSHoistedDef();
     hoistedDef.add(hf);
     hf.varName = varName;

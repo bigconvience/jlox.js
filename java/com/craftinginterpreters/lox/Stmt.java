@@ -37,6 +37,7 @@ abstract class Stmt {
     }
 
     final List<Stmt> statements;
+    int scope;
   }
 
   //< stmt-block

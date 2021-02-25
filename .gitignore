@@ -104,3 +104,4 @@ tool/.dart_tool/
 tool/.packages
 tool/venv
 tool/out
+venv/

@@ -17,19 +17,19 @@ public enum OPCodeEnum {
 
 JSOpCodeStart = '''package com.craftinginterpreters.lox;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import  static com.craftinginterpreters.lox.OPCodeEnum.*;
 import  static com.craftinginterpreters.lox.OPCodeFormat.*;
 public class JSOpCode {
-  OPCodeEnum id;
+  String id;
   int size;
   int n_pop;
   int n_push;
   OPCodeFormat f;
 
-  public JSOpCode(OPCodeEnum id, int size, int n_pop, int n_push, OPCodeFormat f) {
+  public JSOpCode(String id, int size, int n_pop, int n_push, OPCodeFormat f) {
     this.id = id;
     this.size = size;
     this.n_pop = n_pop;
@@ -38,10 +38,10 @@ public class JSOpCode {
   }
 
 
-  public static List<JSOpCode> opcode_info;
+  public static Map<Integer, JSOpCode> opcode_info;
 
   {
-    opcode_info = new ArrayList<>();
+    opcode_info = new HashMap<>();
 '''
 
 classFileEnd = '}'
@@ -68,11 +68,14 @@ for i in range(0, lines.__len__(), 1):
             codeEnum = codeEnum.strip(',')
 
         OPCodeEnumCodes.append('  OP_' + codeEnum + ',\n')
-
-        opcode = '    opcode_info.add(new JSOpCode('
+        space = '    '
+        JSOpCodeCodes.append(space)
+        opcode = 'opcode_info.put(\n'
         for index, code in enumerate(list[1:6]):
             if index == 0:
-                code = 'OP_' + code
+                code = code.strip(',')
+                code = space + '  OP_' + code + '.ordinal(),\n' \
+                       + space + '  new JSOpCode(\"' + code + '\",'
             if code.endswith(')'):
                 code = code.strip(')')
             if code in keywords:

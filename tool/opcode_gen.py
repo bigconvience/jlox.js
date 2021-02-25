@@ -17,14 +17,22 @@ public enum OPCodeEnum {
 
 JSOpCodeStart = '''package com.craftinginterpreters.lox;
 
-
+import  static com.craftinginterpreters.lox.OPCodeEnum.*;
+import  static com.craftinginterpreters.lox.OPCodeFormat.*;
 public class JSOpCode {
   OPCodeEnum id;
   int size;
   int n_pop;
   int n_push;
   OPCodeFormat f;
-}
+
+  public JSOpCode(OPCodeEnum id, int size, int n_pop, int n_push, OPCodeFormat f) {
+    this.id = id;
+    this.size = size;
+    this.n_pop = n_pop;
+    this.n_push = n_push;
+    this.f = f;
+  }
 
 '''
 
@@ -50,15 +58,16 @@ for i in range(0, lines.__len__(), 1):
         codeEnum = list[1]
         if codeEnum.endswith(','):
             codeEnum = codeEnum.strip(',')
-            print('striped: ' + codeEnum)
-        if codeEnum in keywords:
-            codeEnum = codeEnum.capitalize()
-        OPCodeEnumCodes.append('  ' + codeEnum + ',\n')
-        JSOpCode.write(line)
+
+        OPCodeEnumCodes.append('  OP_' + codeEnum + ',\n')
+
+        opcode = line.replace('DEF', codeEnum)
+        # JSOpCodeCodes.append(opcode)
 
 OPCodeEnumCodes.append(classFileEnd)
 OPCodeEnum.writelines(OPCodeEnumCodes)
 OPCodeEnum.close()
 
-JSOpCode.write(classFileEnd)
+JSOpCodeCodes.append(classFileEnd)
+JSOpCode.writelines(JSOpCodeCodes)
 JSOpCode.close()

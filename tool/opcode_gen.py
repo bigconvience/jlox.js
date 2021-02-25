@@ -8,7 +8,7 @@ f = open(filepath, "r")
 lines = f.readlines()  # 读取全部内容
 count = 1
 
-keywords = ['return', 'null', 'import', 'throw', 'catch', 'goto', 'instanceof']
+keywords = ['return', 'null', 'import', 'throw', 'catch', 'goto', 'instanceof', 'const']
 
 OPCodeEnumStart = '''package com.craftinginterpreters.lox;
 
@@ -16,6 +16,9 @@ public enum OPCodeEnum {
 '''
 
 JSOpCodeStart = '''package com.craftinginterpreters.lox;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import  static com.craftinginterpreters.lox.OPCodeEnum.*;
 import  static com.craftinginterpreters.lox.OPCodeFormat.*;
@@ -34,6 +37,11 @@ public class JSOpCode {
     this.f = f;
   }
 
+
+  public static List<JSOpCode> opcode_info;
+
+  {
+    opcode_info = new ArrayList<>();
 '''
 
 classFileEnd = '}'
@@ -61,13 +69,24 @@ for i in range(0, lines.__len__(), 1):
 
         OPCodeEnumCodes.append('  OP_' + codeEnum + ',\n')
 
-        opcode = line.replace('DEF', codeEnum)
-        # JSOpCodeCodes.append(opcode)
+        opcode = '    opcode_info.add(new JSOpCode('
+        for index, code in enumerate(list[1:6]):
+            if index == 0:
+                code = 'OP_' + code
+            if code.endswith(')'):
+                code = code.strip(')')
+            if code in keywords:
+                code = code.capitalize()
+            opcode = opcode + code
+
+        opcode = opcode + '));'
+        JSOpCodeCodes.append(opcode + '\n')
 
 OPCodeEnumCodes.append(classFileEnd)
 OPCodeEnum.writelines(OPCodeEnumCodes)
 OPCodeEnum.close()
 
+JSOpCodeCodes.append(' ' + classFileEnd + '\n')
 JSOpCodeCodes.append(classFileEnd)
 JSOpCode.writelines(JSOpCodeCodes)
 JSOpCode.close()

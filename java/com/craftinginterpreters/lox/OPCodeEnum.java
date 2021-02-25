@@ -1,12 +1,5 @@
 package com.craftinginterpreters.lox;
 
-/**
- * @author benpeng.jiang
- * @title: OpCodeEnum
- * @projectName LoxScript
- * @description: TODO
- * @date 2021/2/2411:28 PM
- */
 public enum OPCodeEnum {
   push_i32,
   push_const,

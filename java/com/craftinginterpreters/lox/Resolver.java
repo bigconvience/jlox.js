@@ -1,6 +1,7 @@
 package com.craftinginterpreters.lox;
 
 import java.util.*;
+import static com.craftinginterpreters.lox.OPCodeEnum.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Interpreter interpreter;
@@ -79,6 +80,21 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     resolveFunction(stmt, FunctionType.FUNCTION);
     return null;
+  }
+
+  private boolean resoleVariables(JSFunctionDef s) {
+    boolean ret = false;
+    DynBuf bcOut = new DynBuf();
+    if (s.isGlobalVar) {
+      for (JSHoistedDef hd: s.hoistedDef) {
+        if (hd.varName != null) {
+
+        }
+        bcOut.putOpcode(OP_check_define_var);
+        bcOut.putstr(hd.varName);
+      }
+    }
+    return ret;
   }
 
   void instantiateHostedDef(JSFunctionDef fun) {

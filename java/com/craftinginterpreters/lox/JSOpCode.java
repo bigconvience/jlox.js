@@ -200,6 +200,9 @@ public class JSOpCode {
       OP_define_var.ordinal(),
       new JSOpCode("define_var",6,0,0,atom_u8));
     opcode_info.put(
+      OP_check_define_var.ordinal(),
+      new JSOpCode("check_define_var",6,0,0,atom_u8));
+    opcode_info.put(
       OP_define_func.ordinal(),
       new JSOpCode("define_func",6,1,0,atom_u8));
     opcode_info.put(

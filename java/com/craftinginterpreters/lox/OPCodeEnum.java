@@ -59,6 +59,7 @@ public enum OPCodeEnum {
   OP_get_ref_value,
   OP_put_ref_value,
   OP_define_var,
+  OP_check_define_var,
   OP_define_func,
   OP_get_field,
   OP_get_field2,

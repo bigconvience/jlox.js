@@ -9,6 +9,8 @@ public class JSAtom {
   static final int JS_ATOM_TYPE_SYMBOL = 2;
   static final int JS_ATOM_TYPE_PRIVATE = 3;
 
+  static final JSAtom JS_ATOM_NULL = new JSAtom(0);
+
   private final int val;
   public JSAtom(int val) {
     this.val = val;
@@ -21,6 +23,7 @@ public class JSAtom {
   static {
     js_atom_init = new ArrayList<>();
 
+    js_atom_init.add(null);
     js_atom_init.add("null");
     js_atom_init.add("false");
     js_atom_init.add("true");

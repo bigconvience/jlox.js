@@ -15,8 +15,8 @@ import static com.craftinginterpreters.lox.JSAtom.*;
  * @date 2021/2/268:15 PM
  */
 public class JSRuntime {
-  final List<String> atomArray;
-  final Map<String, Integer> atomHash;
+  final List<JSString> atomArray;
+  final Map<JSString, Integer> atomHash;
 
   public JSRuntime() {
     this.atomArray = new ArrayList<>();
@@ -25,22 +25,28 @@ public class JSRuntime {
     JS_InitAtoms();
   }
 
-  private String hash_string(String str, int type) {
-    return type + ":" + str;
-  }
 
-  private JSAtom __JS_NEWAtom(String str, int atom_type) {
-    String h = hash_string(str, atom_type);
-    if (atomHash.containsKey(h)) {
-      Integer atom = atomHash.get(h);
+  private JSAtom __JS_NewAtom(String str, int atom_type) {
+    JSString p = new JSString(str, atom_type);
+    if (atomHash.containsKey(p)) {
+      Integer atom = atomHash.get(p);
       return new JSAtom(atom);
     }
     int atomCount = atomArray.size();
-    atomHash.put(h, atomCount++);
-    atomArray.add(h);
+    atomHash.put(p, atomCount);
+    atomArray.add(p);
     return new JSAtom(atomCount);
   }
 
+  private JSAtom __JS_FindAtom(String str, int atom_type) {
+    JSString p = new JSString(str, atom_type);
+    if (atomHash.containsKey(p)) {
+      Integer atom = atomHash.get(p);
+      return new JSAtom(atom);
+    }
+
+    return JS_ATOM_NULL;
+  }
 
   private void JS_InitAtoms() {
     atomArray.clear();
@@ -51,7 +57,8 @@ public class JSRuntime {
 
     int atom_type;
     String str;
-    for (int i = 1; i < JS_ATOM_END.ordinal(); i++) {
+//    __JS_NewAtom(null, JS_ATOM_TYPE_STRING);
+    for (int i = 0; i < JS_ATOM_END.ordinal(); i++) {
       if (i == JS_ATOM_Private_brand.ordinal()) {
         atom_type = JS_ATOM_TYPE_PRIVATE;
       } else if (i >= JS_ATOM_Symbol_toPrimitive.ordinal()) {
@@ -60,7 +67,7 @@ public class JSRuntime {
         atom_type = JS_ATOM_TYPE_STRING;
       }
       str = js_atom_init.get(i);
-      __JS_NEWAtom(str, atom_type);
+      __JS_NewAtom(str, atom_type);
     }
     atomHash.size();
   }

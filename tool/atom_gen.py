@@ -43,6 +43,7 @@ public class JSAtom {
 
 JSAtomCodes = [JSAtomStart, '\n']
 
+index = 0
 for i in range(0, len(lines), 1):
     list = []  ## 空列表, 将第i行数据存入list中
     line = lines[i]
@@ -58,7 +59,8 @@ for i in range(0, len(lines), 1):
         idx = second.index('\"')
         second = second[:idx]
         second = '\"' + second + '\"'
-        print(first + ' ' + second)
+        index = index + 1
+        print(str(index) + ':' + first + ' ' + second)
         AtomCodes.append(space + 'JS_ATOM_' + first + ',\n')
         JSAtomCodes.append(space + 'js_atom_init.add(' + second + ');\n')
 

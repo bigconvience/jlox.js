@@ -13,6 +13,11 @@ public class JSContext {
   private static Interpreter interpreter;
 
   public JSValue globalObj;
+  final JSRuntime rt;
+
+  public JSContext(JSRuntime rt) {
+    this.rt = rt;
+  }
 
   JSValue evalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flags, int scope_idx) {
     JSValue retVal = null;
@@ -24,7 +29,7 @@ public class JSContext {
     fd.evalType = evalType;
     fd.funcName = "<eval>";
 
-    Parser parser = new Parser(scanner, this, fd);
+    Parser parser = new Parser(scanner, this, fd, ctx.rt);
     parser.fileName = filename;
 
     parser.pushScope();

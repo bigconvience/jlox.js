@@ -10,7 +10,7 @@ import java.util.Arrays;
  * @date 2021/2/251:38 PM
  */
 public class DynBuf {
-  byte[] buf;
+  byte[] buf = new byte[0];
   int size;
   int allocatedSize;
   boolean error;
@@ -52,6 +52,12 @@ public class DynBuf {
     return 0;
   }
 
+  int putc(int v) {
+    byte input = (byte) v;
+    return putc(input);
+  }
+
+
   int putc(byte c) {
     byte[] input = {c};
     return put(input);
@@ -63,6 +69,18 @@ public class DynBuf {
 
   int putU32(int val) {
     return put(intToByteArray(val));
+  }
+
+  int putU16(int val) {
+    return putU16((short)val);
+  }
+
+  int putU16(short val) {
+    return put(shortToByteArray(val));
+  }
+
+  int putAtom(JSAtom atom) {
+    return putU32(atom.getVal());
   }
 
   int putOpcode(OPCodeEnum opcode) {
@@ -77,6 +95,13 @@ public class DynBuf {
     result[1] = (byte) ((i >> 16) & 0xFF);
     result[2] = (byte) ((i >> 8) & 0xFF);
     result[3] = (byte) (i & 0xFF);
+    return result;
+  }
+
+  public static byte[] shortToByteArray(short i) {
+    byte[] result = new byte[2];
+    result[0] = (byte) ((i >> 8) & 0xFF);
+    result[1] = (byte) (i & 0xFF);
     return result;
   }
 }

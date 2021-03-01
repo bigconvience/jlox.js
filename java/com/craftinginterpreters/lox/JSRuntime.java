@@ -25,6 +25,9 @@ public class JSRuntime {
     JS_InitAtoms();
   }
 
+  public JSAtom JS_NewAtomStr(String str) {
+    return __JS_NewAtom(str, JS_ATOM_TYPE_STRING);
+  }
 
   private JSAtom __JS_NewAtom(String str, int atom_type) {
     JSString p = new JSString(str, atom_type);
@@ -57,7 +60,6 @@ public class JSRuntime {
 
     int atom_type;
     String str;
-//    __JS_NewAtom(null, JS_ATOM_TYPE_STRING);
     for (int i = 0; i < JS_ATOM_END.ordinal(); i++) {
       if (i == JS_ATOM_Private_brand.ordinal()) {
         atom_type = JS_ATOM_TYPE_PRIVATE;

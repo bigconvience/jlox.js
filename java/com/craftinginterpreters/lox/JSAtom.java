@@ -2,6 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class JSAtom {
   static final int JS_ATOM_TYPE_STRING = 0;
@@ -18,7 +19,20 @@ public class JSAtom {
   public int getVal() {
     return val;
   }
-  
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    JSAtom atom = (JSAtom) o;
+    return val == atom.val;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(val);
+  }
+
   static List<String> js_atom_init;
   static {
     js_atom_init = new ArrayList<>();

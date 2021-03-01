@@ -50,7 +50,7 @@ public class Lox {
   private static void run(String source, String filename) {
     JSRuntime rt = new JSRuntime();
 
-    JSContext ctx = new JSContext();
+    JSContext ctx = new JSContext(rt);
     JSEvaluator.JSEval(ctx, source, filename, JS_EVAL_TYPE_GLOBAL);
 
     // Stop if there was a syntax error.

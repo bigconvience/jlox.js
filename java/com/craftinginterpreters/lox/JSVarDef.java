@@ -15,10 +15,10 @@ public class JSVarDef {
   int scopeNext;
   JSVarScope scope;
   JSVarKindEnum varKind;
-  String varName;
+  JSAtom varName;
   int funcPoolOrScopeIdx;
   boolean isGlobalVar;
-  int cpoolIdx;
+  int cpool_idx;
   int varIdx;
   boolean forceInit;
 }

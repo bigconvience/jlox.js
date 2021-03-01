@@ -23,10 +23,10 @@ public class JSFunctionDef extends Stmt {
     varDefMap = new HashMap<>();
     hoistDef = new HashMap<>();
     scopes = new ArrayList<>();
-    statements = new ArrayList<>();
     vars = new ArrayList<>();
     hoistedDef = new ArrayList<>();
     args = new ArrayList<>();
+    closureVar = new ArrayList<>();
   }
 
   @Override
@@ -47,18 +47,20 @@ public class JSFunctionDef extends Stmt {
   final List<JSVarDef> vars;
   final List<JSVarDef> args;
   final List<JSHoistedDef> hoistedDef;
+  final List<JSClosureVar> closureVar;
   final Map<String, JSHoistedDef> hoistDef;
   List<Stmt> body;
+  Stmt.Block bodyBlock;
   int evalType;
   boolean isEval;
   boolean isGlobalVar;
   JSVarScope curScope;
-  final List<Stmt> statements;
+  DynBuf byteCode;
 
   String funcName;
 
   void addStmt(Stmt stmt) {
-    statements.add(stmt);
+    body.add(stmt);
   }
 
   void addVarDef(String name, JSVarDef varDef) {
@@ -97,7 +99,7 @@ public class JSFunctionDef extends Stmt {
     return scope;
   }
 
-  public JSVarDef findLexicalDef(String varName) {
+  public JSVarDef findLexicalDef(JSAtom varName) {
     JSVarScope scope = curScope;
     while (scope != null) {
       JSVarDef varDef = scope.get(varName);
@@ -113,7 +115,7 @@ public class JSFunctionDef extends Stmt {
     return null;
   }
 
-  public JSHoistedDef findLexicalHoistedDef(String varName) {
+  public JSHoistedDef findLexicalHoistedDef(JSAtom varName) {
     JSHoistedDef hoistedDef = findHoistedDef(varName);
     if (hoistedDef != null && hoistedDef.isLexical) {
       return hoistedDef;
@@ -121,7 +123,7 @@ public class JSFunctionDef extends Stmt {
     return null;
   }
 
-  JSHoistedDef findHoistedDef(String varName) {
+  JSHoistedDef findHoistedDef(JSAtom varName) {
     for (JSHoistedDef hf : hoistedDef) {
       if (hf.varName.equals(varName)) {
         return hf;
@@ -130,9 +132,9 @@ public class JSFunctionDef extends Stmt {
     return null;
   }
 
-  public JSVarDef findVarInChildScope(String name) {
+  public JSVarDef findVarInChildScope(JSAtom name) {
     for (JSVarDef vd : vars) {
-      if (vd != null && vd.name.equals(name) && vd.scopeLevel == 0) {
+      if (vd != null && vd.varName.equals(name) && vd.scopeLevel == 0) {
         if (isChildScope(vd.funcPoolOrScopeIdx, scopeLevel)) {
           return vd;
         }
@@ -153,13 +155,13 @@ public class JSFunctionDef extends Stmt {
     return false;
   }
 
-  public JSHoistedDef addHoistedDef(int cpoolIdx, String varName,
+  public JSHoistedDef addHoistedDef(int cpoolIdx, JSAtom varName,
                                     int varIdx,
                                     boolean isLexical) {
     JSHoistedDef hf = new JSHoistedDef();
     hoistedDef.add(hf);
     hf.varName = varName;
-    hf.cpoolIdx = cpoolIdx;
+    hf.cpool_idx = cpoolIdx;
     hf.isLexical = isLexical;
     hf.forceInit = false;
     hf.varIdx = varIdx;
@@ -174,7 +176,7 @@ public class JSFunctionDef extends Stmt {
     return null;
   }
 
-  public int addScopeVar(String varName, JSVarKindEnum varKind) {
+  public int addScopeVar(JSAtom varName, JSVarKindEnum varKind) {
     int idx = addVar(varName);
     if (idx >= 0) {
       JSVarDef vd = vars.get(idx);
@@ -188,14 +190,14 @@ public class JSFunctionDef extends Stmt {
     return idx;
   }
 
-  public int addVar(String varName) {
+  public int addVar(JSAtom varName) {
     JSVarDef vd = new JSVarDef();
     vars.add(vd);
     vd.varName = varName;
     return vars.size() - 1;
   }
 
-  public int findVar(String varName) {
+  public int findVar(JSAtom varName) {
     for (int i = 0; i < vars.size(); i++) {
       JSVarDef vd = vars.get(i);
       if (vd.varName.equals(varName) && vd.scopeLevel == 0) {
@@ -206,7 +208,7 @@ public class JSFunctionDef extends Stmt {
     return findArg(varName);
   }
 
-  public int findArg(String varName) {
+  public int findArg(JSAtom varName) {
     for (int i = 0; i < args.size(); i++) {
       JSVarDef vd = args.get(i);
       if (vd.varName.equals(varName)) {

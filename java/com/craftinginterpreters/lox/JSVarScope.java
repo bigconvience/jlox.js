@@ -14,7 +14,7 @@ public class JSVarScope {
   public JSVarScope prev;
   public JSVarScope next;
   public int level;
-  final Map<String, JSVarDef> vars;
+  final Map<JSAtom, JSVarDef> vars;
   int first = -1;
   int parent = -1;
 
@@ -24,10 +24,10 @@ public class JSVarScope {
   }
 
   public void addVar(JSVarDef varDef) {
-    vars.put(varDef.name.lexeme, varDef);
+    vars.put(varDef.varName, varDef);
   }
 
-  public JSVarDef get(String name) {
+  public JSVarDef get(JSAtom name) {
     return vars.get(name);
   }
 }

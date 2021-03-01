@@ -19,12 +19,14 @@ class Parser {
   private Scanner scanner;
   JSContext ctx;
   String fileName;
+  private JSRuntime rt;
 
-  Parser(Scanner scanner, JSContext ctx, JSFunctionDef curFunc) {
+  Parser(Scanner scanner, JSContext ctx, JSFunctionDef curFunc, JSRuntime rt) {
     this.scanner = scanner;
     this.tokens = scanner.scanTokens();
     this.ctx = ctx;
     this.curFunc = curFunc;
+    this.rt = rt;
   }
 
   List<Stmt> parse() {
@@ -41,7 +43,9 @@ class Parser {
     JSFunctionDef fd = curFunc;
     fd.isGlobalVar = (fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL);
 
-    curFunc.body = parse();
+    Stmt.Block block = new Stmt.Block(parse());
+    block.scope = 1;
+    curFunc.bodyBlock = block;
     return success;
   }
 
@@ -197,7 +201,7 @@ class Parser {
   private int defineVar(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
     JSVarDef vd;
     JSHoistedDef hf;
-    String varName = name.lexeme;
+    JSAtom varName = rt.JS_NewAtomStr(name.lexeme);
     int idx = -1;
     switch (varDefType) {
       case JS_VAR_DEF_LET:

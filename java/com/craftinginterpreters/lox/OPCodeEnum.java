@@ -85,6 +85,7 @@ public enum OPCodeEnum {
   OP_get_var_ref,
   OP_put_var_ref,
   OP_set_var_ref,
+  OP_set_loc_uninitialized,
   OP_get_loc_check,
   OP_put_loc_check,
   OP_put_loc_check_init,

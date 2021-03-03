@@ -4,6 +4,7 @@ public enum OPCodeEnum {
   OP_push_i32,
   OP_push_const,
   OP_fclosure,
+  OP_push_atom_value,
   OP_private_symbol,
   OP_undefined,
   OP_null,

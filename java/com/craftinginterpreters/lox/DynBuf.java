@@ -68,7 +68,7 @@ public class DynBuf {
   }
 
   int putU32(int val) {
-    return put(intToByteArray(val));
+    return put(Utils.intToByteArray(val));
   }
 
   int putU16(int val) {
@@ -88,15 +88,6 @@ public class DynBuf {
     return put(input);
   }
 
-
-  public static byte[] intToByteArray(int i) {
-    byte[] result = new byte[4];
-    result[0] = (byte) ((i >> 24) & 0xFF);
-    result[1] = (byte) ((i >> 16) & 0xFF);
-    result[2] = (byte) ((i >> 8) & 0xFF);
-    result[3] = (byte) (i & 0xFF);
-    return result;
-  }
 
   public static byte[] shortToByteArray(short i) {
     byte[] result = new byte[2];

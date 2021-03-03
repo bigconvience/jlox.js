@@ -10,4 +10,8 @@ package com.craftinginterpreters.lox;
 public class JSConstants {
   static final int DEFINE_GLOBAL_LEX_VAR = (1 << 7);
   static final int DEFINE_GLOBAL_FUNC_VAR = (1 << 6);
+
+  static final int JS_MAX_LOCAL_VARS = 65536;
+  static final int JS_STACK_SIZE_MAX = 65536;
+  static final int JS_STRING_LEN_MAX = ((1 << 30) - 1);
 }

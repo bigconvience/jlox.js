@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import static com.craftinginterpreters.lox.AtomEnum.*;
+import static com.craftinginterpreters.lox.JSAtomEnum.*;
 import static com.craftinginterpreters.lox.JSAtom.*;
 
 /**
@@ -54,7 +54,7 @@ public class JSRuntime {
   private void JS_InitAtoms() {
     atomArray.clear();
     atomHash.clear();
-    for(AtomEnum atomEnum: AtomEnum.values()) {
+    for(JSAtomEnum atomEnum: JSAtomEnum.values()) {
       System.out.println(atomEnum.name() + ": " + atomEnum.ordinal());
     }
 

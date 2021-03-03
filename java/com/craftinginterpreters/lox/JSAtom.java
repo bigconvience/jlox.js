@@ -10,12 +10,26 @@ public class JSAtom {
   static final int JS_ATOM_TYPE_SYMBOL = 2;
   static final int JS_ATOM_TYPE_PRIVATE = 3;
 
+  static final int JS_ATOM_TAG_INT = (1 << 31);
+  static final int JS_ATOM_MAX_INT = (JS_ATOM_TAG_INT - 1);
+  static final int JS_ATOM_MAX = ((1 << 30) - 1);
+
+  boolean __JS_AtomIsTaggedInt() {
+    return (getVal() & JS_ATOM_TAG_INT) != 0;
+  }
+
+  int __JS_AtomToUInt32() {
+    return getVal() & ~JS_ATOM_TAG_INT;
+  }
+
   static final JSAtom JS_ATOM_NULL = new JSAtom(0);
 
   private final int val;
+
   public JSAtom(int val) {
     this.val = val;
   }
+
   public int getVal() {
     return val;
   }
@@ -34,6 +48,7 @@ public class JSAtom {
   }
 
   static List<String> js_atom_init;
+
   static {
     js_atom_init = new ArrayList<>();
 

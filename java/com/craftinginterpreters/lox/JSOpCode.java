@@ -35,6 +35,9 @@ public class JSOpCode {
       OP_fclosure.ordinal(),
       new JSOpCode("fclosure",5,0,1,Const));
     opcode_info.put(
+      OP_push_atom_value.ordinal(),
+      new JSOpCode("push_atom_value",5,0,1,atom));
+    opcode_info.put(
       OP_private_symbol.ordinal(),
       new JSOpCode("private_symbol",5,0,1,atom));
     opcode_info.put(

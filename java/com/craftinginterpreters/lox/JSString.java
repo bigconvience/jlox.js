@@ -1,5 +1,7 @@
 package com.craftinginterpreters.lox;
 
+import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
+
 /**
  * @author benpeng.jiang
  * @title: JSString
@@ -8,8 +10,13 @@ package com.craftinginterpreters.lox;
  * @date 2021/2/277:33 PM
  */
 public class JSString {
-  final  int atom_type;
-  final  String str;
+  final int atom_type;
+  final String str;
+
+  public JSString(String str) {
+    atom_type = JS_ATOM_TYPE_STRING;
+    this.str = str;
+  }
 
   public JSString(String str, int atom_type) {
     this.atom_type = atom_type;
@@ -26,7 +33,8 @@ public class JSString {
       if (this.atom_type == anotherJSString.atom_type) {
         if (this.str != null && anotherJSString.str != null) {
           return this.str.equals(anotherJSString.str);
-        } if (this.str == null && anotherJSString.str == null) {
+        }
+        if (this.str == null && anotherJSString.str == null) {
           return true;
         }
         return false;

@@ -1,4 +1,9 @@
 var a = "a";
+
+const a1 = 1;
+var a2 = 2;
+let a3 = 3;
+
 var b = "b";
 var c = "c";
 

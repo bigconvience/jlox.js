@@ -2,7 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
-import static com.craftinginterpreters.lox.AtomEnum.JS_ATOM__default_;
+import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
 import static com.craftinginterpreters.lox.JSConstants.DEFINE_GLOBAL_FUNC_VAR;
 import static com.craftinginterpreters.lox.JSConstants.DEFINE_GLOBAL_LEX_VAR;
 import static com.craftinginterpreters.lox.JSEvaluator.JS_EVAL_TYPE_GLOBAL;
@@ -49,7 +49,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitBlockStmt(Stmt.Block stmt) {
-    enterScope(curFunc, stmt.scope, curFunc.byteCode);
+    JSFunctionDef fd = curFunc;
+    enterScope(fd, stmt.scope, fd.byteCode);
+    curFunc = fd;
     resolve(stmt.statements);
     return null;
   }
@@ -312,6 +314,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitLiteralExpr(Expr.Literal expr) {
+    if (expr.value instanceof JSAtom) {
+      DynBuf db = curFunc.byteCode;
+      db.putOpcode(OP_push_atom_value);
+      db.putAtom((JSAtom) expr.value);
+    }
     return null;
   }
 

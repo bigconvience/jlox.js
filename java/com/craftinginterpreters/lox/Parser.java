@@ -597,8 +597,11 @@ class Parser {
     if (match(TOK_TRUE)) return new Expr.Literal(true);
     if (match(TOK_NULL)) return new Expr.Literal(null);
 
-    if (match(TOK_NUMBER, TOK_STRING, TOK_TEMPLATE)) {
+    if (match(TOK_NUMBER, TOK_TEMPLATE)) {
       return new Expr.Literal(previous().literal);
+    }
+    if (match(TOK_STRING)) {
+      return emitPushConst(previous(), true);
     }
 
     if (match(TOK_THIS)) return new Expr.This(previous());
@@ -624,6 +627,18 @@ class Parser {
     }
 
     throw error(peek(), "Expect expression.");
+  }
+
+  private  Expr.Literal emitPushConst(Token token, boolean asAtom) {
+    Expr.Literal literal = null;
+    if (token.type == TOK_STRING && asAtom) {
+      JSAtom atom = rt.JS_NewAtomStr(token.lexeme);
+      if (atom != JSAtom.JS_ATOM_NULL && !atom.__JS_AtomIsTaggedInt()) {
+        literal = new Expr.Literal(atom);
+      }
+    }
+
+    return literal;
   }
 
   private Expr.ObjectLiteral parseObjectLiteral() {

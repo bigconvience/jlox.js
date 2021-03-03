@@ -6,8 +6,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
 
 import static com.craftinginterpreters.lox.JSEvaluator.JS_EVAL_TYPE_GLOBAL;
 

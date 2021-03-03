@@ -1,6 +1,6 @@
 package com.craftinginterpreters.lox;
 
-public enum AtomEnum {
+public enum JSAtomEnum {
     __JS_ATOM_NULL,
     JS_ATOM_null,
     JS_ATOM_false,

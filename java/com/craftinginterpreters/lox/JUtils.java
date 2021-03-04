@@ -7,7 +7,7 @@ package com.craftinginterpreters.lox;
  * @description: TODO
  * @date 2020/12/299:37 PM
  */
-public class Utils {
+public class JUtils {
   public static int toInt(Object value) {
     if (value instanceof Double) {
       return ((Double) value).intValue();

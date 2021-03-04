@@ -12,7 +12,7 @@ import java.nio.file.Paths;
  * @description: TODO
  * @date 2021/1/512:41 AM
  */
-public class JSEvaluator {
+public class LoxJS {
   public static final int JS_EVAL_TYPE_GLOBAL = 0;
   public static final int JS_EVAL_TYPE_MODULE = 1;
   public static final int JS_EVAL_TYPE_DIRECT = 2;
@@ -47,7 +47,9 @@ public class JSEvaluator {
   }
 
   public static JSValue JSEvalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flags, int scope_idx) {
-    return ctx.evalInternal(ctx, thisObject, input, filename, flags, scope_idx);
+    return ctx.__JS_evalInternal(ctx, thisObject, input, filename, flags, scope_idx);
   }
+
+
 
 }

@@ -109,7 +109,7 @@ public class JSFunctionDef extends Stmt {
       scope = scope.prev;
     }
 
-    if (isEval && evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL) {
+    if (isEval && evalType == LoxJS.JS_EVAL_TYPE_GLOBAL) {
       return findLexicalHoistedDef(varName);
     }
     return null;

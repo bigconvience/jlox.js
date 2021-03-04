@@ -299,13 +299,13 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return (double) left <= (double) right;
       case TOK_SHL:
         checkNumberOperands(expr.operator, left, right);
-        return Utils.toInt(left) << Utils.toInt(right);
+        return JUtils.toInt(left) << JUtils.toInt(right);
       case TOK_SAR:
         checkNumberOperands(expr.operator, left, right);
-        return Utils.toInt(left) >> Utils.toInt(right);
+        return JUtils.toInt(left) >> JUtils.toInt(right);
       case TOK_SHR:
         checkNumberOperands(expr.operator, left, right);
-        return Utils.toInt(left) >>> Utils.toInt(right);
+        return JUtils.toInt(left) >>> JUtils.toInt(right);
       case MINUS:
         checkNumberOperands(expr.operator, left, right);
         return (double) left - (double) right;
@@ -415,8 +415,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     Object left = evaluate(expr.left);
     Object right = evaluate(expr.right);
     checkNumberOperands(expr.operator, left, right);
-    int leftInt = Utils.toInt(left);
-    int rightInt = Utils.toInt(right);
+    int leftInt = JUtils.toInt(left);
+    int rightInt = JUtils.toInt(right);
     TokenType type = expr.operator.type;
     if (type == TOK_BIT_OR) {
       return leftInt | rightInt;
@@ -470,7 +470,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
       case BANG:
         return !isTruthy(right);
       case BITWISE_BANG:
-        return ~Utils.toInt(right);
+        return ~JUtils.toInt(right);
       case MINUS:
         checkNumberOperand(expr.operator, right);
         return -(double) right;

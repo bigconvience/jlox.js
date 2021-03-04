@@ -12,8 +12,10 @@ import java.util.Map;
  * @date 2021/1/151:47 PM
  */
 public class JSObject {
+  boolean is_exotic;
+  JSShape shape;
   Map<String, Object> prop;
-  ClassID classID;
+  JSClassID JSClassID;
 
   Func func;
   static class Func {

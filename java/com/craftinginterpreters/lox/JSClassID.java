@@ -7,7 +7,7 @@ package com.craftinginterpreters.lox;
  * @description: TODO
  * @date 2021/3/31:48 PM
  */
-public enum ClassID {
+public enum JSClassID {
   /* classid tag        */    /* union usage   | properties */
   JS_CLASS_OBJECT,        /* must be first */
   JS_CLASS_ARRAY,             /* u.array       | length */

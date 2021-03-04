@@ -29,6 +29,14 @@ public class JSValue {
     return null;
   }
 
+  JSObject get_proto_obj() {
+    if (!JS_IsObject()) {
+      return null;
+    } else {
+      return JS_VALUE_GET_OBJ();
+    }
+  }
+
   public boolean JS_IsObject() {
     return JSTag.JS_TAG_OBJECT == tag;
   }
@@ -51,5 +59,8 @@ public class JSValue {
     return new JSValue(JSTag.JS_TAG_STRING, str);
   }
 
+  void print() {
+    System.out.println(value);
+  }
 
 }

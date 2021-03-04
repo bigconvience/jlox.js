@@ -41,7 +41,7 @@ class Parser {
   boolean parseProgram() {
     boolean success = true;
     JSFunctionDef fd = curFunc;
-    fd.isGlobalVar = (fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL);
+    fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
 
     Stmt.Block block = new Stmt.Block(parse());
     block.scope = 1;
@@ -232,8 +232,8 @@ class Parser {
         }
 
         if (fd.isEval &&
-          (fd.evalType == JSEvaluator.JS_EVAL_TYPE_GLOBAL ||
-            fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE)
+          (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL ||
+            fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE)
           && fd.scopeLevel == 1) {
           hf = fd.addHoistedDef(-1, varName, -1, true);
           hf.isConst = varDefType == JS_VAR_DEF_CONST;
@@ -265,7 +265,7 @@ class Parser {
           if (fd.isGlobalVar) {
             hf = fd.findHoistedDef(varName);
             if (hf != null && hf.isLexical
-              && hf.scopeLevel == fd.scopeLevel && fd.evalType == JSEvaluator.JS_EVAL_TYPE_MODULE) {
+              && hf.scopeLevel == fd.scopeLevel && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
             hf = fd.addHoistedDef(-1,  varName, -1, false);

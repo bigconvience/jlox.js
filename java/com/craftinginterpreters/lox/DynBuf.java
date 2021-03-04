@@ -68,7 +68,7 @@ public class DynBuf {
   }
 
   int putU32(int val) {
-    return put(Utils.intToByteArray(val));
+    return put(JUtils.intToByteArray(val));
   }
 
   int putU16(int val) {

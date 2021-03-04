@@ -17,6 +17,7 @@ import static com.craftinginterpreters.lox.JSAtom.*;
 public class JSRuntime {
   final List<JSString> atomArray;
   final Map<JSString, Integer> atomHash;
+  final Map<JSString, JSClass> class_array;
 
   int stack_size;
   int stack_top;
@@ -25,6 +26,7 @@ public class JSRuntime {
   public JSRuntime() {
     this.atomArray = new ArrayList<>();
     this.atomHash = new HashMap<>();
+    this.class_array = new HashMap<>();
 
     JS_InitAtoms();
   }

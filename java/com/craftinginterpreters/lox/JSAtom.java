@@ -23,6 +23,7 @@ public class JSAtom {
   }
 
   static final JSAtom JS_ATOM_NULL = new JSAtom(0);
+  static final JSAtom JS_ATOM_empty_string = new JSAtom(JSAtomEnum.JS_ATOM_empty_string.ordinal());
 
   private final int val;
 

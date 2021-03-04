@@ -21,7 +21,7 @@ public class JSAtomUtils {
   private static JSValue __JS_AtomToValue(JSContext ctx, JSAtom atom, boolean force_string) {
     if (atom.__JS_AtomIsTaggedInt()) {
      int u32 = atom.__JS_AtomToUInt32();
-     return JSValue.JS_NewString(ctx, Utils.intToByteArray(u32));
+     return JSValue.JS_NewString(ctx, JUtils.intToByteArray(u32));
     } else {
       JSRuntime rt = ctx.rt;
       JSString p = rt.atomArray.get(atom.getVal());

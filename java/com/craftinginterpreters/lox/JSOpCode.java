@@ -32,6 +32,9 @@ public class JSOpCode {
 
     opcode_info = new HashMap<>();
     opcode_info.put(
+      OP_print.ordinal(),
+      new JSOpCode("print",1,0,1,none));
+    opcode_info.put(
       OP_push_i32.ordinal(),
       new JSOpCode("push_i32",5,0,1,i32));
     opcode_info.put(

@@ -10,7 +10,7 @@ import java.util.List;
  * @date 2021/3/31:42 PM
  */
 public class JSFunctionByteCode {
-  ClassID class_Id;
+  JSClassID class_Id;
   byte js_mode;
 
 
@@ -19,6 +19,7 @@ public class JSFunctionByteCode {
   JSAtom func_name;
   List<JSVarDef> vardefs;
 
+  short func_kind = 2;
   short arg_count;
   short var_count;
   short defined_arg_count;

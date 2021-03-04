@@ -3,9 +3,10 @@ package com.craftinginterpreters.lox;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_push_i32;
+import static com.craftinginterpreters.lox.JConstants.JS_CALL_FLAG_COPY_ARGV;
+import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
+import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
 
 /*
   @author benpeng.jiang
@@ -15,6 +16,26 @@ import static com.craftinginterpreters.lox.OPCodeEnum.OP_push_i32;
   @date 2021/3/310:22 AM
  */
 public class JSVM {
+
+  static JSValue JS_EvalFunctionInternal(JSContext ctx, JSValue func_obj, final JSValue this_obj,
+                                         JSVarRefWrapper var_refs, JSStackFrame sf) {
+    JSValue ret_val = null;
+    JSTag tag = func_obj.tag;
+    if (tag == JSTag.JS_TAG_FUNCTION_BYTECODE) {
+      func_obj = ctx.js_closure(func_obj, var_refs, sf);
+      ret_val = JS_CallFree(ctx, func_obj, this_obj, 0, null);
+    }
+
+    return ret_val;
+  }
+
+  static JSValue JS_CallFree(JSContext ctx, JSValue func_obj, final JSValue this_obj,
+                             int argc, final JSValue[] argv) {
+    JSValue res = JS_CallInternal(ctx, func_obj, this_obj, JS_UNDEFINED,
+      argc, argv, JS_CALL_FLAG_COPY_ARGV);
+    return res;
+  }
+
 
   static JSValue JS_CallInternal(JSContext callerCtx, final JSValue funcObj,
                                  final JSValue thisObject, final JSValue newTarget,
@@ -33,7 +54,7 @@ public class JSVM {
     List<JSVarRef> var_refs;
     p = funcObj.JS_VALUE_GET_OBJ();
 
-    if (p.classID != ClassID.JS_CLASS_BYTECODE_FUNCTION) {
+    if (p.JSClassID != JSClassID.JS_CLASS_BYTECODE_FUNCTION) {
 
     }
 
@@ -50,11 +71,11 @@ public class JSVM {
       arg_buf.add(argv[i]);
     }
     for (; i < b.arg_count; i++) {
-      arg_buf.add(JSValue.JS_UNDEFINED);
+      arg_buf.add(JS_UNDEFINED);
     }
 
     for (i = 0; i < b.var_count; i++) {
-      var_buf.add(JSValue.JS_UNDEFINED);
+      var_buf.add(JS_UNDEFINED);
     }
     sf.arg_buf = arg_buf;
     sf.var_buf = var_buf;
@@ -72,9 +93,15 @@ public class JSVM {
       int code = b.byte_code_buf[pc++];
       OPCodeEnum opcode = JSOpCode.opcode_enum.get(code);
       switch (opcode) {
+        case OP_print:
+          top = peek(stack_buf, sp);
+          top.print();
+          sp--;
+          pc++;
+          break;
         case OP_push_i32:
-          u32 = Utils.get_u32(b.byte_code_buf, sp);
-          top = push(stack_buf, sp, JSValue.JS_NewInt32(ctx, u32));
+          u32 = JUtils.get_u32(b.byte_code_buf, sp);
+          push(stack_buf, sp, JSValue.JS_NewInt32(ctx, u32));
           sp++;
           pc += 4;
           break;
@@ -83,6 +110,11 @@ public class JSVM {
 
     rt.current_stack_frame = sf.prev_frame;
     return ret_val;
+  }
+
+  private static JSValue peek(JSValue[] stack_buf, int sp) {
+    JSValue value = stack_buf[sp];
+    return value;
   }
 
   private static JSValue push(JSValue[] stackBuf, int sp, JSValue value) {

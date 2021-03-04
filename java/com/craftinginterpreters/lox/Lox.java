@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static com.craftinginterpreters.lox.JSEvaluator.JS_EVAL_TYPE_GLOBAL;
+import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
 
 public class Lox {
   static boolean hadError = false;
@@ -49,7 +49,7 @@ public class Lox {
     JSRuntime rt = new JSRuntime();
 
     JSContext ctx = new JSContext(rt);
-    JSEvaluator.JSEval(ctx, source, filename, JS_EVAL_TYPE_GLOBAL);
+    LoxJS.JSEval(ctx, source, filename, JS_EVAL_TYPE_GLOBAL);
 
     // Stop if there was a syntax error.
     if (hadError) return;

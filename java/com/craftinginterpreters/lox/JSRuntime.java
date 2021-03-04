@@ -18,6 +18,10 @@ public class JSRuntime {
   final List<JSString> atomArray;
   final Map<JSString, Integer> atomHash;
 
+  int stack_size;
+  int stack_top;
+  JSStackFrame current_stack_frame;
+
   public JSRuntime() {
     this.atomArray = new ArrayList<>();
     this.atomHash = new HashMap<>();

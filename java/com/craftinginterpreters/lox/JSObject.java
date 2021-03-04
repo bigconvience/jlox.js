@@ -1,6 +1,7 @@
 package com.craftinginterpreters.lox;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,6 +13,14 @@ import java.util.Map;
  */
 public class JSObject {
   Map<String, Object> prop;
+  ClassID classID;
+
+  Func func;
+  static class Func {
+    JSFunctionByteCode functionByteCode;
+    List<JSVarRef> var_refs;
+    JSObject homeObject;
+  }
 
   public JSObject() {
     prop = new HashMap<>();

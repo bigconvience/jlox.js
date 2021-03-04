@@ -22,8 +22,14 @@ public class JSOpCode {
 
 
   public static Map<Integer, JSOpCode> opcode_info;
+  public static Map<Integer, OPCodeEnum> opcode_enum;
 
   {
+    opcode_enum = new HashMap<>();
+    for (OPCodeEnum codeEnum: OPCodeEnum.values()) {
+      opcode_enum.put(codeEnum.ordinal(), codeEnum);
+    }
+
     opcode_info = new HashMap<>();
     opcode_info.put(
       OP_push_i32.ordinal(),

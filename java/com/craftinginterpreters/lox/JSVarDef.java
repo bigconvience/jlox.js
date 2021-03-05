@@ -11,8 +11,8 @@ public class JSVarDef {
   Token name;
   boolean isConst;
   boolean isLexical;
-  int scopeLevel;
-  int scopeNext;
+  int scope_level;
+  int scope_next;
   JSVarScope scope;
   JSVarKindEnum varKind;
   JSAtom varName;

@@ -17,15 +17,16 @@ public class JSObject {
   Map<String, Object> prop;
   JSClassID JSClassID;
 
-  Func func;
+  Func func ;
   static class Func {
-    JSFunctionByteCode functionByteCode;
+    JSFunctionBytecode function_bytecode;
     List<JSVarRef> var_refs;
     JSObject homeObject;
   }
 
   public JSObject() {
     prop = new HashMap<>();
+    func = new Func();
   }
 
   public void defineProperty(String key, Object value) {

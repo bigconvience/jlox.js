@@ -42,4 +42,9 @@ public class JSString {
     }
     return false;
   }
+
+  @Override
+  public String toString() {
+    return str;
+  }
 }

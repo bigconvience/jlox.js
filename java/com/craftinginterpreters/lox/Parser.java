@@ -43,9 +43,7 @@ class Parser {
     JSFunctionDef fd = curFunc;
     fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
 
-    Stmt.Block block = new Stmt.Block(parse());
-    block.scope = 1;
-    curFunc.bodyBlock = block;
+    curFunc.body = parse();
     return success;
   }
 
@@ -226,7 +224,7 @@ class Parser {
 
         if (fd.isGlobalVar) {
           hf = fd.findHoistedDef(name);
-          if (hf != null && fd.isChildScope(hf.scopeLevel, fd.scopeLevel)) {
+          if (hf != null && fd.isChildScope(hf.scope_level, fd.scopeLevel)) {
             error(name, "invalid redefinition of global identifier");
           }
         }
@@ -247,7 +245,7 @@ class Parser {
           else
             varKind = JS_VAR_NORMAL;
           idx = fd.addScopeVar(varName, varKind);
-          vd = fd.getVar(idx);
+          vd = fd.vars.get(idx);
           if (vd != null) {
             vd.isLexical = true;
             vd.isConst = varDefType == JS_VAR_DEF_CONST;
@@ -265,7 +263,7 @@ class Parser {
           if (fd.isGlobalVar) {
             hf = fd.findHoistedDef(varName);
             if (hf != null && hf.isLexical
-              && hf.scopeLevel == fd.scopeLevel && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
+              && hf.scope_level == fd.scopeLevel && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
             hf = fd.addHoistedDef(-1,  varName, -1, false);
@@ -277,7 +275,7 @@ class Parser {
             }
             idx = fd.addVar(varName);
             if (idx >= 0) {
-              vd = fd.getVar(idx);
+              vd = fd.vars.get(idx);
               vd.funcPoolOrScopeIdx = fd.scopeLevel;
             }
           }
@@ -322,7 +320,7 @@ class Parser {
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
     fd = ParserUtils.jsNewFunctionDef(ctx, fd, false, isExpr, fileName, name.line);
-    fd.funcName = name.lexeme;
+    fd.func_name = rt.JS_NewAtomStr(name.lexeme);
     curFunc = fd;
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");

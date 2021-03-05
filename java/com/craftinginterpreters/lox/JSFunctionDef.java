@@ -14,6 +14,16 @@ import java.util.Map;
  */ //< stmt-expression
 //> stmt-function
 public class JSFunctionDef extends Stmt {
+  JSContext ctx;
+  JSFunctionDef parent;
+  int parent_cpool_idx;
+
+  int parent_scope_level;
+  final List<JSFunctionDef> child_list;
+
+  final List<JSValue> cpool;
+
+
   JSFunctionDef(JSFunctionDef parent,
                 boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
     this.parent = parent;
@@ -27,6 +37,8 @@ public class JSFunctionDef extends Stmt {
     hoistedDef = new ArrayList<>();
     args = new ArrayList<>();
     closureVar = new ArrayList<>();
+    child_list = new ArrayList<>();
+    cpool = new ArrayList<>();
   }
 
   @Override
@@ -37,7 +49,6 @@ public class JSFunctionDef extends Stmt {
 
   final Token name = null;
   final List<Token> params;
-  final JSFunctionDef parent;
 
   final List<JSVarScope> scopes;
   int scopeLevel;
@@ -50,14 +61,13 @@ public class JSFunctionDef extends Stmt {
   final List<JSClosureVar> closureVar;
   final Map<String, JSHoistedDef> hoistDef;
   List<Stmt> body;
-  Stmt.Block bodyBlock;
   int evalType;
   boolean isEval;
   boolean isGlobalVar;
   JSVarScope curScope;
-  DynBuf byteCode;
+  DynBuf byte_code;
 
-  String funcName;
+  JSAtom func_name;
 
   void addStmt(Stmt stmt) {
     body.add(stmt);
@@ -134,7 +144,7 @@ public class JSFunctionDef extends Stmt {
 
   public JSVarDef findVarInChildScope(JSAtom name) {
     for (JSVarDef vd : vars) {
-      if (vd != null && vd.varName.equals(name) && vd.scopeLevel == 0) {
+      if (vd != null && vd.varName.equals(name) && vd.scope_level == 0) {
         if (isChildScope(vd.funcPoolOrScopeIdx, scopeLevel)) {
           return vd;
         }
@@ -165,15 +175,8 @@ public class JSFunctionDef extends Stmt {
     hf.isLexical = isLexical;
     hf.forceInit = false;
     hf.varIdx = varIdx;
-    hf.scopeLevel = scopeLevel;
+    hf.scope_level = scopeLevel;
     return hf;
-  }
-
-  JSVarDef getVar(int idx) {
-    if (idx >= 0) {
-      return vars.get(idx);
-    }
-    return null;
   }
 
   public int addScopeVar(JSAtom varName, JSVarKindEnum varKind) {
@@ -181,8 +184,8 @@ public class JSFunctionDef extends Stmt {
     if (idx >= 0) {
       JSVarDef vd = vars.get(idx);
       vd.varKind = varKind;
-      vd.scopeLevel = scopeLevel;
-      vd.scopeNext = scopeFirst;
+      vd.scope_level = scopeLevel;
+      vd.scope_next = scopeFirst;
       curScope.first = idx;
       scopeFirst = idx;
     }
@@ -200,7 +203,7 @@ public class JSFunctionDef extends Stmt {
   public int findVar(JSAtom varName) {
     for (int i = 0; i < vars.size(); i++) {
       JSVarDef vd = vars.get(i);
-      if (vd.varName.equals(varName) && vd.scopeLevel == 0) {
+      if (vd.varName.equals(varName) && vd.scope_level == 0) {
         return i;
       }
     }

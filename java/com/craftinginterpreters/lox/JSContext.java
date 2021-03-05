@@ -1,10 +1,14 @@
 package com.craftinginterpreters.lox;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
 import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_COUNT;
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_invalid;
 
 /**
  * @author benpeng.jiang
@@ -14,7 +18,15 @@ import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
  * @date 2021/2/222:00 PM
  */
 public class JSContext {
-  private static Interpreter interpreter;
+  static final int DEFINE_GLOBAL_LEX_VAR = (1 << 7);
+  static final int DEFINE_GLOBAL_FUNC_VAR = (1 << 6);
+
+  static final int JS_CALL_FLAG_COPY_ARGV = (1 << 1);
+  static final int JS_CALL_FLAG_GENERATOR = (1 << 2);
+  static final int JS_MAX_LOCAL_VARS = 65536;
+  static final int JS_STACK_SIZE_MAX = 65536;
+  static final int JS_STRING_LEN_MAX = ((1 << 30) - 1);
+
   final Map<JSClassID, JSValue> class_proto;
 
   public JSValue globalObj;
@@ -25,7 +37,42 @@ public class JSContext {
     class_proto = new HashMap<>();
   }
 
-  JSValue __JS_evalInternal(JSContext ctx, JSValue this_obj, String input, String filename, int flags, int scope_idx) {
+  JSValue JS_AtomToValue(int atomIdx) {
+    JSAtom atom = new JSAtom(atomIdx);
+    return JS_AtomToValue(atom);
+  }
+
+  JSValue JS_AtomToValue(JSAtom atom) {
+    return __JS_AtomToValue(atom, false);
+  }
+
+  JSValue JS_AtomToString(JSAtom atom) {
+    return __JS_AtomToValue(atom, true);
+  }
+
+  private JSValue __JS_AtomToValue(JSAtom atom, boolean force_string) {
+    JSContext ctx = this;
+    if (atom.__JS_AtomIsTaggedInt()) {
+      int u32 = atom.__JS_AtomToUInt32();
+      return JSValue.JS_NewString(ctx, JUtils.intToByteArray(u32));
+    } else {
+      JSRuntime rt = ctx.rt;
+      JSString p = rt.atomArray.get(atom.getVal());
+      if (p.atom_type == JS_ATOM_TYPE_STRING) {
+        return new JSValue(JSTag.JS_TAG_STRING, p);
+      } else if (force_string) {
+        if (p.str == null) {
+          p = rt.atomArray.get(JSAtomEnum.JS_ATOM_empty_string.ordinal());
+        }
+        return new JSValue(JSTag.JS_TAG_STRING, p);
+      } else {
+        return new JSValue(JSTag.JS_TAG_SYMBOL, p);
+      }
+    }
+  }
+
+
+  JSValue __JS_evalInternal(JSValue this_obj, String input, String filename, int flags, int scope_idx) {
     JSValue fun_obj, retVal;
     JSStackFrame sf = new JSStackFrame();
     JSVarRefWrapper var_refs = new JSVarRefWrapper();
@@ -33,30 +80,140 @@ public class JSContext {
     int evalType = flags & LoxJS.JS_EVAL_TYPE_MASK;
     Scanner scanner = new Scanner(input);
 
-    JSFunctionDef fd = ParserUtils.jsNewFunctionDef(ctx, null, true, false, filename, 1);
+    JSFunctionDef fd = ParserUtils.jsNewFunctionDef(this, null, true, false, filename, 1);
+    fd.ctx = this;
     fd.evalType = evalType;
-    fd.funcName = "<eval>";
+    fd.func_name = rt.JS_NewAtomStr("<eval>");
 
-    Parser parser = new Parser(scanner, this, fd, ctx.rt);
+    Parser parser = new Parser(scanner, this, fd, rt);
     parser.fileName = filename;
 
     parser.pushScope();
     parser.parseProgram();
 
-    interpreter = new Interpreter(ctx);
-    Resolver resolver = new Resolver(interpreter);
-    resolver.visitFunctionStmt(fd);
-
     fun_obj = js_create_function(fd);
-    retVal = JSVM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);
+    retVal = VM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);
     return retVal;
   }
 
   JSValue js_create_function(JSFunctionDef fd) {
     JSValue func_obj;
-    JSFunctionByteCode b;
+    JSFunctionBytecode b;
+    int stack_size, scope, idx;
 
-    return func_obj;
+    for (scope = 0; scope < fd.scopes.size(); scope++) {
+      fd.scopes.get(scope).first = -1;
+    }
+
+    for (idx = 0; idx < fd.vars.size(); idx++) {
+      JSVarDef vd = fd.vars.get(idx);
+      vd.scope_next = fd.scopes.get(vd.scope_level).first;
+      fd.scopes.get(vd.scope_level).first = idx;
+    }
+
+    // scope threading
+    for (scope = 2; scope < fd.scopes.size(); scope++) {
+      JSVarScope sd = fd.scopes.get(scope);
+      if (sd.first == -1) {
+        sd.first = fd.scopes.get(sd.parent).first;
+      }
+    }
+
+    // var threading
+    for (idx = 0; idx < fd.vars.size(); idx++) {
+      JSVarDef vd = fd.vars.get(idx);
+      if (vd.scope_next == -1 && vd.scope_level > 1) {
+        scope = fd.scopes.get(vd.scope_level).parent;
+        vd.scope_next = scope;
+      }
+    }
+
+    for (JSFunctionDef fd1 : fd.child_list) {
+      int cpool_idx = fd1.parent_cpool_idx;
+      func_obj = js_create_function(fd1);
+      fd.cpool.set(cpool_idx, func_obj);
+    }
+
+    resolve_variables(fd);
+
+    stack_size = compute_stack_size(fd);
+
+    b = new JSFunctionBytecode();
+    b.byte_code_buf = Arrays.copyOf(fd.byte_code.buf, fd.byte_code.size);
+    b.byte_code_len = fd.byte_code.size;
+
+    b.cpool = null;
+    b.stack_size = (short) stack_size;
+    b.func_name = fd.func_name;
+    b.realm = this;
+    if (fd.parent != null) {
+      fd.parent = null;
+    }
+    return new JSValue(JSTag.JS_TAG_FUNCTION_BYTECODE, b);
+  }
+
+  int compute_stack_size(JSFunctionDef fd) {
+    int stack_size;
+    StackSizeState s = new StackSizeState();
+    int bc_len = fd.byte_code.size;
+    s.stack_level_tab = new short[bc_len];
+
+    for (int i = 0; i < bc_len; i++) {
+      s.stack_level_tab[i] = (short) 0xffff;
+    }
+    s.stack_len_max = 0;
+    compute_stack_size_rec(fd, s, 0, OP_invalid.ordinal(), 0);
+    stack_size = s.stack_len_max;
+    return stack_size;
+  }
+
+  int compute_stack_size_rec(JSFunctionDef fd, StackSizeState s, int pos, int op, int stack_len) {
+    int bc_len, diff, n_pop, pos_next;
+    OpCode oi;
+    byte[] bc_buf;
+
+    bc_buf = fd.byte_code.buf;
+    bc_len = fd.byte_code.size;
+
+    while (pos < bc_len) {
+      op = Byte.toUnsignedInt(bc_buf[pos]);
+      if (op == 0 || op >= OP_COUNT.ordinal()) {
+        JS_ThrowInternalError("invalid opcode (op=" + op + ", pc=" + pos + ")");
+        return -1;
+      }
+
+      oi = OpCode.opcode_info.get(op);
+      pos_next = pos + oi.size;
+      if (pos_next > bc_len) {
+        JS_ThrowInternalError("bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
+        return -1;
+      }
+
+      n_pop = oi.n_pop;
+
+      if (stack_len < n_pop) {
+        JS_ThrowInternalError("bytecode underflow (op=" + op + ", pc=" + pos + ")");
+      }
+
+      stack_len += oi.n_push - n_pop;
+      if (stack_len > s.stack_len_max) {
+        s.stack_len_max = stack_len;
+        if (s.stack_len_max > JS_STACK_SIZE_MAX) {
+
+        }
+      }
+
+      pos = pos_next;
+    }
+    return 0;
+  }
+
+  public Error JS_ThrowInternalError(String message) {
+    return new JSInternalError(message);
+  }
+
+  void resolve_variables(JSFunctionDef fd) {
+    new Resolver(this).resolve_variables(fd);
   }
 
   JSValue JS_NewObjectFromShape(JSShape sh, JSClassID classID) {
@@ -66,9 +223,9 @@ public class JSContext {
       case JS_CLASS_OBJECT:
         break;
       default:
-        if (rt.class_array.get(classID.ordinal()).exotic != null) {
-          p.is_exotic = true;
-        }
+//        if (rt.class_array.get(classID.ordinal()).exotic != null) {
+//          p.is_exotic = true;
+//        }
     }
 
     return new JSValue(JSTag.JS_TAG_OBJECT, p);
@@ -84,8 +241,8 @@ public class JSContext {
 
   JSValue JS_NewObjectProtoClass(final JSValue proto_val, JSClassID class_id) {
     JSShape sh;
-    JSObject proto = proto_val.get_proto_obj();
-    sh = js_new_shape(proto);
+//    JSObject proto = proto_val.get_proto_obj();
+    sh = js_new_shape(null);
     if (sh == null) {
       return JSValue.JS_EXCEPTION;
     }
@@ -108,18 +265,32 @@ public class JSContext {
   }
 
   JSValue js_closure(JSValue bfunc, JSVarRefWrapper cur_var_refs, JSStackFrame sf) {
-    JSFunctionByteCode b;
+    JSFunctionBytecode b;
     JSValue func_obj = null;
     JSAtom name_atom;
-    if (!(bfunc.value instanceof JSFunctionByteCode)) {
+    if (!(bfunc.value instanceof JSFunctionBytecode)) {
       return JS_EXCEPTION;
     }
-    b = (JSFunctionByteCode) bfunc.value;
+    b = (JSFunctionBytecode) bfunc.value;
     func_obj = JS_NewObjectClass(JSFunctionKindEnum.func_kind_to_class_id[b.func_kind]);
+    func_obj = js_closure2(func_obj, b, cur_var_refs, sf);
+
     name_atom = b.func_name;
     if (name_atom == JSAtom.JS_ATOM_NULL) {
       name_atom = JSAtom.JS_ATOM_empty_string;
     }
+    return func_obj;
+  }
+
+  JSValue js_closure2(JSValue func_obj,
+                      JSFunctionBytecode b,
+                      JSVarRefWrapper cur_var_refs,
+                      JSStackFrame sf) {
+    JSObject p;
+    JSVarRefWrapper var_refs;
+    p = func_obj.JS_VALUE_GET_OBJ();
+    p.func.function_bytecode = b;
+
     return func_obj;
   }
 }

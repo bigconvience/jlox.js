@@ -1,7 +1,7 @@
 package com.craftinginterpreters.lox;
 
 public enum OPCodeEnum {
-  OP_print,
+  OP_invalid,
   OP_push_i32,
   OP_push_const,
   OP_fclosure,
@@ -220,4 +220,6 @@ public enum OPCodeEnum {
   OP_is_undefined,
   OP_is_null,
   OP_typeof_is_function,
+  OP_print,
+  OP_COUNT,
 }

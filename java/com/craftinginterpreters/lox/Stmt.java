@@ -4,6 +4,7 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 abstract class Stmt {
+  JSFunctionDef fd;
   interface Visitor<R> {
     R visitBlockStmt(Block stmt);
 

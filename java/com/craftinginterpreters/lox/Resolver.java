@@ -3,8 +3,8 @@ package com.craftinginterpreters.lox;
 import java.util.*;
 
 import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
-import static com.craftinginterpreters.lox.JConstants.DEFINE_GLOBAL_FUNC_VAR;
-import static com.craftinginterpreters.lox.JConstants.DEFINE_GLOBAL_LEX_VAR;
+import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_FUNC_VAR;
+import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
 import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
 import static com.craftinginterpreters.lox.JSProperty.JS_PROP_CONFIGURABLE;
 import static com.craftinginterpreters.lox.JSProperty.JS_PROP_WRITABLE;
@@ -12,7 +12,6 @@ import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
-  private final Interpreter interpreter;
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
   private JSFunctionDef curFunc;
@@ -20,9 +19,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final List<Stmt> stmtOut;
   private final JSRuntime rt;
 
-  Resolver(Interpreter interpreter) {
-    this.interpreter = interpreter;
-    ctx = interpreter.jsContext;
+  Resolver(JSContext jsContext) {
+    ctx = jsContext;
     rt = ctx.rt;
     stmtOut = new ArrayList<>();
   }
@@ -50,7 +48,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitBlockStmt(Stmt.Block stmt) {
     JSFunctionDef fd = curFunc;
-    enterScope(fd, stmt.scope, fd.byteCode);
+    enter_scope(fd, stmt.scope, fd.byte_code);
     curFunc = fd;
     resolve(stmt.statements);
     return null;
@@ -90,18 +88,18 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-    curFunc = stmt;
-    resoleVariables(stmt);
+
+    resolve_variables(stmt);
     return null;
   }
 
-  private boolean resoleVariables(JSFunctionDef s) {
+  public boolean resolve_variables(JSFunctionDef s) {
     int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
     CodeContext cc = new CodeContext();
 
     boolean ret = false;
     DynBuf bcOut = new DynBuf();
-    s.byteCode = bcOut;
+    s.byte_code = bcOut;
     if (s.isGlobalVar) {
       for (JSHoistedDef hd : s.hoistedDef) {
         int flags;
@@ -124,11 +122,17 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       ;
     }
 
-    s.bodyBlock.accept(this);
+    enter_scope(s, 1, bcOut);
+    List<Stmt> stmts = s.body;
+    for (Stmt stmt: stmts) {
+      stmt.fd = s;
+      stmt.accept(this);
+    }
+
     return ret;
   }
 
-  void instantiateHostedDef(JSFunctionDef s, DynBuf bc) {
+  static void instantiateHostedDef(JSFunctionDef s, DynBuf bc) {
     int i, idx, var_idx;
     for (i = 0; i < s.hoistedDef.size(); i++) {
       JSHoistedDef hf = s.hoistedDef.get(i);
@@ -220,7 +224,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitPrintStmt(Stmt.Print stmt) {
-    resolve(stmt.expression);
+    JSFunctionDef fd = stmt.fd;
+
+    Expr expr = stmt.expression;
+    expr.fd = fd;
+    expr.accept(this);
+
+    DynBuf bc = fd.byte_code;
+    bc.putOpcode(OP_print);
     return null;
   }
 
@@ -314,11 +325,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitLiteralExpr(Expr.Literal expr) {
+    JSFunctionDef curFunc = expr.fd;
+    DynBuf db = curFunc.byte_code;
     if (expr.value instanceof JSAtom) {
-      DynBuf db = curFunc.byteCode;
       db.putOpcode(OP_push_atom_value);
-      db.putAtom((JSAtom) expr.value);
     }
+    db.putValue(expr.value);
     return null;
   }
 
@@ -385,7 +397,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     JSFunctionDef fd = curFunc;
     JSVarDef vd;
     for (int idx = fd.scopes.get(scopeLevel).first; idx >= 0; ) {
-      vd = fd.getVar(idx);
+      vd = fd.vars.get(idx);
       if (vd.varName.equals(varName)) {
 
         var_idx = idx;
@@ -393,7 +405,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       } else {
 
       }
-      idx = vd.scopeNext;
+      idx = vd.scope_next;
     }
 
     return var_idx;
@@ -426,9 +438,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       declare(param);
       define(param);
     }
-    instantiateHostedDef(function, function.byteCode);
+    instantiateHostedDef(function, function.byte_code);
     resolve(function.body);
-    enterScope(function, 1, null);
+    enter_scope(function, 1, null);
     endScope();
     currentFunction = enclosingFunction;
     curFunc = enclosureFunc;
@@ -462,7 +474,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private void resolveLocal(Expr expr, Token name) {
     for (int i = scopes.size() - 1; i >= 0; i--) {
       if (scopes.get(i).containsKey(name.lexeme)) {
-        interpreter.resolve(expr, scopes.size() - 1 - i);
         return;
       }
     }
@@ -470,14 +481,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     // Not found. Assume it is global.
   }
 
-  private void enterScope(JSFunctionDef s, int scope, DynBuf bcOut) {
+  private static void enter_scope(JSFunctionDef s, int scope, DynBuf bcOut) {
     if (scope == 1) {
       instantiateHostedDef(s, bcOut);
     }
 
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
       JSVarDef vd = s.vars.get(scopeIdx);
-      if (vd.scopeLevel == scopeIdx) {
+      if (vd.scope_level == scopeIdx) {
         if (ParserUtils.isFuncDecl(vd.varKind)) {
           bcOut.putOpcode(OP_fclosure);
           bcOut.putU32(vd.funcPoolOrScopeIdx);
@@ -486,7 +497,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
           bcOut.putOpcode(OP_set_loc_uninitialized);
         }
         bcOut.putU16((short) scopeIdx);
-        scopeIdx = vd.scopeNext;
+        scopeIdx = vd.scope_next;
       } else {
         break;
       }

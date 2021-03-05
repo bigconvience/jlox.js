@@ -4,8 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.craftinginterpreters.lox.JConstants.JS_CALL_FLAG_COPY_ARGV;
-import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
+import static com.craftinginterpreters.lox.JSContext.JS_CALL_FLAG_COPY_ARGV;
 import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
 
 /*
@@ -15,7 +14,7 @@ import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
   @description: TODO
   @date 2021/3/310:22 AM
  */
-public class JSVM {
+public class VM {
 
   static JSValue JS_EvalFunctionInternal(JSContext ctx, JSValue func_obj, final JSValue this_obj,
                                          JSVarRefWrapper var_refs, JSStackFrame sf) {
@@ -48,7 +47,7 @@ public class JSVM {
     JSValue ret_val = null;
     int sp;
     JSObject p;
-    JSFunctionByteCode b;
+    JSFunctionBytecode b;
     JSStackFrame sf = new JSStackFrame();
     int pc;
     List<JSVarRef> var_refs;
@@ -58,7 +57,7 @@ public class JSVM {
 
     }
 
-    b = p.func.functionByteCode;
+    b = p.func.function_bytecode;
     sf.js_mode = b.js_mode;
     sf.cur_func = funcObj;
     sf.var_ref_list = new LinkedList<>();
@@ -83,15 +82,15 @@ public class JSVM {
     sp = 0;
     pc = 0;
     JSValue top = null;
-    sf.prev_frame = rt.current_stack_frame.prev_frame;
+    sf.prev_frame = rt.current_stack_frame;
     rt.current_stack_frame = sf;
     ctx = b.realm;
     while (pc < b.byte_code_len) {
       int call_argc;
       int u32;
       JSValue[] call_argv;
-      int code = b.byte_code_buf[pc++];
-      OPCodeEnum opcode = JSOpCode.opcode_enum.get(code);
+      int code = Byte.toUnsignedInt(b.byte_code_buf[pc++]);
+      OPCodeEnum opcode = OpCode.opcode_enum.get(code);
       switch (opcode) {
         case OP_print:
           top = peek(stack_buf, sp);
@@ -103,6 +102,11 @@ public class JSVM {
           u32 = JUtils.get_u32(b.byte_code_buf, sp);
           push(stack_buf, sp, JSValue.JS_NewInt32(ctx, u32));
           sp++;
+          pc += 4;
+          break;
+        case OP_push_atom_value:
+          u32 = JUtils.get_u32(b.byte_code_buf, pc);
+          push(stack_buf, sp, ctx.JS_AtomToValue(u32));
           pc += 4;
           break;
       }

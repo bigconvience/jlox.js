@@ -47,7 +47,7 @@ public class LoxJS {
   }
 
   public static JSValue JSEvalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flags, int scope_idx) {
-    return ctx.__JS_evalInternal(ctx, thisObject, input, filename, flags, scope_idx);
+    return ctx.__JS_evalInternal(thisObject, input, filename, flags, scope_idx);
   }
 
 

@@ -28,7 +28,7 @@ public class JUtils {
     return result;
   }
 
-  private static int byteArrToInteger(byte[] byteArr, int sp){
+  private static int byteArrToInteger(byte[] byteArr, int startIdx){
     int convertedInterger = 0;
 
     //follow works:
@@ -39,7 +39,7 @@ public class JUtils {
     for(int i = 0; i < 4; i++){
       //long curValue = byteArr[i];
       //int curValue = byteArr[i];
-      byte curValue = byteArr[sp + i];
+      byte curValue = byteArr[startIdx + 3 - i];
       long shiftedValue = curValue << (i * 8);
       long mask = 0xFF << (i * 8);
       long maskedShiftedValue = shiftedValue & mask;

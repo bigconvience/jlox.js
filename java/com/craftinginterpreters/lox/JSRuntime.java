@@ -60,10 +60,6 @@ public class JSRuntime {
   private void JS_InitAtoms() {
     atomArray.clear();
     atomHash.clear();
-    for(JSAtomEnum atomEnum: JSAtomEnum.values()) {
-      System.out.println(atomEnum.name() + ": " + atomEnum.ordinal());
-    }
-
     int atom_type;
     String str;
     for (int i = 0; i < JS_ATOM_END.ordinal(); i++) {

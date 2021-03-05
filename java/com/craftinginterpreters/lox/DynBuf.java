@@ -79,6 +79,12 @@ public class DynBuf {
     return put(shortToByteArray(val));
   }
 
+  int putValue(Object val) {
+    if (val instanceof JSAtom) {
+      return putAtom((JSAtom) val);
+    }
+    return 0;
+  }
   int putAtom(JSAtom atom) {
     return putU32(atom.getVal());
   }

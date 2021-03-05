@@ -9,7 +9,7 @@ import java.util.List;
  * @description: TODO
  * @date 2021/3/31:42 PM
  */
-public class JSFunctionByteCode {
+public class JSFunctionBytecode {
   JSClassID class_Id;
   byte js_mode;
 

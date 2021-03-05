@@ -90,7 +90,7 @@ public class VM {
       int u32;
       JSValue[] call_argv;
       int code = Byte.toUnsignedInt(b.byte_code_buf[pc++]);
-      OPCodeEnum opcode = OpCode.opcode_enum.get(code);
+      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(code);
       switch (opcode) {
         case OP_print:
           top = peek(stack_buf, sp);

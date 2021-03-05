@@ -2,13 +2,14 @@ package com.craftinginterpreters.lox;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
 import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_COUNT;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_invalid;
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_COUNT;
 
 /**
  * @author benpeng.jiang
@@ -57,12 +58,12 @@ public class JSContext {
       return JSValue.JS_NewString(ctx, JUtils.intToByteArray(u32));
     } else {
       JSRuntime rt = ctx.rt;
-      JSString p = rt.atomArray.get(atom.getVal());
+      JSString p = rt.atom_array.get(atom.getVal());
       if (p.atom_type == JS_ATOM_TYPE_STRING) {
         return new JSValue(JSTag.JS_TAG_STRING, p);
       } else if (force_string) {
         if (p.str == null) {
-          p = rt.atomArray.get(JSAtomEnum.JS_ATOM_empty_string.ordinal());
+          p = rt.atom_array.get(JSAtomEnum.JS_ATOM_empty_string.ordinal());
         }
         return new JSValue(JSTag.JS_TAG_STRING, p);
       } else {
@@ -136,6 +137,14 @@ public class JSContext {
 
     resolve_variables(fd);
 
+    dump_byte_code(2,
+      fd.byte_code.buf, fd.byte_code.size,
+      fd.args, fd.args.size(),
+      fd.vars, fd.vars.size(),
+      fd.closureVar, fd.closureVar.size(),
+      fd.cpool, fd.cpool.size(),
+      null, 0, null, null);
+
     stack_size = compute_stack_size(fd);
 
     b = new JSFunctionBytecode();
@@ -169,7 +178,7 @@ public class JSContext {
 
   int compute_stack_size_rec(JSFunctionDef fd, StackSizeState s, int pos, int op, int stack_len) {
     int bc_len, diff, n_pop, pos_next;
-    OpCode oi;
+    JSOpCode oi;
     byte[] bc_buf;
 
     bc_buf = fd.byte_code.buf;
@@ -182,7 +191,7 @@ public class JSContext {
         return -1;
       }
 
-      oi = OpCode.opcode_info.get(op);
+      oi = OPCodeInfo.opcode_info.get(op);
       pos_next = pos + oi.size;
       if (pos_next > bc_len) {
         JS_ThrowInternalError("bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
@@ -292,5 +301,69 @@ public class JSContext {
     p.func.function_bytecode = b;
 
     return func_obj;
+  }
+
+  void print_atom(int atom) {
+    JSString jsString = rt.atom_array.get(atom);
+    System.out.print(jsString);
+  }
+
+  void dump_byte_code(int pass,
+                             final byte[] tab, int len,
+                             final List<JSVarDef> args, int arg_count,
+                             final List<JSVarDef> vars, int var_count,
+                             final List<JSClosureVar> closure_var, int closure_var_count,
+                             final List<JSValue> cpool, int cpool_count,
+                             final String source, int line_num,
+                             final LabelSlot label_slots, JSFunctionBytecode b) {
+    if (!Config.dump) {
+      return;
+    }
+    JSOpCode oi;
+    int pos, pos_next = 0, op, size, idx, addr, line, line1, in_source;
+    byte[] bits = new byte[len];
+    for (pos = 0; pos > len; pos = pos_next) {
+      op = Byte.toUnsignedInt(tab[pos]);
+      oi = OPCodeInfo.opcode_info.get(op);
+    }
+
+    pos = 0;
+    while (pos < len) {
+      op = Byte.toUnsignedInt(tab[pos]);
+
+      if (op >= OP_COUNT.ordinal()) {
+        println("invalid opcode " + op);
+        pos++;
+        continue;
+      }
+      oi = OPCodeInfo.opcode_info.get(op);
+      size = oi.size;
+      if (pos + size > len) {
+        println("truncated opcode " + op);
+        break;
+      }
+
+      printf(oi.name);
+      pos++;
+      switch (oi.fmt) {
+        case atom:
+          printf(" ");
+          int atom = JUtils.get_u32(tab, pos);
+          print_atom(atom);
+          break;
+        default:
+          break;
+      }
+      println("");
+      pos += oi.size - 1;
+    }
+  }
+
+  private static void println(String fmt) {
+    System.out.println(fmt);
+  }
+
+  private static void printf(String fmt) {
+    System.out.print(fmt);
   }
 }

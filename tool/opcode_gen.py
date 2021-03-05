@@ -1,6 +1,5 @@
-import fileinput
-import string
-
+import macro
+import re
 filepath = "./quickjs-opcode.h"
 
 f = open(filepath, "r")
@@ -20,70 +19,75 @@ JSOpCodeStart = '''package com.craftinginterpreters.lox;
 import java.util.HashMap;
 import java.util.Map;
 
-import  static com.craftinginterpreters.lox.OPCodeEnum.*;
-import  static com.craftinginterpreters.lox.OPCodeFormat.*;
-public class JSOpCode {
-  String id;
-  int size;
-  int n_pop;
-  int n_push;
-  OPCodeFormat f;
-
-  public JSOpCode(String id, int size, int n_pop, int n_push, OPCodeFormat f) {
-    this.id = id;
-    this.size = size;
-    this.n_pop = n_pop;
-    this.n_push = n_push;
-    this.f = f;
-  }
-
-
+import static com.craftinginterpreters.lox.OPCodeEnum.*;
+import static com.craftinginterpreters.lox.OPCodeFormat.*;
+public class OPCodeInfo {
   public static Map<Integer, JSOpCode> opcode_info;
+  public static Map<Integer, OPCodeEnum> opcode_enum;
 
-  {
+  static {
+    opcode_enum = new HashMap<>();
+    for (OPCodeEnum codeEnum: OPCodeEnum.values()) {
+      opcode_enum.put(codeEnum.ordinal(), codeEnum);
+    }
+    
     opcode_info = new HashMap<>();
 '''
 
 classFileEnd = '}'
 
 javaSrc = '../java/com/craftinginterpreters/lox'
-OPCodeEnum =open(javaSrc + "/OPCodeEnum.java", "w")
-JSOpCode =open(javaSrc + "/JSOpCode.java", "w")
-
+OPCodeEnum = open(javaSrc + "/OPCodeEnum.java", "w")
+JSOpCode = open(javaSrc + "/OPCodeInfo.java", "w")
 
 OPCodeEnumCodes = [OPCodeEnumStart]
 JSOpCodeCodes = [JSOpCodeStart]
 
+name = 'DEF'
+args = ['id', 'size', 'n_pop', 'n_push', f]
+replace = 'OP_ ## id,'
+DEF_macro = macro.Macro(name, args, replace)
+
+
 for i in range(0, lines.__len__(), 1):
     list = []  ## 空列表, 将第i行数据存入list中
     line = lines[i]
-    for word in line.split():
-        word = word.strip(string.whitespace)
-        list.append(word)
+    words = line.split(',')
 
-    if len(list) >= 2 and list[0] == 'DEF(':
-        count = count + 1
-        codeEnum = list[1]
-        if codeEnum.endswith(','):
-            codeEnum = codeEnum.strip(',')
+    for idx, word in enumerate(words):
+        word = re.sub('\s|\t|\n','',word)
+        if idx == 0 and '(' in word:
+            items = word.split('(')
+            list.extend(items)
+        elif len(list) == 5 and ')' in word:
+            items = word.split(')')
+            list.append(items[0])
+        else:
+            list.append(word)
 
-        OPCodeEnumCodes.append('  OP_' + codeEnum + ',\n')
-        space = '    '
-        JSOpCodeCodes.append(space)
-        opcode = 'opcode_info.put(\n'
-        for index, code in enumerate(list[1:6]):
-            if index == 0:
-                code = code.strip(',')
-                code = space + '  OP_' + code + '.ordinal(),\n' \
-                       + space + '  new JSOpCode(\"' + code + '\",'
-            if code.endswith(')'):
-                code = code.strip(')')
+    name = list[0]
+    if name != 'DEF':
+        continue
+
+    codeEnum = list[1]
+
+    OPCodeEnumCodes.append('  OP_' + codeEnum + ',\n')
+    space = '    '
+    JSOpCodeCodes.append(space)
+    opcode = 'opcode_info.put(\n'
+    for index, code in enumerate(list[1:6]):
+        if index == 0:
+            code = space + '  OP_' + code + '.ordinal(),\n' \
+                   + space + '  new JSOpCode(\"' + code + '\"'
+        else:
             if code in keywords:
-                code = code.capitalize()
-            opcode = opcode + code
+                 code = code.capitalize()
+            code = ',' + code
+        opcode = opcode + code
 
-        opcode = opcode + '));'
-        JSOpCodeCodes.append(opcode + '\n')
+    opcode = opcode + '));'
+    JSOpCodeCodes.append(opcode + '\n')
+    count = count + 1
 
 OPCodeEnumCodes.append(classFileEnd)
 OPCodeEnum.writelines(OPCodeEnumCodes)

@@ -104,4 +104,5 @@ tool/.dart_tool/
 tool/.packages
 tool/venv
 tool/out
+tool/__pycache__
 venv/

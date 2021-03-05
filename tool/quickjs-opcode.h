@@ -263,7 +263,10 @@ DEF(       math_mod, 1, 2, 1, none)
 #endif
 /* must be the last non short and non temporary opcode */
 DEF(            nop, 1, 0, 0, none)
-
+DEF(            print, 1, 1, 0, none)
+DEF(            COUNT, 1, 1, 0, atom)
+DEF(            temp_start, 1, 1, 0, atom)
+DEF(            __dummy, 1, 1, 0, atom)
 /* temporary opcodes: never emitted in the final bytecode */
 
 def(set_arg_valid_upto, 3, 0, 0, arg) /* emitted in phase 1, removed in phase 2 */

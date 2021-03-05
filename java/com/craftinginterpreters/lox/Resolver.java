@@ -88,12 +88,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-
-    resolve_variables(stmt);
+    new Resolver(stmt.ctx).resolve_variables(stmt);
     return null;
   }
 
   public boolean resolve_variables(JSFunctionDef s) {
+    curFunc = s;
     int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
     CodeContext cc = new CodeContext();
 
@@ -125,7 +125,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     enter_scope(s, 1, bcOut);
     List<Stmt> stmts = s.body;
     for (Stmt stmt: stmts) {
-      stmt.fd = s;
       stmt.accept(this);
     }
 
@@ -224,13 +223,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitPrintStmt(Stmt.Print stmt) {
-    JSFunctionDef fd = stmt.fd;
-
     Expr expr = stmt.expression;
-    expr.fd = fd;
     expr.accept(this);
 
-    DynBuf bc = fd.byte_code;
+    DynBuf bc = curFunc.byte_code;
     bc.putOpcode(OP_print);
     return null;
   }
@@ -325,7 +321,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitLiteralExpr(Expr.Literal expr) {
-    JSFunctionDef curFunc = expr.fd;
     DynBuf db = curFunc.byte_code;
     if (expr.value instanceof JSAtom) {
       db.putOpcode(OP_push_atom_value);

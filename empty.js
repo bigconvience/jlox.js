@@ -1,1 +1,2 @@
-print "Hello word";
+var a = "Hello word";
+print a;

@@ -15,8 +15,8 @@ import static com.craftinginterpreters.lox.JSAtom.*;
  * @date 2021/2/268:15 PM
  */
 public class JSRuntime {
-  final List<JSString> atomArray;
-  final Map<JSString, Integer> atomHash;
+  final List<JSString> atom_array;
+  final Map<JSString, Integer> atom_hash;
   final Map<JSString, JSClass> class_array;
 
   int stack_size;
@@ -24,8 +24,8 @@ public class JSRuntime {
   JSStackFrame current_stack_frame;
 
   public JSRuntime() {
-    this.atomArray = new ArrayList<>();
-    this.atomHash = new HashMap<>();
+    this.atom_array = new ArrayList<>();
+    this.atom_hash = new HashMap<>();
     this.class_array = new HashMap<>();
 
     JS_InitAtoms();
@@ -37,20 +37,20 @@ public class JSRuntime {
 
   private JSAtom __JS_NewAtom(String str, int atom_type) {
     JSString p = new JSString(str, atom_type);
-    if (atomHash.containsKey(p)) {
-      Integer atom = atomHash.get(p);
+    if (atom_hash.containsKey(p)) {
+      Integer atom = atom_hash.get(p);
       return new JSAtom(atom);
     }
-    int atomCount = atomArray.size();
-    atomHash.put(p, atomCount);
-    atomArray.add(p);
+    int atomCount = atom_array.size();
+    atom_hash.put(p, atomCount);
+    atom_array.add(p);
     return new JSAtom(atomCount);
   }
 
   private JSAtom __JS_FindAtom(String str, int atom_type) {
     JSString p = new JSString(str, atom_type);
-    if (atomHash.containsKey(p)) {
-      Integer atom = atomHash.get(p);
+    if (atom_hash.containsKey(p)) {
+      Integer atom = atom_hash.get(p);
       return new JSAtom(atom);
     }
 
@@ -58,8 +58,8 @@ public class JSRuntime {
   }
 
   private void JS_InitAtoms() {
-    atomArray.clear();
-    atomHash.clear();
+    atom_array.clear();
+    atom_hash.clear();
     int atom_type;
     String str;
     for (int i = 0; i < JS_ATOM_END.ordinal(); i++) {
@@ -73,6 +73,6 @@ public class JSRuntime {
       str = js_atom_init.get(i);
       __JS_NewAtom(str, atom_type);
     }
-    atomHash.size();
+    atom_hash.size();
   }
 }

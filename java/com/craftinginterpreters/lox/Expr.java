@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 abstract class Expr {
-  JSFunctionDef fd;
   interface Visitor<R> {
     R visitAssignExpr(Assign expr);
     R visitConditionExpr(Condition expr);

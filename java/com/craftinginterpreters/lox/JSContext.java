@@ -30,12 +30,44 @@ public class JSContext {
 
   final Map<JSClassID, JSValue> class_proto;
 
-  public JSValue globalObj;
+  public JSValue global_obj;
+  public JSValue global_var_obj;
   final JSRuntime rt;
 
   public JSContext(JSRuntime rt) {
     this.rt = rt;
     class_proto = new HashMap<>();
+  }
+
+  int JS_CheckDefineGlobalVar(JSAtom prop, int flags) {
+    JSObject p;
+    JSShapeProperty prs;
+    p = global_obj.JS_VALUE_GET_OBJ();
+
+    prs = p.find_own_property1(prop);
+    if ((flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
+      if (prs != null && (prs.flags & JSProperty.JS_PROP_CONFIGURABLE) == 0) {
+        JS_ThrowSyntaxErrorVarRedeclaration(prop);
+        return -1;
+      }
+    } else {
+      if (prs != null && !p.extensible) {
+        JS_ThrowSyntaxErrorVarRedeclaration(prop);
+        return -1;
+      }
+      if ((flags & DEFINE_GLOBAL_FUNC_VAR) != 0) {
+        if (prs != null) {
+
+        }
+      }
+    }
+    p = global_var_obj.JS_VALUE_GET_OBJ();
+    prs = p.find_own_property1(prop);
+    if (prs != null) {
+      JS_ThrowSyntaxErrorVarRedeclaration(prop);
+      return -1;
+    }
+    return 0;
   }
 
   JSValue JS_AtomToValue(int atomIdx) {
@@ -217,8 +249,25 @@ public class JSContext {
     return 0;
   }
 
+  JSValue JS_ThrowError(String fmt) {
+    JS_ThrowInternalError(fmt);
+    return null;
+  }
+
   public Error JS_ThrowInternalError(String message) {
     return new JSInternalError(message);
+  }
+
+  JSValue JS_ThrowSyntaxErrorVarRedeclaration(JSAtom pro) {
+    return JS_ThrowSyntaxErrorAtom("redeclaration of " + pro);
+  }
+
+  private JSValue JS_ThrowSyntaxErrorAtom(String fmt) {
+    return __JS_ThrowSyntaxErrorAtom(fmt);
+  }
+
+  private JSValue __JS_ThrowSyntaxErrorAtom(String fmt) {
+    return JS_ThrowError(fmt);
   }
 
   void resolve_variables(JSFunctionDef fd) {
@@ -309,13 +358,13 @@ public class JSContext {
   }
 
   void dump_byte_code(int pass,
-                             final byte[] tab, int len,
-                             final List<JSVarDef> args, int arg_count,
-                             final List<JSVarDef> vars, int var_count,
-                             final List<JSClosureVar> closure_var, int closure_var_count,
-                             final List<JSValue> cpool, int cpool_count,
-                             final String source, int line_num,
-                             final LabelSlot label_slots, JSFunctionBytecode b) {
+                      final byte[] tab, int len,
+                      final List<JSVarDef> args, int arg_count,
+                      final List<JSVarDef> vars, int var_count,
+                      final List<JSClosureVar> closure_var, int closure_var_count,
+                      final List<JSValue> cpool, int cpool_count,
+                      final String source, int line_num,
+                      final LabelSlot label_slots, JSFunctionBytecode b) {
     if (!Config.dump) {
       return;
     }

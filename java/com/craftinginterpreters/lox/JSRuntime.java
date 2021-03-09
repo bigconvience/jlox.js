@@ -31,6 +31,26 @@ public class JSRuntime {
     JS_InitAtoms();
   }
 
+  public JSContext JS_NewCustomContext() {
+    JSContext ctx = JS_NewContext();
+
+
+    return ctx;
+  }
+
+  JSContext JS_NewContext() {
+    JSContext ctx = JS_NewContextRaw();
+
+    return ctx;
+  }
+
+  JSContext JS_NewContextRaw() {
+    JSContext ctx = new JSContext(this);
+
+
+    return ctx;
+  }
+
   public JSAtom JS_NewAtomStr(String str) {
     return __JS_NewAtom(str, JS_ATOM_TYPE_STRING);
   }
@@ -62,7 +82,7 @@ public class JSRuntime {
     atom_hash.clear();
     int atom_type;
     String str;
-    for (int i = 0; i < JS_ATOM_END.ordinal(); i++) {
+    for (int i = JS_ATOM_null.ordinal(); i < JS_ATOM_END.ordinal(); i++) {
       if (i == JS_ATOM_Private_brand.ordinal()) {
         atom_type = JS_ATOM_TYPE_PRIVATE;
       } else if (i >= JS_ATOM_Symbol_toPrimitive.ordinal()) {
@@ -70,7 +90,7 @@ public class JSRuntime {
       } else {
         atom_type = JS_ATOM_TYPE_STRING;
       }
-      str = js_atom_init.get(i);
+      str = JSAtomInit.js_atom_init.get(i);
       __JS_NewAtom(str, atom_type);
     }
     atom_hash.size();

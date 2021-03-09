@@ -12,6 +12,7 @@ import java.util.Map;
  * @date 2021/1/151:47 PM
  */
 public class JSObject {
+  boolean extensible;
   boolean is_exotic;
   JSShape shape;
   Map<String, Object> prop;
@@ -27,6 +28,20 @@ public class JSObject {
   public JSObject() {
     prop = new HashMap<>();
     func = new Func();
+  }
+
+  JSShapeProperty find_own_property1(JSAtom atom) {
+    JSShape sh;
+    List<JSShapeProperty> prop;
+    sh = shape;
+    prop = sh.get_shape_property();
+
+    for (JSShapeProperty pr: prop) {
+      if (pr.atom == atom) {
+        return pr;
+      }
+    }
+    return null;
   }
 
   public void defineProperty(String key, Object value) {

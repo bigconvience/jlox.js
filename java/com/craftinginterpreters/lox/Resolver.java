@@ -124,14 +124,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     enter_scope(s, 1, bcOut);
     List<Stmt> stmts = s.body;
-    for (Stmt stmt: stmts) {
+    for (Stmt stmt : stmts) {
       stmt.accept(this);
     }
 
     return ret;
   }
 
-  static void instantiateHostedDef(JSFunctionDef s, DynBuf bc) {
+  static void instantiate_hoisted_definitions(JSFunctionDef s, DynBuf bc) {
     int i, idx, var_idx;
     for (i = 0; i < s.hoistedDef.size(); i++) {
       JSHoistedDef hf = s.hoistedDef.get(i);
@@ -165,10 +165,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
               if (!hf.isConst) {
                 flags |= JS_PROP_WRITABLE;
               }
-              bc.putOpcode(OP_define_var);
-              bc.putAtom(hf.varName);
-              bc.putc(flags);
             }
+            bc.putOpcode(OP_define_var);
+            bc.putAtom(hf.varName);
+            bc.putc(flags);
           }
         }
 
@@ -433,7 +433,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       declare(param);
       define(param);
     }
-    instantiateHostedDef(function, function.byte_code);
+    instantiate_hoisted_definitions(function, function.byte_code);
     resolve(function.body);
     enter_scope(function, 1, null);
     endScope();
@@ -478,7 +478,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   private static void enter_scope(JSFunctionDef s, int scope, DynBuf bcOut) {
     if (scope == 1) {
-      instantiateHostedDef(s, bcOut);
+      instantiate_hoisted_definitions(s, bcOut);
     }
 
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {

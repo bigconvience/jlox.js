@@ -42,7 +42,7 @@ public class LoxJS {
 
   public static JSValue JSEval(JSContext ctx, String input, String filename, int evalFlags) {
     JSValue ret;
-    ret = JSEvalInternal(ctx, ctx.globalObj, input, filename, evalFlags, -1);
+    ret = JSEvalInternal(ctx, ctx.global_obj, input, filename, evalFlags, -1);
     return ret;
   }
 
@@ -50,6 +50,15 @@ public class LoxJS {
     return ctx.__JS_evalInternal(thisObject, input, filename, flags, scope_idx);
   }
 
+  public JSRuntime JS_NewRuntime() {
+    return JS_NewRuntime2();
+  }
+
+  JSRuntime JS_NewRuntime2() {
+    JSRuntime rt = new JSRuntime();
+
+    return rt;
+  }
 
 
 }

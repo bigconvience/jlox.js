@@ -52,8 +52,14 @@ public class JUtils {
   }
 
 
-  static int get_u32(final byte[] tab, int sp)
+  static int get_u32(final byte[] tab, int pc)
   {
-    return byteArrToInteger(tab, sp);
+    return byteArrToInteger(tab, pc);
   }
+
+
+  static int get_U8(final byte[] tab, int cp) {
+    return tab[cp];
+  }
+
 }

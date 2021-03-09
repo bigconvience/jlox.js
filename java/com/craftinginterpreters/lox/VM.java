@@ -91,6 +91,7 @@ public class VM {
       JSValue[] call_argv;
       int code = Byte.toUnsignedInt(b.byte_code_buf[pc++]);
       OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(code);
+      byte[] code_buf = b.byte_code_buf;
       switch (opcode) {
         case OP_print:
           top = peek(stack_buf, sp);
@@ -99,15 +100,20 @@ public class VM {
           pc++;
           break;
         case OP_push_i32:
-          u32 = JUtils.get_u32(b.byte_code_buf, sp);
+          u32 = JUtils.get_u32(code_buf, pc);
           push(stack_buf, sp, JSValue.JS_NewInt32(ctx, u32));
           sp++;
           pc += 4;
           break;
         case OP_push_atom_value:
-          u32 = JUtils.get_u32(b.byte_code_buf, pc);
+          u32 = JUtils.get_u32(code_buf, pc);
           push(stack_buf, sp, ctx.JS_AtomToValue(u32));
           pc += 4;
+          break;
+        case OP_check_define_var:
+          JSAtom atom = new JSAtom(JUtils.get_u32(code_buf, pc));
+          flags = code_buf[pc];
+          pc += 5;
           break;
       }
     }

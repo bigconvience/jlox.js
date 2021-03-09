@@ -7,7 +7,7 @@ import java.util.Map;
 
 import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
-import static com.craftinginterpreters.lox.JSValue.JS_EXCEPTION;
+import static com.craftinginterpreters.lox.JSValue.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_invalid;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_COUNT;
 
@@ -39,6 +39,15 @@ public class JSContext {
     class_proto = new HashMap<>();
   }
 
+  void JS_AddIntrinsicBasicObjects() {
+
+  }
+
+  void JS_AddIntrinsicBaseObjects() {
+    global_obj = JS_NewObject();
+    global_var_obj = JS_NewObjectProto(JS_NULL);
+  }
+
   int JS_CheckDefineGlobalVar(JSAtom prop, int flags) {
     JSObject p;
     JSShapeProperty prs;
@@ -46,7 +55,7 @@ public class JSContext {
 
     prs = p.find_own_property1(prop);
     if ((flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
-      if (prs != null && (prs.flags & JSProperty.JS_PROP_CONFIGURABLE) == 0) {
+      if (prs != null && (prs.flags & JS_PROP.JS_PROP_CONFIGURABLE) == 0) {
         JS_ThrowSyntaxErrorVarRedeclaration(prop);
         return -1;
       }
@@ -69,6 +78,83 @@ public class JSContext {
     }
     return 0;
   }
+
+  int JS_DefineGlobalVar(JSAtom prop, int def_flags) {
+    JSObject p;
+    JSShapeProperty prs;
+    JSProperty pr;
+    JSValue val;
+    int flags;
+
+    if ((def_flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
+      p = global_var_obj.JS_VALUE_GET_OBJ();
+      flags = JS_PROP.JS_PROP_ENUMERABLE | (def_flags & JS_PROP.JS_PROP_WRITABLE) |
+        JS_PROP.JS_PROP_CONFIGURABLE;
+      val = JS_UNINITIALIZED;
+    } else {
+      p = global_obj.JS_VALUE_GET_OBJ();
+      flags = JS_PROP.JS_PROP_ENUMERABLE | JS_PROP.JS_PROP_WRITABLE |
+        (def_flags & JS_PROP.JS_PROP_CONFIGURABLE);
+      val = JS_UNDEFINED;
+    }
+    prs = p.find_own_property1(prop);
+    if (prs != null)
+      return 0;
+    if (!p.extensible)
+      return 0;
+    pr = add_property(p, prop, flags);
+    if (pr != null)
+      return -1;
+    pr.value = val;
+    return 0;
+
+  }
+
+
+  JSProperty add_property(JSObject p, JSAtom prop, int prop_flags) {
+    JSShape sh, new_sh;
+
+    sh = p.shape;
+
+    if (add_shape_property(p.shape, p, prop, prop_flags) == 1) {
+      return null;
+    }
+
+    return p.prop.get(p.shape.prop.size() - 1);
+  }
+
+  int add_shape_property(JSShape psh,
+                         JSObject p, JSAtom atom, int prop_flags) {
+
+    JSShape sh = psh;
+    JSShapeProperty pr;
+    List<JSShapeProperty> prop;
+    int hash_mask, new_shape_hash = 0;
+
+    if (p.prop.size() <= sh.prop.size()) {
+      resize_properties(sh, p, sh.prop.size() + 1);
+    }
+
+    /* Initialize the new shape property.
+       The object property at p->prop[sh->prop_count] is uninitialized */
+    prop = sh.get_shape_property();
+    pr = new JSShapeProperty();
+    prop.add(pr);
+    pr.atom = atom;
+    pr.flags = prop_flags;
+    return 0;
+  }
+
+  int resize_properties(JSShape psh,
+                        JSObject p, int count) {
+    int start = p.prop.size();
+    while (start < count) {
+      p.prop.add(new JSProperty());
+      start++;
+    }
+    return 0;
+  }
+
 
   JSValue JS_AtomToValue(int atomIdx) {
     JSAtom atom = new JSAtom(atomIdx);
@@ -295,6 +381,10 @@ public class JSContext {
 
   JSValue JS_NewObjectProto(final JSValue proto) {
     return JS_NewObjectProtoClass(proto, JS_CLASS_OBJECT);
+  }
+
+  JSValue JS_NewObject() {
+    return JS_NewObjectProtoClass(class_proto.get(JS_CLASS_OBJECT), JS_CLASS_OBJECT);
   }
 
   JSValue JS_NewObjectProtoClass(final JSValue proto_val, JSClassID class_id) {

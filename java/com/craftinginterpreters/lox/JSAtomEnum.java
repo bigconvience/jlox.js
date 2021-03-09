@@ -225,5 +225,9 @@ public enum JSAtomEnum {
     JS_ATOM_Symbol_unscopables,
     JS_ATOM_Symbol_asyncIterator,
     JS_ATOM_Symbol_operatorSet,
-    JS_ATOM_END
+    JS_ATOM_END;
+ 
+    JSAtom toJSAtom() {
+        return new JSAtom(ordinal());
+    }
 }

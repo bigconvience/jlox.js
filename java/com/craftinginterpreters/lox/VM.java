@@ -85,6 +85,7 @@ public class VM {
     sf.prev_frame = rt.current_stack_frame;
     rt.current_stack_frame = sf;
     ctx = b.realm;
+    JSAtom atom;
     while (pc < b.byte_code_len) {
       int call_argc;
       int u32;
@@ -111,9 +112,20 @@ public class VM {
           pc += 4;
           break;
         case OP_check_define_var:
-          JSAtom atom = new JSAtom(JUtils.get_u32(code_buf, pc));
-          flags = code_buf[pc];
+          atom = new JSAtom(JUtils.get_u32(code_buf, pc));
+          flags = code_buf[pc + 4];
           pc += 5;
+          if (ctx.JS_CheckDefineGlobalVar(atom, flags) != 0) {
+
+          }
+          break;
+        case OP_define_var:
+          atom = new JSAtom(JUtils.get_u32(code_buf, pc));
+          flags = code_buf[pc + 4];
+          pc += 5;
+          if (ctx.JS_DefineGlobalVar(atom, flags) != 0) {
+
+          }
           break;
       }
     }

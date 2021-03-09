@@ -6,8 +6,8 @@ import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
 import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_FUNC_VAR;
 import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
 import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
-import static com.craftinginterpreters.lox.JSProperty.JS_PROP_CONFIGURABLE;
-import static com.craftinginterpreters.lox.JSProperty.JS_PROP_WRITABLE;
+import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_CONFIGURABLE;
+import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_WRITABLE;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
 

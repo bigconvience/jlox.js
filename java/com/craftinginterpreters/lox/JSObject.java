@@ -1,5 +1,6 @@
 package com.craftinginterpreters.lox;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +16,10 @@ public class JSObject {
   boolean extensible;
   boolean is_exotic;
   JSShape shape;
-  Map<String, Object> prop;
+  final List<JSProperty> prop;
   JSClassID JSClassID;
 
-  Func func ;
+  final Func func ;
   static class Func {
     JSFunctionBytecode function_bytecode;
     List<JSVarRef> var_refs;
@@ -26,7 +27,7 @@ public class JSObject {
   }
 
   public JSObject() {
-    prop = new HashMap<>();
+    prop = new ArrayList<>();
     func = new Func();
   }
 
@@ -45,15 +46,14 @@ public class JSObject {
   }
 
   public void defineProperty(String key, Object value) {
-    prop.put(key, value);
   }
 
   public Object getValue(String key) {
-    return prop.get(key);
+    return null;
   }
 
   public void setProp(String key, Object value) {
-    prop.put(key, value);
+
   }
 
   @Override

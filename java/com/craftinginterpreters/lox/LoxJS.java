@@ -5,6 +5,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
+import static com.craftinginterpreters.lox.JSStdClassDef.js_std_class_def;
+
 /**
  * @author benpeng.jiang
  * @title: JSEval
@@ -56,6 +59,7 @@ public class LoxJS {
 
   JSRuntime JS_NewRuntime2() {
     JSRuntime rt = new JSRuntime();
+    rt.init_class_range(js_std_class_def, JS_CLASS_OBJECT.ordinal(), js_std_class_def.length);
 
     return rt;
   }

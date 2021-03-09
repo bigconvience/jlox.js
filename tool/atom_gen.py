@@ -69,7 +69,12 @@ for i in range(0, len(lines), 1):
         index = index + 1
         print(str(index) + ':' + first + ' ' + second)
 
-AtomCodes.append(space + 'JS_ATOM_END\n')
+AtomCodes.append(space + 'JS_ATOM_END;\n')
+endEnumMethod =''' 
+    JSAtom toJSAtom() {
+        return new JSAtom(ordinal());
+    }\n'''
+AtomCodes.append(endEnumMethod)
 AtomCodes.append(classFileEnd)
 JSAtomEnum.writelines(AtomCodes)
 JSAtomEnum.close()

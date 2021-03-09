@@ -41,6 +41,7 @@ public class JSRuntime {
   JSContext JS_NewContext() {
     JSContext ctx = JS_NewContextRaw();
 
+    ctx.JS_AddIntrinsicBaseObjects();
     return ctx;
   }
 
@@ -95,4 +96,25 @@ public class JSRuntime {
     }
     atom_hash.size();
   }
+
+  int init_class_range(JSClassShortDef[] tab, int start, int count) {
+    JSClassDef cm;
+    int class_id;
+    for (int i = 0; i < count; i++) {
+      class_id = i+ start;
+      cm = new JSClassDef();
+      cm.finalizer = tab[i].finalizer;
+      cm.gc_mark = tab[i].gc_mark;
+      if (JS_NewClass1(JSClassID.values()[class_id], cm, tab[i].class_name) < 0) {
+        return -1;
+      }
+    }
+
+    return 0;
+  }
+
+  int JS_NewClass1(JSClassID class_id, final JSClassDef class_def, JSAtom name) {
+    return 0;
+  }
+
 }

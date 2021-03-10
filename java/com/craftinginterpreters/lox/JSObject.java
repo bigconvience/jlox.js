@@ -1,9 +1,7 @@
 package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author benpeng.jiang
@@ -29,6 +27,24 @@ public class JSObject {
   public JSObject() {
     prop = new ArrayList<>();
     func = new Func();
+  }
+
+  JSShapeProperty find_own_property(JSProperty.Ptr pr, JSAtom atom) {
+    JSShape sh;
+    JSShapeProperty ptr;
+    List<JSShapeProperty> prop;
+    sh = shape;
+
+    prop = sh.get_shape_property();
+    for (int i = 0; i < prop.size(); i++) {
+      ptr = prop.get(i);
+      if (ptr.atom == atom) {
+        pr.ptr = this.prop.get(i);
+        return ptr;
+      }
+    }
+    pr.ptr = null;
+    return null;
   }
 
   JSShapeProperty find_own_property1(JSAtom atom) {

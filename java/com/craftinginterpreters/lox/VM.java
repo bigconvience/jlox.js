@@ -6,6 +6,7 @@ import java.util.List;
 
 import static com.craftinginterpreters.lox.JSContext.JS_CALL_FLAG_COPY_ARGV;
 import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_put_var;
 
 /*
   @author benpeng.jiang
@@ -86,6 +87,7 @@ public class VM {
     rt.current_stack_frame = sf;
     ctx = b.realm;
     JSAtom atom;
+    int ret;
     while (pc < b.byte_code_len) {
       int call_argc;
       int u32;
@@ -124,6 +126,16 @@ public class VM {
           flags = code_buf[pc + 4];
           pc += 5;
           if (ctx.JS_DefineGlobalVar(atom, flags) != 0) {
+
+          }
+        case OP_put_var:
+        case OP_put_var_init:
+          atom = new JSAtom(JUtils.get_u32(code_buf, pc));
+          pc += 4;
+          top = peek(stack_buf, sp);
+          ret = ctx.JS_SetGlobalVar(atom, top, opcode.ordinal() - OP_put_var.ordinal());
+          sp--;
+          if (ret < 0) {
 
           }
           break;

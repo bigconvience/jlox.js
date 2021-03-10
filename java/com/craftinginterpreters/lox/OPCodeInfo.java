@@ -572,6 +572,54 @@ public class OPCodeInfo {
       OP___dummy.ordinal(),
       new JSOpCode("__dummy",1,1,0,atom));
     opcode_info.put(
+      OP_set_arg_valid_upto.ordinal(),
+      new JSOpCode("set_arg_valid_upto",3,0,0,arg));
+    opcode_info.put(
+      OP_enter_scope.ordinal(),
+      new JSOpCode("enter_scope",3,0,0,u16));
+    opcode_info.put(
+      OP_leave_scope.ordinal(),
+      new JSOpCode("leave_scope",3,0,0,u16));
+    opcode_info.put(
+      OP_label.ordinal(),
+      new JSOpCode("label",5,0,0,label));
+    opcode_info.put(
+      OP_scope_get_var_undef.ordinal(),
+      new JSOpCode("scope_get_var_undef",7,0,1,atom_u16));
+    opcode_info.put(
+      OP_scope_get_var.ordinal(),
+      new JSOpCode("scope_get_var",7,0,1,atom_u16));
+    opcode_info.put(
+      OP_scope_put_var.ordinal(),
+      new JSOpCode("scope_put_var",7,1,0,atom_u16));
+    opcode_info.put(
+      OP_scope_delete_var.ordinal(),
+      new JSOpCode("scope_delete_var",7,0,1,atom_u16));
+    opcode_info.put(
+      OP_scope_make_ref.ordinal(),
+      new JSOpCode("scope_make_ref",11,0,2,atom_label_u16));
+    opcode_info.put(
+      OP_scope_get_ref.ordinal(),
+      new JSOpCode("scope_get_ref",7,0,2,atom_u16));
+    opcode_info.put(
+      OP_scope_put_var_init.ordinal(),
+      new JSOpCode("scope_put_var_init",7,0,2,atom_u16));
+    opcode_info.put(
+      OP_scope_get_private_field.ordinal(),
+      new JSOpCode("scope_get_private_field",7,1,1,atom_u16));
+    opcode_info.put(
+      OP_scope_get_private_field2.ordinal(),
+      new JSOpCode("scope_get_private_field2",7,1,2,atom_u16));
+    opcode_info.put(
+      OP_scope_put_private_field.ordinal(),
+      new JSOpCode("scope_put_private_field",7,1,1,atom_u16));
+    opcode_info.put(
+      OP_set_class_name.ordinal(),
+      new JSOpCode("set_class_name",5,1,1,u32));
+    opcode_info.put(
+      OP_line_num.ordinal(),
+      new JSOpCode("line_num",5,0,0,u32));
+    opcode_info.put(
       OP_push_minus1.ordinal(),
       new JSOpCode("push_minus1",1,0,1,none_int));
     opcode_info.put(

@@ -1,5 +1,7 @@
 package com.craftinginterpreters.lox;
 
+import java.util.List;
+
 /**
  * @author benpeng.jiang
  * @title: JSVarRef
@@ -10,4 +12,10 @@ package com.craftinginterpreters.lox;
 public class JSVarRef {
   JSValue pValue;
   JSValue value;
+
+
+  public static class PPtr {
+    List<JSVarRef> var_refs;
+  }
+
 }

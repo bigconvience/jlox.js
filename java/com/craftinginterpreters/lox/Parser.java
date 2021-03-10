@@ -319,7 +319,7 @@ class Parser {
     }
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
-    fd = ParserUtils.jsNewFunctionDef(ctx, fd, false, isExpr, fileName, name.line);
+    fd = ctx.jsNewFunctionDef(fd, false, isExpr, fileName, name.line);
     fd.func_name = rt.JS_NewAtomStr(name.lexeme);
     curFunc = fd;
 

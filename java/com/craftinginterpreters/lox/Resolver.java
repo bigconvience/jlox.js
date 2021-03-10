@@ -430,7 +430,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
-        if (ParserUtils.isFuncDecl(vd.varKind)) {
+        if (JSFunctionDef.isFuncDecl(vd.varKind)) {
           bcOut.putOpcode(OP_fclosure);
           bcOut.putU32(vd.funcPoolOrScopeIdx);
           bcOut.putOpcode(OP_put_loc);

@@ -41,6 +41,15 @@ public class JSValue {
     return JSTag.JS_TAG_OBJECT == tag;
   }
 
+
+  boolean JS_IsUninitialized() {
+    return tag == JSTag.JS_TAG_UNINITIALIZED;
+  }
+
+  boolean JS_ISString() {
+    return tag == JSTag.JS_TAG_STRING;
+  }
+
   public static JSValue JS_NewInt32(JSContext ctx, int val) {
     return new JSValue(JSTag.JS_TAG_INT, val);
   }
@@ -63,4 +72,24 @@ public class JSValue {
     System.out.println(value);
   }
 
+  /* return -1 in case of exception or TRUE or FALSE. Warning: 'val' is
+   freed by the function. 'flags' is a bitmask of JS_PROP_NO_ADD,
+   JS_PROP_THROW or JS_PROP_THROW_STRICT. If JS_PROP_NO_ADD is set,
+   the new property is not added and an error is raised. */
+  int JS_SetPropertyInternal(JSContext ctx,
+                             JSAtom prop, JSValue val, int flags) {
+    JSObject  p, p1;
+    JSShapeProperty  prs;
+    JSProperty  pr;
+    int tag;
+    JSPropertyDescriptor desc;
+    int ret = 0;
+    if (true) {
+      PrintUtils.printf("JS_SetPropertyInternal: ");
+      PrintUtils.print_atom(ctx, prop);
+      PrintUtils.printf("\n");
+    }
+
+    return ret;
+  }
 }

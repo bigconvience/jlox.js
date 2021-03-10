@@ -27,4 +27,14 @@ public class JS_PROP {
   static final int JS_PROP_HAS_GET = (1 << 11);
   static final int JS_PROP_HAS_SET = (1 << 12);
   static final int JS_PROP_HAS_VALUE = (1 << 13);
+
+  /* throw an exception if false would be returned
+   (JS_DefineProperty/JS_SetProperty) */
+  static final int JS_PROP_THROW = (1 << 14);
+  /* throw an exception if false would be returned in strict mode
+     (JS_SetProperty) */
+  static final int JS_PROP_THROW_STRICT = (1 << 15);
+
+  static final int JS_PROP_NO_ADD = (1 << 16); /* internal use */
+  static final int JS_PROP_NO_EXOTIC = (1 << 17); /* internal use */
 }

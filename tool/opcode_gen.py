@@ -1,4 +1,3 @@
-import macro
 import re
 filepath = "./quickjs-opcode.h"
 
@@ -43,11 +42,6 @@ JSOpCode = open(javaSrc + "/OPCodeInfo.java", "w")
 OPCodeEnumCodes = [OPCodeEnumStart]
 JSOpCodeCodes = [JSOpCodeStart]
 
-name = 'DEF'
-args = ['id', 'size', 'n_pop', 'n_push', f]
-replace = 'OP_ ## id,'
-DEF_macro = macro.Macro(name, args, replace)
-
 
 for i in range(0, lines.__len__(), 1):
     list = []  ## 空列表, 将第i行数据存入list中
@@ -66,7 +60,7 @@ for i in range(0, lines.__len__(), 1):
             list.append(word)
 
     name = list[0]
-    if name != 'DEF':
+    if name not in ['DEF', 'def']:
         continue
 
     codeEnum = list[1]

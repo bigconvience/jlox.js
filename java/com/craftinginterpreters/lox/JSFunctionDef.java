@@ -238,7 +238,7 @@ public class JSFunctionDef extends Stmt {
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
-        if (ParserUtils.isFuncDecl(vd.varKind)) {
+        if (isFuncDecl(vd.varKind)) {
           bcOut.putOpcode(OP_fclosure);
           bcOut.putU32(vd.funcPoolOrScopeIdx);
           bcOut.putOpcode(OP_put_loc);
@@ -337,4 +337,8 @@ public class JSFunctionDef extends Stmt {
     s.hoistedDef.clear();
   }
 
+  public static boolean isFuncDecl(JSVarKindEnum varKind) {
+    return varKind == JSVarKindEnum.JS_VAR_FUNCTION_DECL ||
+      varKind == JSVarKindEnum.JS_VAR_NEW_FUNCTION_DECL;
+  }
 }

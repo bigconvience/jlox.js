@@ -17,4 +17,8 @@ public class JSProperty {
     JSObject getter;
     JSObject setter;
   }
+
+  public static class Ptr {
+    JSProperty ptr;
+  }
 }

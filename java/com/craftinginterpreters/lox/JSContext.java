@@ -8,6 +8,7 @@ import java.util.Map;
 import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
 import static com.craftinginterpreters.lox.JSValue.*;
+import static com.craftinginterpreters.lox.JS_PROP.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 
 /**
@@ -47,6 +48,39 @@ public class JSContext {
     global_var_obj = JS_NewObjectProto(JS_NULL);
   }
 
+  int JS_SetGlobalVar(JSAtom prop, JSValue val, int flag) {
+    JSObject p = global_var_obj.JS_VALUE_GET_OBJ();
+    JSProperty.Ptr pr = new JSProperty.Ptr();
+    JSShapeProperty prs = p.find_own_property(pr, prop);
+    int flags;
+
+    if (prs != null) {
+      if (flag != 1) {
+        if (pr.ptr.value.JS_IsUninitialized()) {
+          JSThrower.JS_ThrowReferenceErrorUninitialized(this, prs.atom);
+          return -1;
+        }
+        if ((prs.flags & JS_PROP_WRITABLE) == 0) {
+          return JSThrower.JS_ThrowTypeErrorReadOnly(this, JS_PROP_THROW, prop);
+        }
+      }
+      set_value(pr.ptr.value, val);
+      return 0;
+    }
+
+    flags = JS_PROP_THROW_STRICT;
+    if (flag != 2 && is_strict_mode())
+      flags |= JS_PROP_NO_ADD;
+    return global_obj.JS_SetPropertyInternal(this,  prop, val, flags);
+  }
+
+
+   void set_value(JSValue pval, JSValue new_val)
+  {
+    pval.tag = new_val.tag;
+    pval.value = new_val.value;
+  }
+
   int JS_CheckDefineGlobalVar(JSAtom prop, int flags) {
     JSObject p;
     JSShapeProperty prs;
@@ -55,12 +89,12 @@ public class JSContext {
     prs = p.find_own_property1(prop);
     if ((flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
       if (prs != null && (prs.flags & JS_PROP.JS_PROP_CONFIGURABLE) == 0) {
-        JS_ThrowSyntaxErrorVarRedeclaration(prop);
+        JSThrower.JS_ThrowSyntaxErrorVarRedeclaration(this, prop);
         return -1;
       }
     } else {
       if (prs != null && !p.extensible) {
-        JS_ThrowSyntaxErrorVarRedeclaration(prop);
+        JSThrower.JS_ThrowSyntaxErrorVarRedeclaration(this, prop);
         return -1;
       }
       if ((flags & DEFINE_GLOBAL_FUNC_VAR) != 0) {
@@ -72,7 +106,7 @@ public class JSContext {
     p = global_var_obj.JS_VALUE_GET_OBJ();
     prs = p.find_own_property1(prop);
     if (prs != null) {
-      JS_ThrowSyntaxErrorVarRedeclaration(prop);
+      JSThrower.JS_ThrowSyntaxErrorVarRedeclaration(this, prop);
       return -1;
     }
     return 0;
@@ -87,12 +121,12 @@ public class JSContext {
 
     if ((def_flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
       p = global_var_obj.JS_VALUE_GET_OBJ();
-      flags = JS_PROP.JS_PROP_ENUMERABLE | (def_flags & JS_PROP.JS_PROP_WRITABLE) |
+      flags = JS_PROP.JS_PROP_ENUMERABLE | (def_flags & JS_PROP_WRITABLE) |
         JS_PROP.JS_PROP_CONFIGURABLE;
       val = JS_UNINITIALIZED;
     } else {
       p = global_obj.JS_VALUE_GET_OBJ();
-      flags = JS_PROP.JS_PROP_ENUMERABLE | JS_PROP.JS_PROP_WRITABLE |
+      flags = JS_PROP.JS_PROP_ENUMERABLE | JS_PROP_WRITABLE |
         (def_flags & JS_PROP.JS_PROP_CONFIGURABLE);
       val = JS_UNDEFINED;
     }
@@ -198,7 +232,7 @@ public class JSContext {
     int evalType = flags & LoxJS.JS_EVAL_TYPE_MASK;
     Scanner scanner = new Scanner(input, this);
 
-    JSFunctionDef fd = ParserUtils.jsNewFunctionDef(this, null, true, false, filename, 1);
+    JSFunctionDef fd = jsNewFunctionDef(null, true, false, filename, 1);
     fd.ctx = this;
     fd.evalType = evalType;
     fd.func_name = rt.JS_NewAtomStr("<eval>");
@@ -304,21 +338,21 @@ public class JSContext {
     while (pos < bc_len) {
       op = Byte.toUnsignedInt(bc_buf[pos]);
       if (op == 0 || op >= OP_COUNT.ordinal()) {
-        JS_ThrowInternalError("invalid opcode (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(this, "invalid opcode (op=" + op + ", pc=" + pos + ")");
         return -1;
       }
 
       oi = OPCodeInfo.opcode_info.get(op);
       pos_next = pos + oi.size;
       if (pos_next > bc_len) {
-        JS_ThrowInternalError("bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(this, "bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
         return -1;
       }
 
       n_pop = oi.n_pop;
 
       if (stack_len < n_pop) {
-        JS_ThrowInternalError("bytecode underflow (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(this, "bytecode underflow (op=" + op + ", pc=" + pos + ")");
       }
 
       stack_len += oi.n_push - n_pop;
@@ -334,63 +368,42 @@ public class JSContext {
     return 0;
   }
 
-  JSValue JS_ThrowError(String fmt) {
-    JS_ThrowInternalError(fmt);
-    return null;
-  }
 
-  public Error JS_ThrowInternalError(String message) {
-    return new JSInternalError(message);
-  }
+  int resolve_variables(JSFunctionDef s) {
+    int ret = 0;
+    int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
+    CodeContext cc = new CodeContext();
+    DynBuf bc_out = new DynBuf();
+    s.byte_code = bc_out;
+    if (s.isGlobalVar) {
+      for (JSHoistedDef hd : s.hoistedDef) {
+        int flags;
+        if (hd.varName != null) {
+          //todo benpeng closure
 
-  JSValue JS_ThrowSyntaxErrorVarRedeclaration(JSAtom pro) {
-    return JS_ThrowSyntaxErrorAtom("redeclaration of " + pro);
-  }
-
-  private JSValue JS_ThrowSyntaxErrorAtom(String fmt) {
-    return __JS_ThrowSyntaxErrorAtom(fmt);
-  }
-
-  private JSValue __JS_ThrowSyntaxErrorAtom(String fmt) {
-    return JS_ThrowError(fmt);
-  }
-
-
-  int  resolve_variables (JSFunctionDef s){
-      int ret = 0;
-      int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
-      CodeContext cc = new CodeContext();
-      DynBuf bc_out = new DynBuf();
-      s.byte_code = bc_out;
-      if (s.isGlobalVar) {
-        for (JSHoistedDef hd : s.hoistedDef) {
-          int flags;
-          if (hd.varName != null) {
-            //todo benpeng closure
-
-          }
-          bc_out.putOpcode(OP_check_define_var);
-          bc_out.putAtom(hd.varName);
-          flags = 0;
-          if (hd.isLexical) {
-            flags |= DEFINE_GLOBAL_LEX_VAR;
-          }
-          if (hd.cpool_idx >= 0) {
-            flags |= DEFINE_GLOBAL_FUNC_VAR;
-          }
-          bc_out.putc(flags);
         }
-        next:
-        ;
+        bc_out.putOpcode(OP_check_define_var);
+        bc_out.putAtom(hd.varName);
+        flags = 0;
+        if (hd.isLexical) {
+          flags |= DEFINE_GLOBAL_LEX_VAR;
+        }
+        if (hd.cpool_idx >= 0) {
+          flags |= DEFINE_GLOBAL_FUNC_VAR;
+        }
+        bc_out.putc(flags);
       }
+      next:
+      ;
+    }
 
     s.enter_scope(1, bc_out);
     List<Stmt> stmts = s.body;
     Resolver resolver = new Resolver(this, s);
     for (Stmt stmt : stmts) {
-        stmt.accept(resolver);
-      }
-      return ret;
+      stmt.accept(resolver);
+    }
+    return ret;
   }
 
   int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
@@ -517,6 +530,19 @@ public class JSContext {
     System.out.print(jsString);
   }
 
+  void print_atom(JSAtom atom) {
+    print_atom(atom.getVal());
+  }
+
+  String JS_AtomGetStr(JSAtom atom) {
+    return JS_AtomGetStr(atom.getVal());
+  }
+
+  String JS_AtomGetStr(int atom) {
+    JSString jsString = rt.atom_array.get(atom);
+    return jsString.str;
+  }
+
   void dump_byte_code(int pass,
                       final byte[] tab, int len,
                       final List<JSVarDef> args, int arg_count,
@@ -552,7 +578,7 @@ public class JSContext {
         break;
       }
 
-      printf("        "+oi.name);
+      printf("        " + oi.name);
       pos++;
       switch (oi.fmt) {
         case atom:
@@ -578,5 +604,22 @@ public class JSContext {
 
   private static void printf(String fmt) {
     System.out.print(fmt);
+  }
+
+  static JSFunctionDef jsNewFunctionDef(JSFunctionDef parent,
+                                        boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
+    JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
+    fd.scopeLevel = 0;
+    fd.scopeFirst = -1;
+    fd.addScope();
+    fd.scopes.get(0).first = -1;
+    fd.scopes.get(0).parent = -1;
+    return fd;
+  }
+
+
+  boolean is_strict_mode() {
+    JSStackFrame sf = rt.current_stack_frame;
+    return false;
   }
 }

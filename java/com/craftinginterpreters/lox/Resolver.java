@@ -3,7 +3,6 @@ package com.craftinginterpreters.lox;
 import java.util.*;
 
 import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
-import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_FUNC_VAR;
 import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
 import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
 import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_CONFIGURABLE;
@@ -14,13 +13,14 @@ import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   private FunctionType currentFunction = FunctionType.NONE;
-  private JSFunctionDef curFunc;
+  private JSFunctionDef cur_func;
   private final JSContext ctx;
   private final List<Stmt> stmtOut;
   private final JSRuntime rt;
 
-  Resolver(JSContext jsContext) {
+  Resolver(JSContext jsContext, JSFunctionDef fd) {
     ctx = jsContext;
+    cur_func = fd;
     rt = ctx.rt;
     stmtOut = new ArrayList<>();
   }
@@ -47,9 +47,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitBlockStmt(Stmt.Block stmt) {
-    JSFunctionDef fd = curFunc;
+    JSFunctionDef fd = cur_func;
     enter_scope(fd, stmt.scope, fd.byte_code);
-    curFunc = fd;
+    cur_func = fd;
     resolve(stmt.statements);
     return null;
   }
@@ -88,48 +88,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-    new Resolver(stmt.ctx).resolve_variables(stmt);
+    ctx.resolve_variables(stmt);
     return null;
   }
 
-  public boolean resolve_variables(JSFunctionDef s) {
-    curFunc = s;
-    int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
-    CodeContext cc = new CodeContext();
-
-    boolean ret = false;
-    DynBuf bcOut = new DynBuf();
-    s.byte_code = bcOut;
-    if (s.isGlobalVar) {
-      for (JSHoistedDef hd : s.hoistedDef) {
-        int flags;
-        if (hd.varName != null) {
-          //todo benpeng closure
-
-        }
-        bcOut.putOpcode(OP_check_define_var);
-        bcOut.putAtom(hd.varName);
-        flags = 0;
-        if (hd.isLexical) {
-          flags |= DEFINE_GLOBAL_LEX_VAR;
-        }
-        if (hd.cpool_idx >= 0) {
-          flags |= DEFINE_GLOBAL_FUNC_VAR;
-        }
-        bcOut.putc(flags);
-      }
-      next:
-      ;
-    }
-
-    enter_scope(s, 1, bcOut);
-    List<Stmt> stmts = s.body;
-    for (Stmt stmt : stmts) {
-      stmt.accept(this);
-    }
-
-    return ret;
-  }
 
   static void instantiate_hoisted_definitions(JSFunctionDef s, DynBuf bc) {
     int i, idx, var_idx;
@@ -226,7 +188,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     Expr expr = stmt.expression;
     expr.accept(this);
 
-    DynBuf bc = curFunc.byte_code;
+    DynBuf bc = cur_func.byte_code;
     bc.putOpcode(OP_print);
     return null;
   }
@@ -268,16 +230,18 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitAssignExpr(Expr.Assign expr) {
-    if (curFunc != null) {
-      Token varName = expr.name;
-      JSVarDef varDef = curFunc.getVarDef(varName.lexeme);
-      if (varDef != null && varDef.isConst) {
-        Lox.error(expr.name, "is read-only");
-        return null;
-      }
+    Expr value = expr.value;
+    if (value != null) {
+      value.accept(this);
     }
-    resolve(expr.value);
-    resolveLocal(expr, expr.name);
+    Expr.Variable left = expr.left;
+    if (left != null) {
+      JSAtom var_name = left.name.ident_atom;
+      int scope = left.scopeLevel;
+      ctx.resolve_scope_var(cur_func, var_name, scope,
+        OP_scope_make_ref.ordinal(), cur_func.byte_code,
+        cur_func.byte_code.buf, 0, true);
+    }
     return null;
   }
 
@@ -321,7 +285,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitLiteralExpr(Expr.Literal expr) {
-    DynBuf db = curFunc.byte_code;
+    DynBuf db = cur_func.byte_code;
     if (expr.value instanceof JSAtom) {
       db.putOpcode(OP_push_atom_value);
     }
@@ -383,28 +347,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   public Void visitVariableExpr(Expr.Variable expr) {
     String varName = expr.name.lexeme;
     int scope = expr.scopeLevel;
-    resolveScopeVar(varName, scope);
     return null;
   }
 
-  private int resolveScopeVar(String varName, int scopeLevel) {
-    int var_idx = -1;
-    JSFunctionDef fd = curFunc;
-    JSVarDef vd;
-    for (int idx = fd.scopes.get(scopeLevel).first; idx >= 0; ) {
-      vd = fd.vars.get(idx);
-      if (vd.varName.equals(varName)) {
 
-        var_idx = idx;
-        break;
-      } else {
-
-      }
-      idx = vd.scope_next;
-    }
-
-    return var_idx;
-  }
 
   @Override
   public Void visitCoalesceExpr(Expr.Coalesce expr) {
@@ -425,8 +371,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     JSFunctionDef function, FunctionType type) {
     FunctionType enclosingFunction = currentFunction;
     currentFunction = type;
-    JSFunctionDef enclosureFunc = curFunc;
-    curFunc = function;
+    JSFunctionDef enclosureFunc = cur_func;
+    cur_func = function;
 
     beginScope();
     for (Token param : function.params) {
@@ -438,7 +384,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     enter_scope(function, 1, null);
     endScope();
     currentFunction = enclosingFunction;
-    curFunc = enclosureFunc;
+    cur_func = enclosureFunc;
   }
 
   private void beginScope() {

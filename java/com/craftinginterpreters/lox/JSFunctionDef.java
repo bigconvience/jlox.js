@@ -5,6 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
+import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
+import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_CONFIGURABLE;
+import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_WRITABLE;
+import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
+import static com.craftinginterpreters.lox.OPCodeEnum.*;
+import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
+
 /**
  * @author benpeng.jiang
  * @title: FunctionDef
@@ -220,4 +228,113 @@ public class JSFunctionDef extends Stmt {
     }
     return -1;
   }
+
+  void enter_scope(int scope, DynBuf bcOut) {
+    JSFunctionDef s = this;
+    if (scope == 1) {
+      instantiate_hoisted_definitions(bcOut);
+    }
+
+    for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
+      JSVarDef vd = s.vars.get(scopeIdx);
+      if (vd.scope_level == scopeIdx) {
+        if (ParserUtils.isFuncDecl(vd.varKind)) {
+          bcOut.putOpcode(OP_fclosure);
+          bcOut.putU32(vd.funcPoolOrScopeIdx);
+          bcOut.putOpcode(OP_put_loc);
+        } else {
+          bcOut.putOpcode(OP_set_loc_uninitialized);
+        }
+        bcOut.putU16((short) scopeIdx);
+        scopeIdx = vd.scope_next;
+      } else {
+        break;
+      }
+    }
+  }
+
+
+  void instantiate_hoisted_definitions(DynBuf bc) {
+    JSFunctionDef s = this;
+    int i, idx, var_idx;
+    for (i = 0; i < s.hoistedDef.size(); i++) {
+      JSHoistedDef hf = s.hoistedDef.get(i);
+      int has_closure = 0;
+      boolean force_init = hf.forceInit;
+      if (s.isGlobalVar && hf.varName != JSAtom.JS_ATOM_NULL) {
+        for (idx = 0; idx < s.closureVar.size(); idx++) {
+          JSClosureVar cv = s.closureVar.get(idx);
+          if (hf.varName.equals(cv.var_name)) {
+            has_closure = 2;
+            force_init = false;
+            break;
+          }
+        }
+        if (has_closure == 0) {
+          int flags = 0;
+          if (s.evalType == JS_EVAL_TYPE_GLOBAL) {
+            flags |= JS_PROP_CONFIGURABLE;
+          }
+
+          if (hf.cpool_idx >= 0 && !hf.isLexical) {
+            bc.putOpcode(OP_fclosure);
+            bc.putU32(hf.cpool_idx);
+            bc.putOpcode(OP_define_func);
+            bc.putAtom(hf.varName);
+            bc.putc(flags);
+            continue;
+          } else {
+            if (hf.isLexical) {
+              flags |= DEFINE_GLOBAL_LEX_VAR;
+              if (!hf.isConst) {
+                flags |= JS_PROP_WRITABLE;
+              }
+            }
+            bc.putOpcode(OP_define_var);
+            bc.putAtom(hf.varName);
+            bc.putc(flags);
+          }
+        }
+
+        if (hf.cpool_idx >= 0 || force_init) {
+          if (hf.cpool_idx >= 0) {
+            bc.putOpcode(OP_fclosure);
+            bc.putU32(hf.cpool_idx);
+            if (hf.varName.getVal() == JS_ATOM__default_.ordinal()) {
+              /* set default export function name */
+              bc.putOpcode(OP_set_name);
+              bc.putAtom(hf.varName);
+            }
+          } else {
+            bc.putOpcode(OP_undefined);
+          }
+          if (s.isGlobalVar) {
+            if (has_closure == 2) {
+              bc.putOpcode(OP_put_var_ref);
+              bc.putU16(idx);
+            } else if (has_closure == 1) {
+              bc.putOpcode(OP_define_field);
+              bc.putAtom(hf.varName);
+              bc.putOpcode(OP_drop);
+            } else {
+              /* XXX: Check if variable is writable and enumerable */
+              bc.putOpcode(OP_put_var);
+              bc.putAtom(hf.varName);
+            }
+          } else {
+            var_idx = hf.varIdx;
+            if ((var_idx & ARGUMENT_VAR_OFFSET) != 0) {
+              bc.putOpcode(OP_put_arg);
+              bc.putU16(var_idx - ARGUMENT_VAR_OFFSET);
+            } else {
+              bc.putOpcode(OP_put_loc);
+              bc.putU16(var_idx);
+            }
+          }
+        }
+      }
+    }
+    s.hoistedDef.clear();
+  }
+
 }

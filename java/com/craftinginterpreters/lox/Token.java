@@ -1,10 +1,12 @@
 package com.craftinginterpreters.lox;
 
 class Token {
-  final TokenType type;
-  final String lexeme;
-  final Object literal;
-  final int line; // [location]
+  TokenType type;
+  String lexeme;
+  Object literal;
+  int line; // [location]
+  JSAtom ident_atom;
+  JSAtom str_str;
 
   Token(TokenType type, String lexeme, Object literal, int line) {
     this.type = type;

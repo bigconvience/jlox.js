@@ -58,7 +58,7 @@ public class JUtils {
   }
 
 
-  static int get_U8(final byte[] tab, int cp) {
+  static int get_u8(final byte[] tab, int cp) {
     return tab[cp];
   }
 

@@ -8,8 +8,7 @@ import java.util.Map;
 import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.craftinginterpreters.lox.JSClassID.JS_CLASS_OBJECT;
 import static com.craftinginterpreters.lox.JSValue.*;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_invalid;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_COUNT;
+import static com.craftinginterpreters.lox.OPCodeEnum.*;
 
 /**
  * @author benpeng.jiang
@@ -197,7 +196,7 @@ public class JSContext {
     JSVarRefWrapper var_refs = new JSVarRefWrapper();
     int err;
     int evalType = flags & LoxJS.JS_EVAL_TYPE_MASK;
-    Scanner scanner = new Scanner(input);
+    Scanner scanner = new Scanner(input, this);
 
     JSFunctionDef fd = ParserUtils.jsNewFunctionDef(this, null, true, false, filename, 1);
     fd.ctx = this;
@@ -356,8 +355,79 @@ public class JSContext {
     return JS_ThrowError(fmt);
   }
 
-  void resolve_variables(JSFunctionDef fd) {
-    new Resolver(this).resolve_variables(fd);
+
+  int  resolve_variables (JSFunctionDef s){
+      int ret = 0;
+      int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
+      CodeContext cc = new CodeContext();
+      DynBuf bc_out = new DynBuf();
+      s.byte_code = bc_out;
+      if (s.isGlobalVar) {
+        for (JSHoistedDef hd : s.hoistedDef) {
+          int flags;
+          if (hd.varName != null) {
+            //todo benpeng closure
+
+          }
+          bc_out.putOpcode(OP_check_define_var);
+          bc_out.putAtom(hd.varName);
+          flags = 0;
+          if (hd.isLexical) {
+            flags |= DEFINE_GLOBAL_LEX_VAR;
+          }
+          if (hd.cpool_idx >= 0) {
+            flags |= DEFINE_GLOBAL_FUNC_VAR;
+          }
+          bc_out.putc(flags);
+        }
+        next:
+        ;
+      }
+
+    s.enter_scope(1, bc_out);
+    List<Stmt> stmts = s.body;
+    Resolver resolver = new Resolver(this, s);
+    for (Stmt stmt : stmts) {
+        stmt.accept(resolver);
+      }
+      return ret;
+  }
+
+  int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
+                        int op,
+                        DynBuf bc, byte[] bc_buf, int pos_next, boolean arg_valid) {
+    int var_idx = -1;
+    JSFunctionDef fd = s;
+    JSVarDef vd;
+    for (int idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
+      vd = fd.vars.get(idx);
+      if (vd.varName.equals(var_name)) {
+
+        var_idx = idx;
+        break;
+      } else {
+
+      }
+      idx = vd.scope_next;
+    }
+
+    OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
+    switch (opCodeEnum) {
+      case OP_scope_make_ref:
+        optimize_scope_make_global_ref(s, bc, bc_buf, var_name);
+        break;
+      default:
+        break;
+    }
+
+    return var_idx;
+  }
+
+  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, byte[] bc_buf, JSAtom var_name) {
+    int pos = c.size;
+    c.putOpcode(OP_put_var);
+    c.putAtom(var_name);
+    return 1;
   }
 
   JSValue JS_NewObjectFromShape(JSShape sh, JSClassID classID) {
@@ -482,13 +552,17 @@ public class JSContext {
         break;
       }
 
-      printf(oi.name);
+      printf("        "+oi.name);
       pos++;
       switch (oi.fmt) {
         case atom:
           printf(" ");
-          int atom = JUtils.get_u32(tab, pos);
-          print_atom(atom);
+          print_atom(JUtils.get_u32(tab, pos));
+          break;
+        case atom_u8:
+          printf(" ");
+          print_atom(JUtils.get_u32(tab, pos));
+          printf("," + JUtils.get_u8(tab, pos));
           break;
         default:
           break;

@@ -252,4 +252,5 @@ public enum OPCodeEnum {
   OP_is_null,
   OP_typeof_is_undefined,
   OP_typeof_is_function,
+  OP_scope_make_ref,
 }

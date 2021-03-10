@@ -1,5 +1,7 @@
 package com.craftinginterpreters.lox;
 
+import java.util.Objects;
+
 import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_TYPE_STRING;
 
 /**
@@ -21,6 +23,11 @@ public class JSString {
   public JSString(String str, int atom_type) {
     this.atom_type = atom_type;
     this.str = str;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(atom_type, str);
   }
 
   @Override

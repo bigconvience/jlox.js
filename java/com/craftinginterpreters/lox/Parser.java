@@ -630,7 +630,7 @@ class Parser {
   private  Expr.Literal emitPushConst(Token token, boolean asAtom) {
     Expr.Literal literal = null;
     if (token.type == TOK_STRING && asAtom) {
-      JSAtom atom = rt.JS_NewAtomStr(token.literal.toString());
+      JSAtom atom = token.str_str;
       if (atom != JSAtom.JS_ATOM_NULL && !atom.__JS_AtomIsTaggedInt()) {
         literal = new Expr.Literal(atom);
       }

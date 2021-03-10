@@ -71,9 +71,11 @@ class Scanner {
   private int start = 0;
   private int current = 0;
   private int line = 1;
+  private JSContext ctx;
 
-  Scanner(String source) {
+  Scanner(String source, JSContext ctx) {
     this.source = source;
+    this.ctx = ctx;
   }
 
   List<Token> scanTokens() {
@@ -83,7 +85,7 @@ class Scanner {
       scanToken();
     }
 
-    tokens.add(new Token(EOF, "", null, line));
+    tokens.add(new Token(EOF, "",  null, line));
     return tokens;
   }
 
@@ -303,7 +305,7 @@ class Scanner {
 
     TokenType type = keywords.get(text);
     if (type == null) type = TOK_IDENTIFIER;
-    addToken(type);
+    addToken_Ident(type);
   }
 
   //https://ecma-international.org/ecma-262/10.0/index.html#prod-NumericLiteral
@@ -410,7 +412,7 @@ class Scanner {
 
     // Trim the surrounding quotes.
     String value = source.substring(start + 1, current - 1);
-    addToken(TOK_STRING, value);
+    addToken_String(TOK_STRING, value);
   }
 
   private boolean match(char expected) {
@@ -462,6 +464,22 @@ class Scanner {
   private void addToken(TokenType type, Object literal) {
     String text = source.substring(start, current);
     tokens.add(new Token(type, text, literal, line));
+  }
+
+  private void addToken_String(TokenType type, String literal) {
+    String text = source.substring(start, current);
+    JSAtom str = ctx.rt.JS_NewAtomStr(literal);
+    Token token = new Token(type, text, literal, line);
+    token.str_str = str;
+    tokens.add(token);
+  }
+
+  private void addToken_Ident(TokenType type) {
+    String text = source.substring(start, current);
+    JSAtom ident = ctx.rt.JS_NewAtomStr(text);
+    Token token = new Token(type, text, null, line);
+    token.ident_atom = ident;
+    tokens.add(token);
   }
 
   //todo

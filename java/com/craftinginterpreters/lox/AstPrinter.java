@@ -97,7 +97,7 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
   @Override
   public String visitAssignExpr(Expr.Assign expr) {
-    return parenthesize2("=", expr.name.lexeme, expr.value);
+    return parenthesize2("=", expr.left, expr.value);
   }
 
   @Override

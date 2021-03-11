@@ -2,13 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
-import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
-import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
-import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
-import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_CONFIGURABLE;
-import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_WRITABLE;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
-import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
@@ -147,18 +141,28 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitAssignExpr(Expr.Assign expr) {
+    JSFunctionDef s = cur_func;
     Expr value = expr.value;
     if (value != null) {
       value.accept(this);
     }
+
     Expr.Variable left = expr.left;
-    if (left != null) {
-      JSAtom var_name = left.name.ident_atom;
-      int scope = left.scopeLevel;
-      ctx.resolve_scope_var(cur_func, var_name, scope,
-        OP_scope_make_ref.ordinal(), cur_func.byte_code,
-        cur_func.byte_code.buf, 0, true);
+    JSAtom var_name = left.name.ident_atom;
+    int scope = left.scope_level;
+    OPCodeEnum opCode = null;
+    TokenType tok = left.tok;
+    if (tok == TokenType.TOK_VAR) {
+      opCode = OP_scope_make_ref;
+    } else if (tok == TokenType.TOK_LET || tok == TokenType.TOK_CONST) {
+      opCode = OP_scope_put_var_init;
+    } else {
+      opCode = OP_scope_put_var;
     }
+    ctx.resolve_scope_var(s, var_name, scope,
+      opCode.ordinal(), s.byte_code,
+      s.byte_code.buf, 0, true);
+
     return null;
   }
 
@@ -263,13 +267,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
     JSAtom name = expr.name.ident_atom;
-    int scope = expr.scopeLevel;
+    int scope = expr.scope_level;
     DynBuf bc = cur_func.byte_code;
     ctx.resolve_scope_var(cur_func, name, scope,
       OP_scope_get_var.ordinal(), bc, bc.buf, 0, true);
     return null;
   }
-
 
 
   @Override

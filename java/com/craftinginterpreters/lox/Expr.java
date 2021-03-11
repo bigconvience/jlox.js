@@ -27,8 +27,7 @@ abstract class Expr {
   // Nested Expr classes here...
 //> expr-assign
   static class Assign extends Expr {
-    Assign(Token name, Expr.Variable left, TokenType operator, Expr value) {
-      this.name = name;
+    Assign( Expr.Variable left, TokenType operator, Expr value) {
       this.left = left;
       this.operator = operator;
       this.value = value;
@@ -39,7 +38,6 @@ abstract class Expr {
       return visitor.visitAssignExpr(this);
     }
 
-    final Token name;
     final Expr.Variable left;
     final TokenType operator;
     final Expr value;
@@ -270,9 +268,9 @@ abstract class Expr {
   }
 //> expr-variable
   static class Variable extends Expr {
-    Variable(Token name, int scopeLevel) {
+    Variable(Token name, int scope_level) {
       this.name = name;
-      this.scopeLevel = scopeLevel;
+      this.scope_level = scope_level;
     }
 
     @Override
@@ -281,7 +279,8 @@ abstract class Expr {
     }
 
     final Token name;
-    final int scopeLevel;
+    final int scope_level;
+    TokenType tok;
   }
 //< expr-variable
 

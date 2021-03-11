@@ -457,6 +457,11 @@ public class JSContext {
       case OP_scope_put_var:
         bc.putOpcode(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
         bc.putAtom(var_name);
+        break;
+      case OP_scope_put_var_init:
+        bc.putOpcode(OP_put_var_init);
+        bc.putAtom(var_name);
+        break;
       default:
         break;
     }
@@ -637,7 +642,7 @@ public class JSContext {
   static JSFunctionDef jsNewFunctionDef(JSFunctionDef parent,
                                         boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
     JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
-    fd.scopeLevel = 0;
+    fd.scope_level = 0;
     fd.scopeFirst = -1;
     fd.addScope();
     fd.scopes.get(0).first = -1;

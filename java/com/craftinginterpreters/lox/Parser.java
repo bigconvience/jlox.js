@@ -55,7 +55,7 @@ class Parser {
     try {
       if (match(TOK_CLASS)) return classDeclaration();
       if (match(TOK_FUNCTION)) return function("function");
-      if (match(TOK_VAR, TOK_LET, TOK_CONST)) return varDeclaration(previous());
+      if (match(TOK_VAR, TOK_LET, TOK_CONST)) return js_parse_var(previous());
 
       return statement();
     } catch (ParseError error) {
@@ -96,7 +96,7 @@ class Parser {
     if (match(SEMICOLON)) {
       initializer = null;
     } else if (match(TOK_VAR)) {
-      initializer = varDeclaration(previous());
+      initializer = js_parse_var(previous());
     } else {
       initializer = expressionStatement();
     }
@@ -161,7 +161,32 @@ class Parser {
     return new Stmt.Return(keyword, value);
   }
 
-  private Stmt varDeclaration(Token tok) {
+  private Stmt js_parse_var(Token tok) {
+    JSFunctionDef fd = curFunc;
+
+    Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
+    if (js_define_var(name, tok) != 0) {
+
+    }
+
+    Expr initializer = null;
+    if (match(TOK_ASSIGN)) {
+      initializer = expression();
+    }
+
+    consume(SEMICOLON, "Expect ';' after variable declaration.");
+
+    if (initializer != null) {
+      Expr.Variable variable = new Expr.Variable(name, fd.scope_level);
+      variable.tok = tok.type;
+      Expr assign = new Expr.Assign(variable, TOK_ASSIGN, initializer);
+      return new Stmt.Expression(assign);
+    }
+    return new Stmt.Var(name, fd.scope_level, initializer);
+  }
+
+   int js_define_var(Token name, Token tok) {
+    JSFunctionDef fd = curFunc;
     JSVarDefEnum varDefType = null;
     switch (tok.type) {
       case TOK_LET:
@@ -179,24 +204,14 @@ class Parser {
       default:
         error(tok, "unknown declaration token");
     }
-    Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
 
-    Expr initializer = null;
-    if (match(TOK_ASSIGN)) {
-      initializer = expression();
+    if (define_var(fd, name, varDefType) < 0) {
+      return -1;
     }
-
-    consume(SEMICOLON, "Expect ';' after variable declaration.");
-    defineVar(curFunc, name, varDefType);
-    if (initializer != null && varDefType == JS_VAR_DEF_VAR) {
-      Expr assign = new Expr.Assign(name, new Expr.Variable(name, curFunc.scopeLevel), TOK_ASSIGN, initializer);
-      return new Stmt.Expression(assign);
-    }
-    return new Stmt.Var(varDefType, name, initializer);
+    return 0;
   }
 
-
-  private int defineVar(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
+   int define_var(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
     JSVarDef vd;
     JSHoistedDef hf;
     JSAtom varName = rt.JS_NewAtomStr(name.lexeme);
@@ -212,7 +227,7 @@ class Parser {
               error(name, "invalid redefinition of lexical identifier");
             }
           } else {
-            if (fd.scopeLevel == 1) {
+            if (fd.scope_level == 1) {
               error(name, "invalid redefinition of lexical identifier");
             }
           }
@@ -224,7 +239,7 @@ class Parser {
 
         if (fd.isGlobalVar) {
           hf = fd.findHoistedDef(name);
-          if (hf != null && fd.isChildScope(hf.scope_level, fd.scopeLevel)) {
+          if (hf != null && fd.isChildScope(hf.scope_level, fd.scope_level)) {
             error(name, "invalid redefinition of global identifier");
           }
         }
@@ -232,7 +247,7 @@ class Parser {
         if (fd.isEval &&
           (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL ||
             fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE)
-          && fd.scopeLevel == 1) {
+          && fd.scope_level == 1) {
           hf = fd.addHoistedDef(-1, varName, -1, true);
           hf.isConst = varDefType == JS_VAR_DEF_CONST;
           idx = GLOBAL_VAR_OFFSET;
@@ -263,7 +278,7 @@ class Parser {
           if (fd.isGlobalVar) {
             hf = fd.findHoistedDef(varName);
             if (hf != null && hf.isLexical
-              && hf.scope_level == fd.scopeLevel && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
+              && hf.scope_level == fd.scope_level && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
             hf = fd.addHoistedDef(-1,  varName, -1, false);
@@ -276,7 +291,7 @@ class Parser {
             idx = fd.addVar(varName);
             if (idx >= 0) {
               vd = fd.vars.get(idx);
-              vd.funcPoolOrScopeIdx = fd.scopeLevel;
+              vd.funcPoolOrScopeIdx = fd.scope_level;
             }
           }
         }
@@ -394,8 +409,7 @@ class Parser {
       Expr value = assignment();
 
       if (expr instanceof Expr.Variable) {
-        Token name = ((Expr.Variable) expr).name;
-        return new Expr.Assign(name, (Expr.Variable) expr, operator.type, value);
+        return new Expr.Assign((Expr.Variable) expr, operator.type, value);
       } else if (expr instanceof Expr.Get) {
         Expr.Get get = (Expr.Get) expr;
         return new Expr.Set(get.object, get.name, value);
@@ -605,7 +619,7 @@ class Parser {
     if (match(TOK_THIS)) return new Expr.This(previous());
 
     if (match(TOK_IDENTIFIER)) {
-      return new Expr.Variable(previous(), curFunc.scopeLevel);
+      return new Expr.Variable(previous(), curFunc.scope_level);
     }
 
     if (match(LEFT_PAREN)) {

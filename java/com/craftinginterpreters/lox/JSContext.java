@@ -56,7 +56,7 @@ public class JSContext {
 
     if (prs != null) {
       if (flag != 1) {
-        if (pr.ptr.value.JS_IsUninitialized()) {
+        if (pr.value().JS_IsUninitialized()) {
           JSThrower.JS_ThrowReferenceErrorUninitialized(this, prs.atom);
           return -1;
         }
@@ -64,7 +64,7 @@ public class JSContext {
           return JSThrower.JS_ThrowTypeErrorReadOnly(this, JS_PROP_THROW, prop);
         }
       }
-      set_value(pr.ptr.value, val);
+      set_value(pr.value(), val);
       return 0;
     }
 
@@ -79,6 +79,27 @@ public class JSContext {
   {
     pval.tag = new_val.tag;
     pval.value = new_val.value;
+  }
+
+   JSValue JS_GetGlobalVar(JSAtom prop,
+                                 int throw_ref_error)
+  {
+    JSObject p;
+    JSShapeProperty prs;
+    JSProperty.Ptr pr = new JSProperty.Ptr();
+
+    /* no exotic behavior is possible in global_var_obj */
+    p =  global_var_obj.JS_VALUE_GET_OBJ();
+    prs = p.find_own_property(pr,  prop);
+    if (prs != null) {
+      /* XXX: should handle JS_PROP_TMASK properties */
+      if (pr.value().JS_IsUninitialized()) {
+        return JSThrower.JS_ThrowReferenceErrorUninitialized(this, prs.atom);
+      }
+      return pr.value();
+    }
+    return global_obj.JS_GetPropertyInternal(this, prop,
+      global_obj, throw_ref_error);
   }
 
   int JS_CheckDefineGlobalVar(JSAtom prop, int flags) {
@@ -425,10 +446,17 @@ public class JSContext {
     }
 
     OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
+
+    /* global variable access */
     switch (opCodeEnum) {
       case OP_scope_make_ref:
         optimize_scope_make_global_ref(s, bc, bc_buf, var_name);
         break;
+      case OP_scope_get_var_undef:
+      case OP_scope_get_var:
+      case OP_scope_put_var:
+        bc.putOpcode(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
+        bc.putAtom(var_name);
       default:
         break;
     }

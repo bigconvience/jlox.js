@@ -12,6 +12,9 @@ public class JSProperty {
   GetSet getset;
   JSVarRefWrapper var_ref;
 
+  public JSProperty() {
+    this.value = new JSValue(JSTag.JS_TAG_UNDEFINED, null);
+  }
 
   static class GetSet {
     JSObject getter;
@@ -19,6 +22,20 @@ public class JSProperty {
   }
 
   public static class Ptr {
-    JSProperty ptr;
+    private JSProperty ptr;
+
+    public Ptr() {
+    }
+
+    JSValue value() {
+      if (ptr != null) {
+        return ptr.value;
+      }
+      return null;
+    }
+
+    public void setPtr(JSProperty ptr) {
+      this.ptr = ptr;
+    }
   }
 }

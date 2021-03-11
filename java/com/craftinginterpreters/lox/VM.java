@@ -6,6 +6,7 @@ import java.util.List;
 
 import static com.craftinginterpreters.lox.JSContext.JS_CALL_FLAG_COPY_ARGV;
 import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_get_var_undef;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_put_var;
 
 /*
@@ -54,7 +55,7 @@ public class VM {
     List<JSVarRef> var_refs;
     p = funcObj.JS_VALUE_GET_OBJ();
 
-    if (p.JSClassID != JSClassID.JS_CLASS_BYTECODE_FUNCTION) {
+    if (p.class_id != JSClassID.JS_CLASS_BYTECODE_FUNCTION) {
 
     }
 
@@ -87,30 +88,28 @@ public class VM {
     rt.current_stack_frame = sf;
     ctx = b.realm;
     JSAtom atom;
+    JSValue val;
     int ret;
+    byte[] code_buf = b.byte_code_buf;
     while (pc < b.byte_code_len) {
       int call_argc;
       int u32;
       JSValue[] call_argv;
-      int code = Byte.toUnsignedInt(b.byte_code_buf[pc++]);
-      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(code);
-      byte[] code_buf = b.byte_code_buf;
+      int op = Byte.toUnsignedInt(code_buf[pc++]);
+      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(op);
       switch (opcode) {
         case OP_print:
-          top = peek(stack_buf, sp);
+          top = peek(stack_buf, --sp);
           top.print();
-          sp--;
-          pc++;
           break;
         case OP_push_i32:
           u32 = JUtils.get_u32(code_buf, pc);
-          push(stack_buf, sp, JSValue.JS_NewInt32(ctx, u32));
-          sp++;
+          push(stack_buf, sp++, JSValue.JS_NewInt32(ctx, u32));
           pc += 4;
           break;
         case OP_push_atom_value:
           u32 = JUtils.get_u32(code_buf, pc);
-          push(stack_buf, sp, ctx.JS_AtomToValue(u32));
+          push(stack_buf, sp++, ctx.JS_AtomToValue(u32));
           pc += 4;
           break;
         case OP_check_define_var:
@@ -128,16 +127,28 @@ public class VM {
           if (ctx.JS_DefineGlobalVar(atom, flags) != 0) {
 
           }
+          break;
         case OP_put_var:
         case OP_put_var_init:
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           pc += 4;
-          top = peek(stack_buf, sp);
+          top = peek(stack_buf, --sp);
           ret = ctx.JS_SetGlobalVar(atom, top, opcode.ordinal() - OP_put_var.ordinal());
-          sp--;
           if (ret < 0) {
 
           }
+          break;
+        case OP_get_var_undef:
+        case OP_get_var:
+
+          atom = new JSAtom(JUtils.get_u32(code_buf, pc));
+          pc += 4;
+
+          val = ctx.JS_GetGlobalVar( atom, op - OP_get_var_undef.ordinal());
+          if (val.JS_IsException()) {
+            return JSThrower.JS_Throw(ctx, val);
+          }
+          push(stack_buf, sp++, val);
           break;
       }
     }

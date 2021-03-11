@@ -11,11 +11,11 @@ import java.util.List;
  * @date 2021/1/151:47 PM
  */
 public class JSObject {
-  boolean extensible;
+  boolean extensible = true;
   boolean is_exotic;
   JSShape shape;
   final List<JSProperty> prop;
-  JSClassID JSClassID;
+  JSClassID class_id;
 
   final Func func ;
   static class Func {
@@ -29,21 +29,21 @@ public class JSObject {
     func = new Func();
   }
 
-  JSShapeProperty find_own_property(JSProperty.Ptr pr, JSAtom atom) {
+  JSShapeProperty find_own_property(JSProperty.Ptr ppr, JSAtom atom) {
     JSShape sh;
-    JSShapeProperty ptr;
+    JSShapeProperty pr;
     List<JSShapeProperty> prop;
     sh = shape;
 
     prop = sh.get_shape_property();
     for (int i = 0; i < prop.size(); i++) {
-      ptr = prop.get(i);
-      if (ptr.atom == atom) {
-        pr.ptr = this.prop.get(i);
-        return ptr;
+      pr = prop.get(i);
+      if (pr.atom.equals(atom)) {
+        ppr.setPtr(this.prop.get(i));
+        return pr;
       }
     }
-    pr.ptr = null;
+    ppr.setPtr(null);
     return null;
   }
 

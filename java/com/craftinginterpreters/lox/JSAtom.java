@@ -42,14 +42,15 @@ public class JSAtom {
   }
 
   @Override
+  public int hashCode() {
+    return Objects.hash(val);
+  }
+
+  @Override
   public String toString() {
     return "JSAtom{" +
       "val=" + val +
       '}';
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(val);
-  }
 }

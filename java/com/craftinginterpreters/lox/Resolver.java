@@ -92,89 +92,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return null;
   }
 
-
-  static void instantiate_hoisted_definitions(JSFunctionDef s, DynBuf bc) {
-    int i, idx, var_idx;
-    for (i = 0; i < s.hoistedDef.size(); i++) {
-      JSHoistedDef hf = s.hoistedDef.get(i);
-      int has_closure = 0;
-      boolean force_init = hf.forceInit;
-      if (s.isGlobalVar && hf.varName != JSAtom.JS_ATOM_NULL) {
-        for (idx = 0; idx < s.closureVar.size(); idx++) {
-          JSClosureVar cv = s.closureVar.get(idx);
-          if (hf.varName.equals(cv.var_name)) {
-            has_closure = 2;
-            force_init = false;
-            break;
-          }
-        }
-        if (has_closure == 0) {
-          int flags = 0;
-          if (s.evalType == JS_EVAL_TYPE_GLOBAL) {
-            flags |= JS_PROP_CONFIGURABLE;
-          }
-
-          if (hf.cpool_idx >= 0 && !hf.isLexical) {
-            bc.putOpcode(OP_fclosure);
-            bc.putU32(hf.cpool_idx);
-            bc.putOpcode(OP_define_func);
-            bc.putAtom(hf.varName);
-            bc.putc(flags);
-            continue;
-          } else {
-            if (hf.isLexical) {
-              flags |= DEFINE_GLOBAL_LEX_VAR;
-              if (!hf.isConst) {
-                flags |= JS_PROP_WRITABLE;
-              }
-            }
-            bc.putOpcode(OP_define_var);
-            bc.putAtom(hf.varName);
-            bc.putc(flags);
-          }
-        }
-
-        if (hf.cpool_idx >= 0 || force_init) {
-          if (hf.cpool_idx >= 0) {
-            bc.putOpcode(OP_fclosure);
-            bc.putU32(hf.cpool_idx);
-            if (hf.varName.getVal() == JS_ATOM__default_.ordinal()) {
-              /* set default export function name */
-              bc.putOpcode(OP_set_name);
-              bc.putAtom(hf.varName);
-            }
-          } else {
-            bc.putOpcode(OP_undefined);
-          }
-          if (s.isGlobalVar) {
-            if (has_closure == 2) {
-              bc.putOpcode(OP_put_var_ref);
-              bc.putU16(idx);
-            } else if (has_closure == 1) {
-              bc.putOpcode(OP_define_field);
-              bc.putAtom(hf.varName);
-              bc.putOpcode(OP_drop);
-            } else {
-              /* XXX: Check if variable is writable and enumerable */
-              bc.putOpcode(OP_put_var);
-              bc.putAtom(hf.varName);
-            }
-          } else {
-            var_idx = hf.varIdx;
-            if ((var_idx & ARGUMENT_VAR_OFFSET) != 0) {
-              bc.putOpcode(OP_put_arg);
-              bc.putU16(var_idx - ARGUMENT_VAR_OFFSET);
-            } else {
-              bc.putOpcode(OP_put_loc);
-              bc.putU16(var_idx);
-            }
-          }
-        }
-      }
-    }
-    s.hoistedDef.clear();
-  }
-
   @Override
   public Void visitIfStmt(Stmt.If stmt) {
     resolve(stmt.condition);
@@ -345,8 +262,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
-    String varName = expr.name.lexeme;
+    JSAtom name = expr.name.ident_atom;
     int scope = expr.scopeLevel;
+    DynBuf bc = cur_func.byte_code;
+    ctx.resolve_scope_var(cur_func, name, scope,
+      OP_scope_get_var.ordinal(), bc, bc.buf, 0, true);
     return null;
   }
 
@@ -379,7 +299,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       declare(param);
       define(param);
     }
-    instantiate_hoisted_definitions(function, function.byte_code);
+    function.instantiate_hoisted_definitions(function.byte_code);
     resolve(function.body);
     enter_scope(function, 1, null);
     endScope();
@@ -424,7 +344,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   private static void enter_scope(JSFunctionDef s, int scope, DynBuf bcOut) {
     if (scope == 1) {
-      instantiate_hoisted_definitions(s, bcOut);
+      s.instantiate_hoisted_definitions(bcOut);
     }
 
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {

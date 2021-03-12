@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static com.craftinginterpreters.lox.JSContext.JS_CALL_FLAG_COPY_ARGV;
+import static com.craftinginterpreters.lox.JSValue.JS_NULL;
 import static com.craftinginterpreters.lox.JSValue.JS_UNDEFINED;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_get_var_undef;
 import static com.craftinginterpreters.lox.OPCodeEnum.OP_put_var;
@@ -149,6 +150,12 @@ public class VM {
             return JSThrower.JS_Throw(ctx, val);
           }
           push(stack_buf, sp++, val);
+          break;
+        case OP_undefined:
+          push(stack_buf, sp++, JS_UNDEFINED);
+          break;
+        case OP_null:
+          push(stack_buf, sp++, JS_NULL);
           break;
       }
     }

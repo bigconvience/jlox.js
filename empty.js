@@ -1,4 +1,4 @@
 var a;
-let b = "hell";
+let b;
 a;
 print b;

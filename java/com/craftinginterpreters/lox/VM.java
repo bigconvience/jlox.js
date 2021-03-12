@@ -157,6 +157,10 @@ public class VM {
         case OP_null:
           push(stack_buf, sp++, JS_NULL);
           break;
+        case OP_dup:
+          top = peek(stack_buf, (sp-1));
+          push(stack_buf, sp++, top);
+          break;
       }
     }
 

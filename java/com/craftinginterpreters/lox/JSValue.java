@@ -106,7 +106,7 @@ public class JSValue {
     JSTag tag;
     JSPropertyDescriptor desc;
     int ret = 0;
-    if (true) {
+    if (false) {
       PrintUtils.printf("JS_SetPropertyInternal: ");
       PrintUtils.print_atom(ctx, prop);
       PrintUtils.printf("\n");

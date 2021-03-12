@@ -426,10 +426,16 @@ public class JSContext {
     }
     return ret;
   }
-
   int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
                         int op,
                         DynBuf bc, byte[] bc_buf, int pos_next, boolean arg_valid) {
+    return resolve_scope_var(s, var_name, scope_level, op, bc, bc_buf, pos_next, arg_valid, PutLValueEnum.PUT_LVALUE_NOKEEP);
+  }
+
+  int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
+                        int op,
+                        DynBuf bc, byte[] bc_buf, int pos_next, boolean arg_valid,
+                        PutLValueEnum special) {
     int var_idx = -1;
     JSFunctionDef fd = s;
     JSVarDef vd;
@@ -450,7 +456,7 @@ public class JSContext {
     /* global variable access */
     switch (opCodeEnum) {
       case OP_scope_make_ref:
-        optimize_scope_make_global_ref(s, bc, bc_buf, var_name);
+        optimize_scope_make_global_ref(s, bc, bc_buf, var_name, special);
         break;
       case OP_scope_get_var_undef:
       case OP_scope_get_var:
@@ -469,8 +475,12 @@ public class JSContext {
     return var_idx;
   }
 
-  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, byte[] bc_buf, JSAtom var_name) {
+  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, byte[] bc_buf, JSAtom var_name, PutLValueEnum special) {
     int pos = c.size;
+
+    if (PutLValueEnum.PUT_LVALUE_KEEP_TOP == special) {
+      c.putOpcode(OP_dup);
+    }
     c.putOpcode(OP_put_var);
     c.putAtom(var_name);
     return 1;

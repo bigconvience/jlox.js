@@ -5,6 +5,8 @@ import java.util.*;
 import static com.craftinginterpreters.lox.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
+import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_KEEP_TOP;
+import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
@@ -181,7 +183,7 @@ class Parser {
     if (initializer != null) {
       Expr.Variable variable = new Expr.Variable(name, fd.scope_level);
       variable.tok = type;
-      Expr assign = new Expr.Assign(variable, TOK_ASSIGN, initializer);
+      Expr assign = new Expr.Assign(variable, TOK_ASSIGN, initializer, PUT_LVALUE_NOKEEP);
       return new Stmt.Expression(assign);
     } else {
       if (type == TOK_CONST) {
@@ -415,7 +417,8 @@ class Parser {
       Expr value = assignment();
 
       if (expr instanceof Expr.Variable) {
-        return new Expr.Assign((Expr.Variable) expr, operator.type, value);
+        Expr.Assign assign = new Expr.Assign((Expr.Variable) expr, operator.type, value, PUT_LVALUE_KEEP_TOP);
+        return assign;
       } else if (expr instanceof Expr.Get) {
         Expr.Get get = (Expr.Get) expr;
         return new Expr.Set(get.object, get.name, value);

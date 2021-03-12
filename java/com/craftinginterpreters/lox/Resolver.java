@@ -131,7 +131,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       OPCodeEnum opCode = OP_scope_put_var_init;
       ctx.resolve_scope_var(s, stmt.name, stmt.scope,
         opCode.ordinal(), bc,
-        s.byte_code.buf, 0, true);
+        s.byte_code.buf, 0, true,
+        PutLValueEnum.PUT_LVALUE_NOKEEP);
     }
     return null;
   }
@@ -156,7 +157,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     int scope = left.scope_level;
     OPCodeEnum opCode = null;
     TokenType tok = left.tok;
-    if (tok == TokenType.TOK_VAR) {
+    if (tok == TokenType.TOK_VAR || tok == null) {
       opCode = OP_scope_make_ref;
     } else if (tok == TokenType.TOK_LET || tok == TokenType.TOK_CONST) {
       opCode = OP_scope_put_var_init;
@@ -165,7 +166,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
     ctx.resolve_scope_var(s, var_name, scope,
       opCode.ordinal(), s.byte_code,
-      s.byte_code.buf, 0, true);
+      s.byte_code.buf, 0, true,
+      expr.putLValueEnum);
 
     return null;
   }

@@ -2,6 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
+import static com.craftinginterpreters.lox.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.TokenType.*;
@@ -176,13 +177,18 @@ class Parser {
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
 
+    TokenType type= tok.type;
     if (initializer != null) {
       Expr.Variable variable = new Expr.Variable(name, fd.scope_level);
-      variable.tok = tok.type;
+      variable.tok = type;
       Expr assign = new Expr.Assign(variable, TOK_ASSIGN, initializer);
       return new Stmt.Expression(assign);
+    } else {
+      if (type == TOK_CONST) {
+        js_parse_error("missing initializer for const variable");
+      }
+      return new Stmt.Var(type, name.ident_atom, fd.scope_level);
     }
-    return new Stmt.Var(name, fd.scope_level, initializer);
   }
 
    int js_define_var(Token name, Token tok) {
@@ -262,7 +268,7 @@ class Parser {
           idx = fd.addScopeVar(varName, varKind);
           vd = fd.vars.get(idx);
           if (vd != null) {
-            vd.isLexical = true;
+            vd.is_lexical = true;
             vd.isConst = varDefType == JS_VAR_DEF_CONST;
           }
         }
@@ -277,7 +283,7 @@ class Parser {
           }
           if (fd.isGlobalVar) {
             hf = fd.findHoistedDef(varName);
-            if (hf != null && hf.isLexical
+            if (hf != null && hf.is_lexical
               && hf.scope_level == fd.scope_level && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
@@ -760,5 +766,12 @@ class Parser {
       JSVarScope varScope = curFunc.curScope;
       curFunc.curScope = varScope.prev;
     }
+  }
+
+  int  js_parse_error(String fmt, Object... args)
+  {
+    JSThrower.JS_ThrowError2(ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args), false);
+
+    return -1;
   }
 }

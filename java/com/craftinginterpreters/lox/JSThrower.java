@@ -69,8 +69,11 @@ public class JSThrower {
                                 String fmt, List<Object> ap, boolean add_backtrace) {
     JSValue obj, ret;
 
-    System.out.printf(fmt, ap.toArray());
     obj = ctx.JS_NewObjectClass(JS_CLASS_OBJECT);
+    if (obj != null) {
+      throw new RuntimeException(String.format(fmt, ap.toArray()));
+    }
+
 //    if (unlikely(JS_IsException(obj))) {
 //      /* out of memory: throw JS_NULL to avoid recursing */
 //      obj = JS_NULL;
@@ -88,7 +91,6 @@ public class JSThrower {
 
 
   static JSValue JS_Throw(JSContext ctx, JSValue obj) {
-
     return JS_EXCEPTION;
   }
 

@@ -121,7 +121,7 @@ public class JSFunctionDef extends Stmt {
     JSVarScope scope = curScope;
     while (scope != null) {
       JSVarDef varDef = scope.get(varName);
-      if (varDef != null && varDef.isLexical) {
+      if (varDef != null && varDef.is_lexical) {
         return varDef;
       }
       scope = scope.prev;
@@ -135,7 +135,7 @@ public class JSFunctionDef extends Stmt {
 
   public JSHoistedDef findLexicalHoistedDef(JSAtom varName) {
     JSHoistedDef hoistedDef = findHoistedDef(varName);
-    if (hoistedDef != null && hoistedDef.isLexical) {
+    if (hoistedDef != null && hoistedDef.is_lexical) {
       return hoistedDef;
     }
     return null;
@@ -143,7 +143,7 @@ public class JSFunctionDef extends Stmt {
 
   JSHoistedDef findHoistedDef(JSAtom varName) {
     for (JSHoistedDef hf : hoistedDef) {
-      if (hf.varName.equals(varName)) {
+      if (hf.var_name.equals(varName)) {
         return hf;
       }
     }
@@ -152,7 +152,7 @@ public class JSFunctionDef extends Stmt {
 
   public JSVarDef findVarInChildScope(JSAtom name) {
     for (JSVarDef vd : vars) {
-      if (vd != null && vd.varName.equals(name) && vd.scope_level == 0) {
+      if (vd != null && vd.var_name.equals(name) && vd.scope_level == 0) {
         if (isChildScope(vd.funcPoolOrScopeIdx, scope_level)) {
           return vd;
         }
@@ -178,9 +178,9 @@ public class JSFunctionDef extends Stmt {
                                     boolean isLexical) {
     JSHoistedDef hf = new JSHoistedDef();
     hoistedDef.add(hf);
-    hf.varName = varName;
+    hf.var_name = varName;
     hf.cpool_idx = cpoolIdx;
-    hf.isLexical = isLexical;
+    hf.is_lexical = isLexical;
     hf.forceInit = false;
     hf.varIdx = varIdx;
     hf.scope_level = scope_level;
@@ -204,14 +204,14 @@ public class JSFunctionDef extends Stmt {
   public int addVar(JSAtom varName) {
     JSVarDef vd = new JSVarDef();
     vars.add(vd);
-    vd.varName = varName;
+    vd.var_name = varName;
     return vars.size() - 1;
   }
 
   public int findVar(JSAtom varName) {
     for (int i = 0; i < vars.size(); i++) {
       JSVarDef vd = vars.get(i);
-      if (vd.varName.equals(varName) && vd.scope_level == 0) {
+      if (vd.var_name.equals(varName) && vd.scope_level == 0) {
         return i;
       }
     }
@@ -222,7 +222,7 @@ public class JSFunctionDef extends Stmt {
   public int findArg(JSAtom varName) {
     for (int i = 0; i < args.size(); i++) {
       JSVarDef vd = args.get(i);
-      if (vd.varName.equals(varName)) {
+      if (vd.var_name.equals(varName)) {
         return i | Parser.ARGUMENT_VAR_OFFSET;
       }
     }
@@ -261,10 +261,10 @@ public class JSFunctionDef extends Stmt {
       JSHoistedDef hf = s.hoistedDef.get(i);
       int has_closure = 0;
       boolean force_init = hf.forceInit;
-      if (s.isGlobalVar && hf.varName != JSAtom.JS_ATOM_NULL) {
+      if (s.isGlobalVar && hf.var_name != JSAtom.JS_ATOM_NULL) {
         for (idx = 0; idx < s.closureVar.size(); idx++) {
           JSClosureVar cv = s.closureVar.get(idx);
-          if (hf.varName.equals(cv.var_name)) {
+          if (hf.var_name.equals(cv.var_name)) {
             has_closure = 2;
             force_init = false;
             break;
@@ -272,26 +272,26 @@ public class JSFunctionDef extends Stmt {
         }
         if (has_closure == 0) {
           int flags = 0;
-          if (s.evalType == JS_EVAL_TYPE_GLOBAL) {
+          if (s.evalType != JS_EVAL_TYPE_GLOBAL) {
             flags |= JS_PROP_CONFIGURABLE;
           }
 
-          if (hf.cpool_idx >= 0 && !hf.isLexical) {
+          if (hf.cpool_idx >= 0 && !hf.is_lexical) {
             bc.putOpcode(OP_fclosure);
             bc.putU32(hf.cpool_idx);
             bc.putOpcode(OP_define_func);
-            bc.putAtom(hf.varName);
+            bc.putAtom(hf.var_name);
             bc.putc(flags);
             continue;
           } else {
-            if (hf.isLexical) {
+            if (hf.is_lexical) {
               flags |= DEFINE_GLOBAL_LEX_VAR;
               if (!hf.isConst) {
                 flags |= JS_PROP_WRITABLE;
               }
             }
             bc.putOpcode(OP_define_var);
-            bc.putAtom(hf.varName);
+            bc.putAtom(hf.var_name);
             bc.putc(flags);
           }
         }
@@ -300,10 +300,10 @@ public class JSFunctionDef extends Stmt {
           if (hf.cpool_idx >= 0) {
             bc.putOpcode(OP_fclosure);
             bc.putU32(hf.cpool_idx);
-            if (hf.varName.getVal() == JS_ATOM__default_.ordinal()) {
+            if (hf.var_name.getVal() == JS_ATOM__default_.ordinal()) {
               /* set default export function name */
               bc.putOpcode(OP_set_name);
-              bc.putAtom(hf.varName);
+              bc.putAtom(hf.var_name);
             }
           } else {
             bc.putOpcode(OP_undefined);
@@ -314,12 +314,12 @@ public class JSFunctionDef extends Stmt {
               bc.putU16(idx);
             } else if (has_closure == 1) {
               bc.putOpcode(OP_define_field);
-              bc.putAtom(hf.varName);
+              bc.putAtom(hf.var_name);
               bc.putOpcode(OP_drop);
             } else {
               /* XXX: Check if variable is writable and enumerable */
               bc.putOpcode(OP_put_var);
-              bc.putAtom(hf.varName);
+              bc.putAtom(hf.var_name);
             }
           } else {
             var_idx = hf.varIdx;

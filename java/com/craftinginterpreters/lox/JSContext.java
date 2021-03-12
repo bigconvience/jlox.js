@@ -399,14 +399,14 @@ public class JSContext {
     if (s.isGlobalVar) {
       for (JSHoistedDef hd : s.hoistedDef) {
         int flags;
-        if (hd.varName != null) {
+        if (hd.var_name != null) {
           //todo benpeng closure
 
         }
         bc_out.putOpcode(OP_check_define_var);
-        bc_out.putAtom(hd.varName);
+        bc_out.putAtom(hd.var_name);
         flags = 0;
-        if (hd.isLexical) {
+        if (hd.is_lexical) {
           flags |= DEFINE_GLOBAL_LEX_VAR;
         }
         if (hd.cpool_idx >= 0) {
@@ -435,7 +435,7 @@ public class JSContext {
     JSVarDef vd;
     for (int idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
       vd = fd.vars.get(idx);
-      if (vd.varName.equals(var_name)) {
+      if (vd.var_name.equals(var_name)) {
 
         var_idx = idx;
         break;
@@ -621,7 +621,7 @@ public class JSContext {
         case atom_u8:
           printf(" ");
           print_atom(JUtils.get_u32(tab, pos));
-          printf("," + JUtils.get_u8(tab, pos));
+          printf("," + JUtils.get_u8(tab, pos + 4));
           break;
         default:
           break;

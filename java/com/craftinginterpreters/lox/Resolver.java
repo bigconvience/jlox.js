@@ -124,11 +124,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
-    declare(stmt.name);
-    if (stmt.initializer != null) {
-      resolve(stmt.initializer);
-    }
-    define(stmt.name);
+//    if (stmt.tok == TokenType.TOK_LET) {
+//      DynBuf bc = cur_func.byte_code;
+//      bc.putOpcode(OP_undefined);
+//      bc.putOpcode(OP_scope_put_var_init);
+//      bc.putAtom(stmt.name);
+//      bc.putU16(stmt.scope);
+//    }
     return null;
   }
 

@@ -126,9 +126,9 @@ abstract class Stmt {
   //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
-    Var(Token name, int scope,  Expr initializer) {
+    Var(final TokenType tokenType, JSAtom name, int scope) {
+      this.tok = tokenType;
       this.name = name;
-      this.initializer = initializer;
       this.scope = scope;
     }
 
@@ -137,10 +137,9 @@ abstract class Stmt {
       return visitor.visitVarStmt(this);
     }
 
-    final Token name;
+    final JSAtom name;
     final int scope;
-    final Expr initializer;
-
+    final TokenType tok;
   }
 
   //< stmt-var

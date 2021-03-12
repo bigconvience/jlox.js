@@ -1,4 +1,4 @@
-var a = "11";
-let b = "Hello Word";
-print a;
+var a;
+let b = "hell";
+a;
 print b;

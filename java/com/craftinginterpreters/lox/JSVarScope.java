@@ -24,7 +24,7 @@ public class JSVarScope {
   }
 
   public void addVar(JSVarDef varDef) {
-    vars.put(varDef.varName, varDef);
+    vars.put(varDef.var_name, varDef);
   }
 
   public JSVarDef get(JSAtom name) {

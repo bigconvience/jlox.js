@@ -10,12 +10,12 @@ package com.craftinginterpreters.lox;
 public class JSVarDef {
   Token name;
   boolean isConst;
-  boolean isLexical;
+  boolean is_lexical;
   int scope_level;
   int scope_next;
   JSVarScope scope;
   JSVarKindEnum varKind;
-  JSAtom varName;
+  JSAtom var_name;
   int funcPoolOrScopeIdx;
   boolean isGlobalVar;
   int cpool_idx;

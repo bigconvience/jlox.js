@@ -141,7 +141,17 @@ public class JSValue {
       }
     }
 
-//    p1 = p;
+    p1 = p;
+    while (true) {
+     p1 = p1.shape.proto;
+     if (p1 == null) {
+       break;
+     }
+    }
+
+    JSProperty jsprop = ctx.add_property(p, prop, JS_PROP_C_W_E);
+    jsprop.value = val;
+
 //    for(;;) {
 //      if (p1->is_exotic) {
 //        if (p1->fast_array) {
@@ -229,9 +239,9 @@ public class JSValue {
 //          }
 //        }
 //      }
-//      p1 = p1->shape->proto;
+//      p1 = p1.shape.proto;
 //      prototype_lookup:
-//      if (!p1)
+//      if (p1 == null)
 //        break;
 //
 //      retry2:

@@ -126,10 +126,11 @@ abstract class Stmt {
   //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
-    Var(final TokenType tokenType, JSAtom name, int scope) {
-      this.tok = tokenType;
+    Var(final JSVarDefEnum varDef, JSAtom name, int scope, Expr initializer) {
+      this.varDef = varDef;
       this.name = name;
       this.scope = scope;
+      this.initializer = initializer;
     }
 
     @Override
@@ -139,7 +140,8 @@ abstract class Stmt {
 
     final JSAtom name;
     final int scope;
-    final TokenType tok;
+    final JSVarDefEnum varDef;
+    final Expr initializer;
   }
 
   //< stmt-var

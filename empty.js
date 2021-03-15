@@ -1,3 +1,9 @@
-//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var#unqualified_identifier_assignments
-unknown = "what"; // expect runtime error: Undefined variable 'unknown'.
-print unknown;
+var a = "a";
+var b = "b";
+var c = "c";
+
+// Assignment is right-associative.
+a = b = c;
+print a; // expect: c
+print b; // expect: c
+print c; // expect: c

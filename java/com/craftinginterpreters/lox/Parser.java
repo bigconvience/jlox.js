@@ -169,32 +169,34 @@ class Parser {
 
     Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
     if (js_define_var(name, tok) != 0) {
-
     }
+    JSVarDefEnum varDefEnum= getJsVarDefEnum(tok);
 
     Expr initializer = null;
     if (match(TOK_ASSIGN)) {
       initializer = expression();
     }
-
-    consume(SEMICOLON, "Expect ';' after variable declaration.");
-
     TokenType type= tok.type;
-    if (initializer != null) {
-      Expr.Variable variable = new Expr.Variable(name, fd.scope_level);
-      variable.tok = type;
-      Expr assign = new Expr.Assign(variable, TOK_ASSIGN, initializer, PUT_LVALUE_NOKEEP);
-      return new Stmt.Expression(assign);
-    } else {
+    if (initializer == null) {
       if (type == TOK_CONST) {
         js_parse_error("missing initializer for const variable");
       }
-      return new Stmt.Var(type, name.ident_atom, fd.scope_level);
     }
+
+    consume(SEMICOLON, "Expect ';' after variable declaration.");
+    return new Stmt.Var(varDefEnum, name.ident_atom, fd.scope_level, initializer);
   }
 
    int js_define_var(Token name, Token tok) {
     JSFunctionDef fd = curFunc;
+    JSVarDefEnum varDefType = getJsVarDefEnum(tok);
+     if (define_var(fd, name, varDefType) < 0) {
+      return -1;
+    }
+    return 0;
+  }
+
+  private JSVarDefEnum getJsVarDefEnum(Token tok) {
     JSVarDefEnum varDefType = null;
     switch (tok.type) {
       case TOK_LET:
@@ -212,14 +214,10 @@ class Parser {
       default:
         error(tok, "unknown declaration token");
     }
-
-    if (define_var(fd, name, varDefType) < 0) {
-      return -1;
-    }
-    return 0;
+    return varDefType;
   }
 
-   int define_var(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
+  int define_var(JSFunctionDef fd, Token name, JSVarDefEnum varDefType) {
     JSVarDef vd;
     JSHoistedDef hf;
     JSAtom varName = rt.JS_NewAtomStr(name.lexeme);
@@ -416,15 +414,15 @@ class Parser {
       Token operator = previous();
       Expr value = assignment();
 
-      if (expr instanceof Expr.Variable) {
-        Expr.Assign assign = new Expr.Assign((Expr.Variable) expr, operator.type, value, PUT_LVALUE_KEEP_TOP);
-        return assign;
-      } else if (expr instanceof Expr.Get) {
+      if (expr instanceof Expr.Get) {
         Expr.Get get = (Expr.Get) expr;
         return new Expr.Set(get.object, get.name, value);
+      } else {
+        Expr.Assign assign = new Expr.Assign(expr, operator.type, value, PUT_LVALUE_KEEP_TOP);
+        return assign;
       }
 
-      error(operator, "Invalid assignment target."); // [no-throw]
+//      error(operator, "Invalid assignment target."); // [no-throw]
     }
 
     return expr;
@@ -571,7 +569,7 @@ class Parser {
   }
 
   private Expr postfix() {
-    Expr expr = call();
+    Expr expr = primary();
     if (match(TOK_DEC, TOK_INC)) {
       Token token = previous();
       return new Expr.Postfix(token, expr);
@@ -579,39 +577,6 @@ class Parser {
     return expr;
   }
 
-  private Expr finishCall(Expr callee) {
-    List<Expr> arguments = new ArrayList<>();
-    if (!check(RIGHT_PAREN)) {
-      do {
-        if (arguments.size() >= 255) {
-          error(peek(), "Cannot have more than 255 arguments.");
-        }
-        arguments.add(expression());
-      } while (match(COMMA));
-    }
-
-    Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
-
-    return new Expr.Call(callee, paren, arguments);
-  }
-
-  private Expr call() {
-    Expr expr = primary();
-
-    while (true) { // [while-true]
-      if (match(LEFT_PAREN)) {
-        expr = finishCall(expr);
-      } else if (match(DOT)) {
-        Token name = consume(TOK_IDENTIFIER,
-          "Expect property name after '.'.");
-        expr = new Expr.Get(expr, name);
-      } else {
-        break;
-      }
-    }
-
-    return expr;
-  }
 
   private Expr primary() {
     if (match(TOK_FALSE)) return new Expr.Literal(false);
@@ -648,6 +613,17 @@ class Parser {
     }
 
     throw error(peek(), "Expect expression.");
+  }
+
+   int js_parse_expr_paren()
+  {
+    if (match(LEFT_PAREN))
+      return -1;
+    if (expression() == null)
+      return -1;
+    if (match(RIGHT_PAREN))
+      return -1;
+    return 0;
   }
 
   private  Expr.Literal emitPushConst(Token token, boolean asAtom) {

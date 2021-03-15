@@ -27,13 +27,13 @@ abstract class Expr {
   // Nested Expr classes here...
 //> expr-assign
   static class Assign extends Expr {
-    Assign( Expr.Variable left, TokenType operator, Expr value) {
+    Assign(Expr left, TokenType operator, Expr value) {
       this.left = left;
       this.operator = operator;
       this.value = value;
     }
 
-    public Assign(Variable left, TokenType operator, Expr value, PutLValueEnum putLValueEnum) {
+    public Assign(Expr left, TokenType operator, Expr value, PutLValueEnum putLValueEnum) {
       this.left = left;
       this.operator = operator;
       this.value = value;
@@ -45,10 +45,11 @@ abstract class Expr {
       return visitor.visitAssignExpr(this);
     }
 
-    final Expr.Variable left;
+    final Expr left;
     final TokenType operator;
     final Expr value;
     PutLValueEnum putLValueEnum;
+    OPCodeEnum opCode;
   }
   //< expr-assign
 

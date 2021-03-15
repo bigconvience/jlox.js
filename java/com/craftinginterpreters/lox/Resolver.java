@@ -2,6 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
+import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
@@ -124,16 +125,33 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
-    if (stmt.tok == TokenType.TOK_LET) {
-      JSFunctionDef s = cur_func;
-      DynBuf bc = cur_func.byte_code;
-      bc.putOpcode(OP_undefined);
-      OPCodeEnum opCode = OP_scope_put_var_init;
-      ctx.resolve_scope_var(s, stmt.name, stmt.scope,
-        opCode.ordinal(), bc,
-        s.byte_code.buf, 0, true,
-        PutLValueEnum.PUT_LVALUE_NOKEEP);
+    JSFunctionDef s = cur_func;
+    OPCodeEnum opCode = null;
+
+    DynBuf bc = cur_func.byte_code;
+    JSVarDefEnum varDef = stmt.varDef;
+    Expr initializer = stmt.initializer;
+    if (initializer != null) {
+      initializer.accept(this);
+
+      if (varDef == JS_VAR_DEF_VAR) {
+        opCode = OP_scope_make_ref;
+      } else if (varDef == JS_VAR_DEF_LET || varDef == JS_VAR_DEF_CATCH) {
+        opCode = OP_scope_put_var_init;
+      } else {
+        opCode = OP_scope_put_var;
+      }
+    } else {
+      if (varDef == JS_VAR_DEF_LET) {
+        bc.putOpcode(OP_undefined);
+      }
     }
+
+    ctx.resolve_scope_var(s, stmt.name, stmt.scope,
+      opCode.ordinal(), bc,
+      s.byte_code.buf, 0, true,
+      PutLValueEnum.PUT_LVALUE_NOKEEP);
+
     return null;
   }
 
@@ -152,23 +170,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       value.accept(this);
     }
 
-    Expr.Variable left = expr.left;
-    JSAtom var_name = left.name.ident_atom;
-    int scope = left.scope_level;
-    OPCodeEnum opCode = null;
-    TokenType tok = left.tok;
-    if (tok == TokenType.TOK_VAR || tok == null) {
-      opCode = OP_scope_make_ref;
-    } else if (tok == TokenType.TOK_LET || tok == TokenType.TOK_CONST) {
-      opCode = OP_scope_put_var_init;
-    } else {
-      opCode = OP_scope_put_var;
-    }
-    ctx.resolve_scope_var(s, var_name, scope,
-      opCode.ordinal(), s.byte_code,
-      s.byte_code.buf, 0, true,
-      expr.putLValueEnum);
-
+    s.byte_code.putOpcode(OP_dup);
+    Expr left = expr.left;
+    left.accept(this);
     return null;
   }
 

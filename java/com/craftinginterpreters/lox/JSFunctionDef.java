@@ -34,30 +34,6 @@ public class JSFunctionDef extends Stmt {
   int last_opcode_line_num = -1;
   int last_opcode_pos = -1;
 
-  JSFunctionDef(JSFunctionDef parent,
-                boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
-    this.parent = parent;
-    this.isEval = isEval;
-
-    params = new ArrayList<>();
-    varDefMap = new HashMap<>();
-    hoistDef = new HashMap<>();
-    scopes = new ArrayList<>();
-    vars = new ArrayList<>();
-    hoistedDef = new ArrayList<>();
-    args = new ArrayList<>();
-    closureVar = new ArrayList<>();
-    child_list = new ArrayList<>();
-    cpool = new ArrayList<>();
-    label_slots = new ArrayList<>();
-  }
-
-  @Override
-  <R> R accept(Visitor<R> visitor) {
-    return visitor.visitFunctionStmt(this);
-  }
-
-
   final Token name = null;
   final List<Token> params;
 
@@ -68,18 +44,52 @@ public class JSFunctionDef extends Stmt {
   final Map<String, JSVarDef> varDefMap;
   final List<JSVarDef> vars;
   final List<JSVarDef> args;
-  final List<JSHoistedDef> hoistedDef;
-  final List<JSClosureVar> closureVar;
+  final List<JSHoistedDef> hoisted_def;
+  final List<JSClosureVar> closure_var;
   final Map<String, JSHoistedDef> hoistDef;
   Stmt.Block body;
-  int evalType;
+  int eval_type;
   boolean isEval;
-  boolean isGlobalVar;
+  boolean is_global_var;
   JSVarScope curScope;
   DynBuf byte_code;
 
   JSAtom func_name;
 
+  List<JumpSlot> jump_slots;
+  int jump_size;
+  int jump_count;
+
+  List<LineNumberSlot> line_number_slots;
+  int line_number_size;
+  int line_number_count;
+  int line_number_last;
+  int line_number_last_pc;
+
+  JSFunctionDef(JSFunctionDef parent,
+                boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
+    this.parent = parent;
+    this.isEval = isEval;
+
+    params = new ArrayList<>();
+    varDefMap = new HashMap<>();
+    hoistDef = new HashMap<>();
+    scopes = new ArrayList<>();
+    vars = new ArrayList<>();
+    hoisted_def = new ArrayList<>();
+    args = new ArrayList<>();
+    closure_var = new ArrayList<>();
+    child_list = new ArrayList<>();
+    cpool = new ArrayList<>();
+    label_slots = new ArrayList<>();
+    line_number_slots = new ArrayList<>();
+    jump_slots = new ArrayList<>();
+  }
+
+  @Override
+  <R> R accept(Visitor<R> visitor) {
+    return visitor.visitFunctionStmt(this);
+  }
 
 
   void addVarDef(String name, JSVarDef varDef) {
@@ -128,7 +138,7 @@ public class JSFunctionDef extends Stmt {
       scope = scope.prev;
     }
 
-    if (isEval && evalType == LoxJS.JS_EVAL_TYPE_GLOBAL) {
+    if (isEval && eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL) {
       return findLexicalHoistedDef(varName);
     }
     return null;
@@ -143,7 +153,7 @@ public class JSFunctionDef extends Stmt {
   }
 
   JSHoistedDef findHoistedDef(JSAtom varName) {
-    for (JSHoistedDef hf : hoistedDef) {
+    for (JSHoistedDef hf : hoisted_def) {
       if (hf.var_name.equals(varName)) {
         return hf;
       }
@@ -154,7 +164,7 @@ public class JSFunctionDef extends Stmt {
   public JSVarDef findVarInChildScope(JSAtom name) {
     for (JSVarDef vd : vars) {
       if (vd != null && vd.var_name.equals(name) && vd.scope_level == 0) {
-        if (isChildScope(vd.funcPoolOrScopeIdx, scope_level)) {
+        if (isChildScope(vd.func_pool_or_scope_idx, scope_level)) {
           return vd;
         }
         return vd;
@@ -178,7 +188,7 @@ public class JSFunctionDef extends Stmt {
                                     int varIdx,
                                     boolean isLexical) {
     JSHoistedDef hf = new JSHoistedDef();
-    hoistedDef.add(hf);
+    hoisted_def.add(hf);
     hf.var_name = varName;
     hf.cpool_idx = cpoolIdx;
     hf.is_lexical = isLexical;
@@ -192,7 +202,7 @@ public class JSFunctionDef extends Stmt {
     int idx = addVar(varName);
     if (idx >= 0) {
       JSVarDef vd = vars.get(idx);
-      vd.varKind = varKind;
+      vd.var_kind = varKind;
       vd.scope_level = scope_level;
       vd.scope_next = scopeFirst;
       curScope.first = idx;
@@ -239,9 +249,9 @@ public class JSFunctionDef extends Stmt {
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
-        if (isFuncDecl(vd.varKind)) {
+        if (isFuncDecl(vd.var_kind)) {
           bcOut.dbuf_putc(OP_fclosure);
-          bcOut.dbuf_put_u32(vd.funcPoolOrScopeIdx);
+          bcOut.dbuf_put_u32(vd.func_pool_or_scope_idx);
           bcOut.dbuf_putc(OP_put_loc);
         } else {
           bcOut.dbuf_putc(OP_set_loc_uninitialized);
@@ -258,13 +268,13 @@ public class JSFunctionDef extends Stmt {
   void instantiate_hoisted_definitions(DynBuf bc) {
     JSFunctionDef s = this;
     int i, idx, var_idx;
-    for (i = 0; i < s.hoistedDef.size(); i++) {
-      JSHoistedDef hf = s.hoistedDef.get(i);
+    for (i = 0; i < s.hoisted_def.size(); i++) {
+      JSHoistedDef hf = s.hoisted_def.get(i);
       int has_closure = 0;
       boolean force_init = hf.forceInit;
-      if (s.isGlobalVar && hf.var_name != JSAtom.JS_ATOM_NULL) {
-        for (idx = 0; idx < s.closureVar.size(); idx++) {
-          JSClosureVar cv = s.closureVar.get(idx);
+      if (s.is_global_var && hf.var_name != JSAtom.JS_ATOM_NULL) {
+        for (idx = 0; idx < s.closure_var.size(); idx++) {
+          JSClosureVar cv = s.closure_var.get(idx);
           if (hf.var_name.equals(cv.var_name)) {
             has_closure = 2;
             force_init = false;
@@ -273,7 +283,7 @@ public class JSFunctionDef extends Stmt {
         }
         if (has_closure == 0) {
           int flags = 0;
-          if (s.evalType != JS_EVAL_TYPE_GLOBAL) {
+          if (s.eval_type != JS_EVAL_TYPE_GLOBAL) {
             flags |= JS_PROP_CONFIGURABLE;
           }
 
@@ -309,7 +319,7 @@ public class JSFunctionDef extends Stmt {
           } else {
             bc.dbuf_putc(OP_undefined);
           }
-          if (s.isGlobalVar) {
+          if (s.is_global_var) {
             if (has_closure == 2) {
               bc.dbuf_putc(OP_put_var_ref);
               bc.dbuf_put_u16(idx);
@@ -335,7 +345,7 @@ public class JSFunctionDef extends Stmt {
         }
       }
     }
-    s.hoistedDef.clear();
+    s.hoisted_def.clear();
   }
 
   public static boolean isFuncDecl(JSVarKindEnum varKind) {

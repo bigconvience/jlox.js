@@ -51,6 +51,17 @@ public class JUtils {
     return convertedInterger;
   }
 
+  static void put_u32(final byte[] tab, int pos, JSAtom atom) {
+    put_u32(tab, pos, atom.getVal());
+  }
+
+  static void put_u32(final byte[] tab, int pos, int val) {
+    tab[pos + 0] = (byte) ((val >> 24) & 0xFF);
+    tab[pos + 1] = (byte) ((val >> 16) & 0xFF);
+    tab[pos + 2] = (byte) ((val >> 8) & 0xFF);
+    tab[pos + 3] = (byte) (val & 0xFF);
+  }
+
   static int get_i32(final byte[] tab, int pc)
   {
     return byteArrToInteger(tab, pc);
@@ -61,6 +72,16 @@ public class JUtils {
     return byteArrToInteger(tab, pc);
   }
 
+  static JSAtom get_atom(final byte[] tab, int pc)
+  {
+    return new JSAtom(byteArrToInteger(tab, pc));
+  }
+
+  static OPCodeEnum get_opcode(final byte[] tab, int pc)
+  {
+    return OPCodeEnum.values()[get_u8(tab, pc)];
+  }
+
   static int get_u16(final byte[] tab, int cp) {
     return 0XFFFF & tab[cp];
   }
@@ -69,8 +90,17 @@ public class JUtils {
     return 0XFFFF & tab[cp];
   }
 
+  static void put_u8(final byte[] tab, int pos, OPCodeEnum op) {
+    put_u8(tab, pos, op.ordinal());
+  }
+
+  static void put_u8(final byte[] tab, int pos, int val) {
+    tab[pos + 0] =  (byte) (val & 0xFF);
+  }
+
+
   static int get_u8(final byte[] tab, int cp) {
-    return 0XFF & tab[cp];
+    return Byte.toUnsignedInt(tab[cp]);
   }
 
   static int get_i8(final byte[] tab, int cp) {

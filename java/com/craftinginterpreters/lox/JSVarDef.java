@@ -14,11 +14,12 @@ public class JSVarDef {
   int scope_level;
   int scope_next;
   JSVarScope scope;
-  JSVarKindEnum varKind;
+  JSVarKindEnum var_kind;
   JSAtom var_name;
-  int funcPoolOrScopeIdx;
+  int func_pool_or_scope_idx;
   boolean isGlobalVar;
   int cpool_idx;
   int varIdx;
   boolean forceInit;
+  boolean is_captured;
 }

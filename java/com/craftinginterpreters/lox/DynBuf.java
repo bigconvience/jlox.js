@@ -18,9 +18,9 @@ public class DynBuf {
   public DynBuf() {
   }
 
-  private void memcpy(byte[] data, int len) {
+  private void memcpy(byte[] data, int position, int len) {
     for (int i = 0; i < len; i++) {
-      buf[size + i] = data[i];
+      buf[size + i] = data[position + i];
     }
   }
 
@@ -41,18 +41,21 @@ public class DynBuf {
     return 0;
   }
 
-
-  int dbuf_put(byte[] data) {
-    int len = data.length;
+  int dbuf_put(byte[] data, int position, int len) {
     if (size + len > allocatedSize) {
       if (realloc(size + len) != 0) {
         return -1;
       }
     }
 
-    memcpy(data, len);
+    memcpy(data, position, len);
     size += len;
     return 0;
+  }
+
+
+  int dbuf_put(byte[] data) {
+    return dbuf_put(data, 0, data.length);
   }
 
 
@@ -74,6 +77,10 @@ public class DynBuf {
 
   int putstr(String str) {
     return dbuf_put(str.getBytes());
+  }
+
+  int dbuf_put_u32(JSAtom val) {
+    return dbuf_put_u32(val.getVal());
   }
 
   int dbuf_put_u32(int val) {

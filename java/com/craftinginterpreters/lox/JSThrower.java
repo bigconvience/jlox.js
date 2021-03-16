@@ -18,6 +18,10 @@ import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_THROW_STRICT;
  * @date 2021/3/108:58 PM
  */
 public class JSThrower {
+  static final int JS_THROW_VAR_RO = 0;
+  static final int JS_THROW_VAR_REDECL = 1;
+  static final int JS_THROW_VAR_UNINITIALIZED = 2;
+  static final int JS_THROW_VAR_DELETE_SUPER = 3;
 
   static int JS_ThrowTypeErrorReadOnly(JSContext ctx, int flags, JSAtom atom) {
     if ((flags & JS_PROP_THROW) != 0 ||
@@ -37,8 +41,7 @@ public class JSThrower {
     return JS_ThrowTypeError(ctx, fmt, ctx.JS_AtomGetStr(atom));
   }
 
-  static JSValue  JS_ThrowTypeError(JSContext ctx, String fmt, Object... args)
-  {
+  static JSValue JS_ThrowTypeError(JSContext ctx, String fmt, Object... args) {
     JSValue val;
 
     val = JS_ThrowError(ctx, JS_TYPE_ERROR, fmt, Arrays.asList(args));

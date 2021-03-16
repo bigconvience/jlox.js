@@ -88,7 +88,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-    ctx.resolve_variables(stmt);
+
     return null;
   }
 
@@ -385,9 +385,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
-        if (JSFunctionDef.isFuncDecl(vd.varKind)) {
+        if (JSFunctionDef.isFuncDecl(vd.var_kind)) {
           bcOut.dbuf_putc(OP_fclosure);
-          bcOut.dbuf_put_u32(vd.funcPoolOrScopeIdx);
+          bcOut.dbuf_put_u32(vd.func_pool_or_scope_idx);
           bcOut.dbuf_putc(OP_put_loc);
         } else {
           bcOut.dbuf_putc(OP_set_loc_uninitialized);

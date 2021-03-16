@@ -43,7 +43,7 @@ class Parser {
     push_scope();
     boolean success = true;
     JSFunctionDef fd = curFunc;
-    fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
+    fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
     Stmt.Block block = new Stmt.Block(0, parse(), 1);
     curFunc.body = block;
     return success;
@@ -52,7 +52,7 @@ class Parser {
   boolean parseProgram() {
     boolean success = true;
     JSFunctionDef fd = curFunc;
-    fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
+    fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
     Stmt.Block block = new Stmt.Block(parse());
     curFunc.body = block;
     return success;
@@ -252,7 +252,7 @@ class Parser {
           error(name, "invalid redefinition of variable, find a scope caterpillar");
         }
 
-        if (fd.isGlobalVar) {
+        if (fd.is_global_var) {
           hf = fd.findHoistedDef(name);
           if (hf != null && fd.isChildScope(hf.scope_level, fd.scope_level)) {
             error(name, "invalid redefinition of global identifier");
@@ -260,8 +260,8 @@ class Parser {
         }
 
         if (fd.isEval &&
-          (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL ||
-            fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE)
+          (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL ||
+            fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE)
           && fd.scope_level == 1) {
           hf = fd.addHoistedDef(-1, varName, -1, true);
           hf.isConst = varDefType == JS_VAR_DEF_CONST;
@@ -284,16 +284,16 @@ class Parser {
         break;
 
       case JS_VAR_DEF_VAR:
-        if (fd.isGlobalVar) {
+        if (fd.is_global_var) {
           vd = fd.findLexicalDef(varName);
           if (vd != null) {
             invalid_lexical_redefinition:
             error(name, "invalid redefinition of lexical identifier");
           }
-          if (fd.isGlobalVar) {
+          if (fd.is_global_var) {
             hf = fd.findHoistedDef(varName);
             if (hf != null && hf.is_lexical
-              && hf.scope_level == fd.scope_level && fd.evalType == LoxJS.JS_EVAL_TYPE_MODULE) {
+              && hf.scope_level == fd.scope_level && fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE) {
               error(name, "invalid redefinition of lexical identifier");
             }
             hf = fd.addHoistedDef(-1,  varName, -1, false);
@@ -306,7 +306,7 @@ class Parser {
             idx = fd.addVar(varName);
             if (idx >= 0) {
               vd = fd.vars.get(idx);
-              vd.funcPoolOrScopeIdx = fd.scope_level;
+              vd.func_pool_or_scope_idx = fd.scope_level;
             }
           }
         }

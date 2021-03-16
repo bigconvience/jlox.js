@@ -255,7 +255,7 @@ public class JSContext {
 
     JSFunctionDef fd = jsNewFunctionDef(null, true, false, filename, 1);
     fd.ctx = this;
-    fd.evalType = evalType;
+    fd.eval_type = evalType;
     fd.func_name = rt.JS_NewAtomStr("<eval>");
 
     Parser parser = new Parser(scanner, this, fd, rt);
@@ -311,18 +311,20 @@ public class JSContext {
       fd.byte_code.buf, fd.byte_code.size,
       fd.args, fd.args.size(),
       fd.vars, fd.vars.size(),
-      fd.closureVar, fd.closureVar.size(),
+      fd.closure_var, fd.closure_var.size(),
       fd.cpool, fd.cpool.size(),
-      "", 0, null, null);
+      "", fd.line_number,
+      fd.label_slots.toArray(new LabelSlot[0]), null);
 
-    resolve_variables(fd);
-//    Dumper.dump_byte_code(this, 2,
-//      fd.byte_code.buf, fd.byte_code.size,
-//      fd.args, fd.args.size(),
-//      fd.vars, fd.vars.size(),
-//      fd.closureVar, fd.closureVar.size(),
-//      fd.cpool, fd.cpool.size(),
-//      null, 0, null, null);
+    new IRResolver(this, fd).resolve_variables();
+    Dumper.dump_byte_code(this, 2,
+      fd.byte_code.buf, fd.byte_code.size,
+      fd.args, fd.args.size(),
+      fd.vars, fd.vars.size(),
+      fd.closure_var, fd.closure_var.size(),
+      fd.cpool, fd.cpool.size(),
+      "", fd.line_number,
+      fd.label_slots.toArray(new LabelSlot[0]), null);
 
     stack_size = compute_stack_size(fd);
 
@@ -400,90 +402,6 @@ public class JSContext {
     new Resolver(this, s).resolve();
   }
 
-
-  int resolve_variables(JSFunctionDef s) {
-    int ret = 0;
-    int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
-    CodeContext cc = new CodeContext();
-    DynBuf bc_out = new DynBuf();
-    s.byte_code = bc_out;
-    if (s.isGlobalVar) {
-      for (JSHoistedDef hd : s.hoistedDef) {
-        int flags;
-        if (hd.var_name != null) {
-          //todo benpeng closure
-
-        }
-        bc_out.dbuf_putc(OP_check_define_var);
-        bc_out.put_atom(hd.var_name);
-        flags = 0;
-        if (hd.is_lexical) {
-          flags |= DEFINE_GLOBAL_LEX_VAR;
-        }
-        if (hd.cpool_idx >= 0) {
-          flags |= DEFINE_GLOBAL_FUNC_VAR;
-        }
-        bc_out.dbuf_putc(flags);
-      }
-      next:
-      ;
-    }
-
-
-    return ret;
-  }
-
-
-  int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
-                        int op,
-                        DynBuf bc, DynBuf bc_buf, int pos_next, boolean arg_valid) {
-    int var_idx = -1;
-    JSFunctionDef fd = s;
-    JSVarDef vd;
-    for (int idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
-      vd = fd.vars.get(idx);
-      if (vd.var_name.equals(var_name)) {
-
-        var_idx = idx;
-        break;
-      } else {
-
-      }
-      idx = vd.scope_next;
-    }
-
-    OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
-
-    /* global variable access */
-    switch (opCodeEnum) {
-      case OP_scope_make_ref:
-        optimize_scope_make_global_ref(s, bc, bc_buf, var_name);
-        break;
-      case OP_scope_get_var_undef:
-      case OP_scope_get_var:
-      case OP_scope_put_var:
-        bc.dbuf_putc(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
-        bc.put_atom(var_name);
-        break;
-      case OP_scope_put_var_init:
-        bc.dbuf_putc(OP_put_var_init);
-        bc.put_atom(var_name);
-        break;
-      default:
-        break;
-    }
-
-    return var_idx;
-  }
-
-  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, DynBuf bc_buf, JSAtom var_name) {
-    int pos = c.size;
-
-
-    c.dbuf_putc(OP_put_var);
-    c.put_atom(var_name);
-    return 1;
-  }
 
   JSValue JS_NewObjectFromShape(JSShape sh, JSClassID classID) {
     JSObject p = new JSObject();

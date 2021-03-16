@@ -261,8 +261,7 @@ public class JSContext {
     Parser parser = new Parser(scanner, this, fd, rt);
     parser.fileName = filename;
 
-    parser.pushScope();
-    parser.parseProgram();
+    parser.push_scope_and_parse_program();
 
     fun_obj = js_create_function(fd);
     retVal = VM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);
@@ -307,15 +306,23 @@ public class JSContext {
       fd.cpool.set(cpool_idx, func_obj);
     }
 
-    resolve_variables(fd);
-
-    Dumper.dump_byte_code(this, 2,
+    ast_2_opcode(fd);
+    Dumper.dump_byte_code(this, 1,
       fd.byte_code.buf, fd.byte_code.size,
       fd.args, fd.args.size(),
       fd.vars, fd.vars.size(),
       fd.closureVar, fd.closureVar.size(),
       fd.cpool, fd.cpool.size(),
-      null, 0, null, null);
+      "", 0, null, null);
+
+    resolve_variables(fd);
+//    Dumper.dump_byte_code(this, 2,
+//      fd.byte_code.buf, fd.byte_code.size,
+//      fd.args, fd.args.size(),
+//      fd.vars, fd.vars.size(),
+//      fd.closureVar, fd.closureVar.size(),
+//      fd.cpool, fd.cpool.size(),
+//      null, 0, null, null);
 
     stack_size = compute_stack_size(fd);
 
@@ -389,6 +396,10 @@ public class JSContext {
     return 0;
   }
 
+  void ast_2_opcode(JSFunctionDef s) {
+    new Resolver(this, s).resolve();
+  }
+
 
   int resolve_variables(JSFunctionDef s) {
     int ret = 0;
@@ -403,8 +414,8 @@ public class JSContext {
           //todo benpeng closure
 
         }
-        bc_out.emit_op(OP_check_define_var);
-        bc_out.emit_atom(hd.var_name);
+        bc_out.dbuf_putc(OP_check_define_var);
+        bc_out.put_atom(hd.var_name);
         flags = 0;
         if (hd.is_lexical) {
           flags |= DEFINE_GLOBAL_LEX_VAR;
@@ -412,18 +423,13 @@ public class JSContext {
         if (hd.cpool_idx >= 0) {
           flags |= DEFINE_GLOBAL_FUNC_VAR;
         }
-        bc_out.putc(flags);
+        bc_out.dbuf_putc(flags);
       }
       next:
       ;
     }
 
-    s.enter_scope(1, bc_out);
-    List<Stmt> stmts = s.body;
-    Resolver resolver = new Resolver(this, s);
-    for (Stmt stmt : stmts) {
-      stmt.accept(resolver);
-    }
+
     return ret;
   }
 
@@ -456,12 +462,12 @@ public class JSContext {
       case OP_scope_get_var_undef:
       case OP_scope_get_var:
       case OP_scope_put_var:
-        bc.emit_op(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
-        bc.emit_atom(var_name);
+        bc.dbuf_putc(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
+        bc.put_atom(var_name);
         break;
       case OP_scope_put_var_init:
-        bc.emit_op(OP_put_var_init);
-        bc.emit_atom(var_name);
+        bc.dbuf_putc(OP_put_var_init);
+        bc.put_atom(var_name);
         break;
       default:
         break;
@@ -474,8 +480,8 @@ public class JSContext {
     int pos = c.size;
 
 
-    c.emit_op(OP_put_var);
-    c.emit_atom(var_name);
+    c.dbuf_putc(OP_put_var);
+    c.put_atom(var_name);
     return 1;
   }
 

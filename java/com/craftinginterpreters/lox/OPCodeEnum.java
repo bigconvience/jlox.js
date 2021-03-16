@@ -183,9 +183,6 @@ public enum OPCodeEnum {
   OP_math_mod,
   OP_nop,
   OP_print,
-  OP_COUNT,
-  OP_temp_start,
-  OP___dummy,
   OP_set_arg_valid_upto,
   OP_enter_scope,
   OP_leave_scope,
@@ -268,4 +265,8 @@ public enum OPCodeEnum {
   OP_is_null,
   OP_typeof_is_undefined,
   OP_typeof_is_function,
+  OP_COUNT,
+  OP_temp_start,
+  OP___dummy,
+  OP_TEMP_END,
 }

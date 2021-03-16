@@ -563,15 +563,6 @@ public class OPCodeInfo {
       OP_print.ordinal(),
       new JSOpCode("print",1,1,0,none));
     opcode_info.put(
-      OP_COUNT.ordinal(),
-      new JSOpCode("COUNT",1,1,0,atom));
-    opcode_info.put(
-      OP_temp_start.ordinal(),
-      new JSOpCode("temp_start",1,1,0,atom));
-    opcode_info.put(
-      OP___dummy.ordinal(),
-      new JSOpCode("__dummy",1,1,0,atom));
-    opcode_info.put(
       OP_set_arg_valid_upto.ordinal(),
       new JSOpCode("set_arg_valid_upto",3,0,0,arg));
     opcode_info.put(
@@ -817,5 +808,17 @@ public class OPCodeInfo {
     opcode_info.put(
       OP_typeof_is_function.ordinal(),
       new JSOpCode("typeof_is_function",1,1,1,none));
+    opcode_info.put(
+      OP_COUNT.ordinal(),
+      new JSOpCode("COUNT",1,1,0,atom));
+    opcode_info.put(
+      OP_temp_start.ordinal(),
+      new JSOpCode("temp_start",1,1,0,atom));
+    opcode_info.put(
+      OP___dummy.ordinal(),
+      new JSOpCode("__dummy",1,1,0,atom));
+    opcode_info.put(
+      OP_TEMP_END.ordinal(),
+      new JSOpCode("TEMP_END",1,1,0,atom));
  }
 }

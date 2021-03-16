@@ -5,8 +5,6 @@ import java.util.*;
 import static com.craftinginterpreters.lox.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
-import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_KEEP_TOP;
-import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Parser {
@@ -41,12 +39,22 @@ class Parser {
     return statements; // [parse-error-handling]
   }
 
+  boolean push_scope_and_parse_program() {
+    push_scope();
+    boolean success = true;
+    JSFunctionDef fd = curFunc;
+    fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
+    Stmt.Block block = new Stmt.Block(0, parse(), 1);
+    curFunc.body = block;
+    return success;
+  }
+
   boolean parseProgram() {
     boolean success = true;
     JSFunctionDef fd = curFunc;
     fd.isGlobalVar = (fd.evalType == LoxJS.JS_EVAL_TYPE_GLOBAL);
-
-    curFunc.body = parse();
+    Stmt.Block block = new Stmt.Block(parse());
+    curFunc.body = block;
     return success;
   }
 
@@ -149,8 +157,8 @@ class Parser {
 
   private Stmt printStatement() {
     Expr value = expression();
-    consume(SEMICOLON, "Expect ';' after value.");
-    return new Stmt.Print(value);
+    Token tok = consume(SEMICOLON, "Expect ';' after value.");
+    return new Stmt.Print(tok.line, value);
   }
 
   private Stmt returnStatement() {
@@ -184,7 +192,8 @@ class Parser {
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    return new Stmt.Var(varDefEnum, name.ident_atom, fd.scope_level, initializer);
+    Stmt stmt = new Stmt.Var(tok.line, varDefEnum, name.ident_atom, fd.scope_level, initializer);
+    return stmt;
   }
 
    int js_define_var(Token name, Token tok) {
@@ -319,8 +328,8 @@ class Parser {
 
   private Stmt expressionStatement() {
     Expr expr = expression();
-    consume(SEMICOLON, "Expect ';' after expression.");
-    return new Stmt.Expression(expr);
+    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
+    return new Stmt.Expression(tok.line, expr);
   }
 
   private JSFunctionDef function(String kind) {
@@ -345,14 +354,13 @@ class Parser {
     curFunc = fd;
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-    List<Stmt> body = block();
-    fd.body = body;
+    fd.body = new Stmt.Block(block());
     curFunc = fd.parent;
     return fd;
   }
 
   private List<Stmt> block() {
-    pushScope();
+    push_scope();
     List<Stmt> statements = new ArrayList<>();
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) {
@@ -731,7 +739,7 @@ class Parser {
     }
   }
 
-  public int pushScope() {
+  public int push_scope() {
     if (curFunc != null) {
       JSFunctionDef fd = curFunc;
       int scope = fd.addScope();

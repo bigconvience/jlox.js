@@ -51,6 +51,10 @@ public class JUtils {
     return convertedInterger;
   }
 
+  static int get_i32(final byte[] tab, int pc)
+  {
+    return byteArrToInteger(tab, pc);
+  }
 
   static int get_u32(final byte[] tab, int pc)
   {
@@ -61,8 +65,15 @@ public class JUtils {
     return 0XFFFF & tab[cp];
   }
 
+  static int get_i16(final byte[] tab, int cp) {
+    return 0XFFFF & tab[cp];
+  }
+
   static int get_u8(final byte[] tab, int cp) {
     return 0XFF & tab[cp];
   }
 
+  static int get_i8(final byte[] tab, int cp) {
+    return 0XFF & tab[cp];
+  }
 }

@@ -29,6 +29,13 @@ abstract class Stmt {
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
       this.statements = statements;
+      scope = 0;
+    }
+
+    public Block(int line, List<Stmt> statements, int scope) {
+      this.statements = statements;
+      this.scope = scope;
+      this.line_number = line;
     }
 
     @Override
@@ -37,7 +44,7 @@ abstract class Stmt {
     }
 
     final List<Stmt> statements;
-    int scope;
+    final int scope;
   }
 
   //< stmt-block
@@ -61,6 +68,11 @@ abstract class Stmt {
 //> stmt-expression
   static class Expression extends Stmt {
     Expression(Expr expression) {
+      this.expression = expression;
+    }
+
+    Expression(int line, Expr expression) {
+      this.line_number = line;
       this.expression = expression;
     }
 
@@ -94,8 +106,9 @@ abstract class Stmt {
   //< stmt-if
 //> stmt-print
   static class Print extends Stmt {
-    Print(Expr expression) {
+    Print(int line, Expr expression) {
       this.expression = expression;
+      this.line_number = line;
     }
 
     @Override
@@ -126,7 +139,8 @@ abstract class Stmt {
   //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
-    Var(final JSVarDefEnum varDef, JSAtom name, int scope, Expr initializer) {
+    Var(int line, final JSVarDefEnum varDef, JSAtom name, int scope, Expr initializer) {
+      this.line_number = line;
       this.varDef = varDef;
       this.name = name;
       this.scope = scope;
@@ -161,6 +175,8 @@ abstract class Stmt {
     final Stmt body;
   }
 //< stmt-while
+
+  int line_number;
 
   abstract <R> R accept(Visitor<R> visitor);
 }

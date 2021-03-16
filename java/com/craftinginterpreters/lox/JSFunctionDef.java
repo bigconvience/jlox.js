@@ -31,7 +31,8 @@ public class JSFunctionDef extends Stmt {
 
   final List<JSValue> cpool;
   final List<LabelSlot> label_slots;
-
+  int last_opcode_line_num = -1;
+  int last_opcode_pos = -1;
 
   JSFunctionDef(JSFunctionDef parent,
                 boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
@@ -70,7 +71,7 @@ public class JSFunctionDef extends Stmt {
   final List<JSHoistedDef> hoistedDef;
   final List<JSClosureVar> closureVar;
   final Map<String, JSHoistedDef> hoistDef;
-  List<Stmt> body;
+  Stmt.Block body;
   int evalType;
   boolean isEval;
   boolean isGlobalVar;
@@ -79,9 +80,7 @@ public class JSFunctionDef extends Stmt {
 
   JSAtom func_name;
 
-  void addStmt(Stmt stmt) {
-    body.add(stmt);
-  }
+
 
   void addVarDef(String name, JSVarDef varDef) {
     varDefMap.put(name, varDef);
@@ -241,13 +240,13 @@ public class JSFunctionDef extends Stmt {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
         if (isFuncDecl(vd.varKind)) {
-          bcOut.emit_op(OP_fclosure);
-          bcOut.emit_u32(vd.funcPoolOrScopeIdx);
-          bcOut.emit_op(OP_put_loc);
+          bcOut.dbuf_putc(OP_fclosure);
+          bcOut.dbuf_put_u32(vd.funcPoolOrScopeIdx);
+          bcOut.dbuf_putc(OP_put_loc);
         } else {
-          bcOut.emit_op(OP_set_loc_uninitialized);
+          bcOut.dbuf_putc(OP_set_loc_uninitialized);
         }
-        bcOut.emit_u16((short) scopeIdx);
+        bcOut.dbuf_put_u16((short) scopeIdx);
         scopeIdx = vd.scope_next;
       } else {
         break;
@@ -279,11 +278,11 @@ public class JSFunctionDef extends Stmt {
           }
 
           if (hf.cpool_idx >= 0 && !hf.is_lexical) {
-            bc.emit_op(OP_fclosure);
-            bc.emit_u32(hf.cpool_idx);
-            bc.emit_op(OP_define_func);
-            bc.emit_atom(hf.var_name);
-            bc.putc(flags);
+            bc.dbuf_putc(OP_fclosure);
+            bc.dbuf_put_u32(hf.cpool_idx);
+            bc.dbuf_putc(OP_define_func);
+            bc.put_atom(hf.var_name);
+            bc.dbuf_putc(flags);
             continue;
           } else {
             if (hf.is_lexical) {
@@ -292,45 +291,45 @@ public class JSFunctionDef extends Stmt {
                 flags |= JS_PROP_WRITABLE;
               }
             }
-            bc.emit_op(OP_define_var);
-            bc.emit_atom(hf.var_name);
-            bc.putc(flags);
+            bc.dbuf_putc(OP_define_var);
+            bc.put_atom(hf.var_name);
+            bc.dbuf_putc(flags);
           }
         }
 
         if (hf.cpool_idx >= 0 || force_init) {
           if (hf.cpool_idx >= 0) {
-            bc.emit_op(OP_fclosure);
-            bc.emit_u32(hf.cpool_idx);
+            bc.dbuf_putc(OP_fclosure);
+            bc.dbuf_put_u32(hf.cpool_idx);
             if (hf.var_name.getVal() == JS_ATOM__default_.ordinal()) {
               /* set default export function name */
-              bc.emit_op(OP_set_name);
-              bc.emit_atom(hf.var_name);
+              bc.dbuf_putc(OP_set_name);
+              bc.put_atom(hf.var_name);
             }
           } else {
-            bc.emit_op(OP_undefined);
+            bc.dbuf_putc(OP_undefined);
           }
           if (s.isGlobalVar) {
             if (has_closure == 2) {
-              bc.emit_op(OP_put_var_ref);
-              bc.emit_u16(idx);
+              bc.dbuf_putc(OP_put_var_ref);
+              bc.dbuf_put_u16(idx);
             } else if (has_closure == 1) {
-              bc.emit_op(OP_define_field);
-              bc.emit_atom(hf.var_name);
-              bc.emit_op(OP_drop);
+              bc.dbuf_putc(OP_define_field);
+              bc.put_atom(hf.var_name);
+              bc.dbuf_putc(OP_drop);
             } else {
               /* XXX: Check if variable is writable and enumerable */
-              bc.emit_op(OP_put_var);
-              bc.emit_atom(hf.var_name);
+              bc.dbuf_putc(OP_put_var);
+              bc.put_atom(hf.var_name);
             }
           } else {
             var_idx = hf.varIdx;
             if ((var_idx & ARGUMENT_VAR_OFFSET) != 0) {
-              bc.emit_op(OP_put_arg);
-              bc.emit_u16(var_idx - ARGUMENT_VAR_OFFSET);
+              bc.dbuf_putc(OP_put_arg);
+              bc.dbuf_put_u16(var_idx - ARGUMENT_VAR_OFFSET);
             } else {
-              bc.emit_op(OP_put_loc);
-              bc.emit_u16(var_idx);
+              bc.dbuf_putc(OP_put_loc);
+              bc.dbuf_put_u16(var_idx);
             }
           }
         }
@@ -366,5 +365,13 @@ public class JSFunctionDef extends Stmt {
       ls.addr = -1;
     }
     return label;
+  }
+
+
+  OPCodeEnum get_prev_code() {
+    if (last_opcode_pos < 0) {
+      return OPCodeEnum.OP_invalid;
+    }
+    return OPCodeEnum.values()[byte_code.get_byte(last_opcode_pos)];
   }
 }

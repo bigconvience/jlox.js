@@ -2,8 +2,6 @@ package com.craftinginterpreters.lox;
 
 import java.util.Arrays;
 
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_label;
-
 /**
  * @author benpeng.jiang
  * @title: DynBuf
@@ -16,7 +14,9 @@ public class DynBuf {
   int size;
   int allocatedSize;
   boolean error;
-  int last_opcode_pos;
+
+  public DynBuf() {
+  }
 
   private void memcpy(byte[] data, int len) {
     for (int i = 0; i < len; i++) {
@@ -42,7 +42,7 @@ public class DynBuf {
   }
 
 
-  int put(byte[] data) {
+  int dbuf_put(byte[] data) {
     int len = data.length;
     if (size + len > allocatedSize) {
       if (realloc(size + len) != 0) {
@@ -55,80 +55,53 @@ public class DynBuf {
     return 0;
   }
 
-  void remove_last_op() {
-   size = last_opcode_pos;
-   last_opcode_pos = -1;
-  }
-
-  OPCodeEnum get_prev_code() {
-    if (last_opcode_pos < 0) {
-      return OPCodeEnum.OP_invalid;
-    }
-    return OPCodeEnum.values()[get_byte(last_opcode_pos)];
-  }
 
   int get_byte(int index) {
     return 0xFF & buf[index];
   }
 
-  int putc(int v) {
+  int dbuf_putc(int v) {
     byte input = (byte) v;
-    return putc(input);
+    return dbuf_putc(input);
   }
 
 
-  int putc(byte c) {
+  int dbuf_putc(byte c) {
     byte[] input = {c};
-    return put(input);
+    return dbuf_put(input);
   }
+
 
   int putstr(String str) {
-    return put(str.getBytes());
+    return dbuf_put(str.getBytes());
   }
 
-  int emit_u32(int val) {
-    return put(JUtils.intToByteArray(val));
+  int dbuf_put_u32(int val) {
+    byte[] input = JUtils.intToByteArray(val);
+    return dbuf_put(input);
   }
 
-  int emit_u16(int val) {
-    return emit_u16((short) val);
+  int dbuf_put_u16(int val) {
+    return dbuf_put_u16((short) val);
   }
 
-  int emit_u16(short val) {
-    return put(shortToByteArray(val));
+  int dbuf_put_u16(short val) {
+    return dbuf_put(shortToByteArray(val));
   }
 
-  int putValue(Object val) {
+  int put_value(Object val) {
     if (val instanceof JSAtom) {
-      return emit_atom((JSAtom) val);
+      return put_atom((JSAtom) val);
     }
     return 0;
   }
 
-  int emit_atom(JSAtom atom) {
-    return emit_u32(atom.getVal());
+  int put_atom(JSAtom atom) {
+    return dbuf_put_u32(atom.getVal());
   }
 
-  int emit_op(OPCodeEnum opCodeEnum) {
-    return emit_op((byte) opCodeEnum.ordinal());
-  }
-
-  int emit_op(byte val) {
-    last_opcode_pos = size;
-    byte[] input = {val};
-    return put(input);
-  }
-
-   int emit_label(JSFunctionDef fd, int label)
-  {
-    if (label >= 0) {
-      emit_op(OP_label);
-      emit_u32(label);
-      fd.label_slots.get(label).pos = size;
-      return size - 4;
-    } else {
-      return -1;
-    }
+  int dbuf_putc(OPCodeEnum opCodeEnum) {
+    return dbuf_putc(opCodeEnum.ordinal());
   }
 
 

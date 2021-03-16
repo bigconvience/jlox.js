@@ -403,8 +403,8 @@ public class JSContext {
           //todo benpeng closure
 
         }
-        bc_out.putOpcode(OP_check_define_var);
-        bc_out.putAtom(hd.var_name);
+        bc_out.emit_op(OP_check_define_var);
+        bc_out.emit_atom(hd.var_name);
         flags = 0;
         if (hd.is_lexical) {
           flags |= DEFINE_GLOBAL_LEX_VAR;
@@ -426,16 +426,11 @@ public class JSContext {
     }
     return ret;
   }
-  int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
-                        int op,
-                        DynBuf bc, byte[] bc_buf, int pos_next, boolean arg_valid) {
-    return resolve_scope_var(s, var_name, scope_level, op, bc, bc_buf, pos_next, arg_valid, PutLValueEnum.PUT_LVALUE_NOKEEP);
-  }
+
 
   int resolve_scope_var(JSFunctionDef s, JSAtom var_name, int scope_level,
                         int op,
-                        DynBuf bc, byte[] bc_buf, int pos_next, boolean arg_valid,
-                        PutLValueEnum special) {
+                        DynBuf bc, DynBuf bc_buf, int pos_next, boolean arg_valid) {
     int var_idx = -1;
     JSFunctionDef fd = s;
     JSVarDef vd;
@@ -456,17 +451,17 @@ public class JSContext {
     /* global variable access */
     switch (opCodeEnum) {
       case OP_scope_make_ref:
-        optimize_scope_make_global_ref(s, bc, bc_buf, var_name, special);
+        optimize_scope_make_global_ref(s, bc, bc_buf, var_name);
         break;
       case OP_scope_get_var_undef:
       case OP_scope_get_var:
       case OP_scope_put_var:
-        bc.putOpcode(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
-        bc.putAtom(var_name);
+        bc.emit_op(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
+        bc.emit_atom(var_name);
         break;
       case OP_scope_put_var_init:
-        bc.putOpcode(OP_put_var_init);
-        bc.putAtom(var_name);
+        bc.emit_op(OP_put_var_init);
+        bc.emit_atom(var_name);
         break;
       default:
         break;
@@ -475,14 +470,12 @@ public class JSContext {
     return var_idx;
   }
 
-  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, byte[] bc_buf, JSAtom var_name, PutLValueEnum special) {
+  int optimize_scope_make_global_ref(JSFunctionDef s, DynBuf c, DynBuf bc_buf, JSAtom var_name) {
     int pos = c.size;
 
-    if (PutLValueEnum.PUT_LVALUE_KEEP_TOP == special) {
-      c.putOpcode(OP_dup);
-    }
-    c.putOpcode(OP_put_var);
-    c.putAtom(var_name);
+
+    c.emit_op(OP_put_var);
+    c.emit_atom(var_name);
     return 1;
   }
 

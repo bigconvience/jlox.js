@@ -418,7 +418,7 @@ class Parser {
         Expr.Get get = (Expr.Get) expr;
         return new Expr.Set(get.object, get.name, value);
       } else {
-        Expr.Assign assign = new Expr.Assign(expr, operator.type, value, PUT_LVALUE_KEEP_TOP);
+        Expr.Assign assign = new Expr.Assign(expr, operator.type, value);
         return assign;
       }
 

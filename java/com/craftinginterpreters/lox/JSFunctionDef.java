@@ -239,13 +239,13 @@ public class JSFunctionDef extends Stmt {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
         if (isFuncDecl(vd.varKind)) {
-          bcOut.putOpcode(OP_fclosure);
+          bcOut.emit_op(OP_fclosure);
           bcOut.putU32(vd.funcPoolOrScopeIdx);
-          bcOut.putOpcode(OP_put_loc);
+          bcOut.emit_op(OP_put_loc);
         } else {
-          bcOut.putOpcode(OP_set_loc_uninitialized);
+          bcOut.emit_op(OP_set_loc_uninitialized);
         }
-        bcOut.putU16((short) scopeIdx);
+        bcOut.emit_u16((short) scopeIdx);
         scopeIdx = vd.scope_next;
       } else {
         break;
@@ -277,10 +277,10 @@ public class JSFunctionDef extends Stmt {
           }
 
           if (hf.cpool_idx >= 0 && !hf.is_lexical) {
-            bc.putOpcode(OP_fclosure);
+            bc.emit_op(OP_fclosure);
             bc.putU32(hf.cpool_idx);
-            bc.putOpcode(OP_define_func);
-            bc.putAtom(hf.var_name);
+            bc.emit_op(OP_define_func);
+            bc.emit_atom(hf.var_name);
             bc.putc(flags);
             continue;
           } else {
@@ -290,45 +290,45 @@ public class JSFunctionDef extends Stmt {
                 flags |= JS_PROP_WRITABLE;
               }
             }
-            bc.putOpcode(OP_define_var);
-            bc.putAtom(hf.var_name);
+            bc.emit_op(OP_define_var);
+            bc.emit_atom(hf.var_name);
             bc.putc(flags);
           }
         }
 
         if (hf.cpool_idx >= 0 || force_init) {
           if (hf.cpool_idx >= 0) {
-            bc.putOpcode(OP_fclosure);
+            bc.emit_op(OP_fclosure);
             bc.putU32(hf.cpool_idx);
             if (hf.var_name.getVal() == JS_ATOM__default_.ordinal()) {
               /* set default export function name */
-              bc.putOpcode(OP_set_name);
-              bc.putAtom(hf.var_name);
+              bc.emit_op(OP_set_name);
+              bc.emit_atom(hf.var_name);
             }
           } else {
-            bc.putOpcode(OP_undefined);
+            bc.emit_op(OP_undefined);
           }
           if (s.isGlobalVar) {
             if (has_closure == 2) {
-              bc.putOpcode(OP_put_var_ref);
-              bc.putU16(idx);
+              bc.emit_op(OP_put_var_ref);
+              bc.emit_u16(idx);
             } else if (has_closure == 1) {
-              bc.putOpcode(OP_define_field);
-              bc.putAtom(hf.var_name);
-              bc.putOpcode(OP_drop);
+              bc.emit_op(OP_define_field);
+              bc.emit_atom(hf.var_name);
+              bc.emit_op(OP_drop);
             } else {
               /* XXX: Check if variable is writable and enumerable */
-              bc.putOpcode(OP_put_var);
-              bc.putAtom(hf.var_name);
+              bc.emit_op(OP_put_var);
+              bc.emit_atom(hf.var_name);
             }
           } else {
             var_idx = hf.varIdx;
             if ((var_idx & ARGUMENT_VAR_OFFSET) != 0) {
-              bc.putOpcode(OP_put_arg);
-              bc.putU16(var_idx - ARGUMENT_VAR_OFFSET);
+              bc.emit_op(OP_put_arg);
+              bc.emit_u16(var_idx - ARGUMENT_VAR_OFFSET);
             } else {
-              bc.putOpcode(OP_put_loc);
-              bc.putU16(var_idx);
+              bc.emit_op(OP_put_loc);
+              bc.emit_u16(var_idx);
             }
           }
         }

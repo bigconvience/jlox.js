@@ -101,7 +101,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     expr.accept(this);
 
     DynBuf bc = cur_func.byte_code;
-    bc.putOpcode(OP_print);
+    bc.emit_op(OP_print);
     return null;
   }
 
@@ -126,31 +126,39 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
     JSFunctionDef s = cur_func;
-    OPCodeEnum opCode = null;
 
-    DynBuf bc = cur_func.byte_code;
+
+    DynBuf bc_out = cur_func.byte_code;
+    DynBuf bc_buf = new DynBuf();
     JSVarDefEnum varDef = stmt.varDef;
     Expr initializer = stmt.initializer;
+
+    JSAtom name = stmt.name;
+    int scope = stmt.scope;
     if (initializer != null) {
       initializer.accept(this);
 
       if (varDef == JS_VAR_DEF_VAR) {
-        opCode = OP_scope_make_ref;
-      } else if (varDef == JS_VAR_DEF_LET || varDef == JS_VAR_DEF_CATCH) {
-        opCode = OP_scope_put_var_init;
+
       } else {
-        opCode = OP_scope_put_var;
+        bc_buf.emit_op((varDef == JS_VAR_DEF_LET || varDef == JS_VAR_DEF_CONST)
+          ? OP_scope_put_var_init : OP_scope_put_var);
+        bc_buf.emit_atom(name);
+        bc_buf.emit_u16(scope);
       }
     } else {
       if (varDef == JS_VAR_DEF_LET) {
-        bc.putOpcode(OP_undefined);
+        bc_buf.emit_op(OP_undefined);
+        bc_buf.emit_op(OP_scope_put_var_init);
+        bc_buf.emit_atom(name);
+        bc_buf.emit_u16(scope);
       }
     }
 
+    int op = bc_buf.get_byte(0);
     ctx.resolve_scope_var(s, stmt.name, stmt.scope,
-      opCode.ordinal(), bc,
-      s.byte_code.buf, 0, true,
-      PutLValueEnum.PUT_LVALUE_NOKEEP);
+      op, bc_out,
+      bc_buf, 0, true);
 
     return null;
   }
@@ -170,7 +178,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       value.accept(this);
     }
 
-    s.byte_code.putOpcode(OP_dup);
+    s.byte_code.emit_op(OP_dup);
     Expr left = expr.left;
     left.accept(this);
     return null;
@@ -218,7 +226,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   public Void visitLiteralExpr(Expr.Literal expr) {
     DynBuf db = cur_func.byte_code;
     if (expr.value instanceof JSAtom) {
-      db.putOpcode(OP_push_atom_value);
+      db.emit_op(OP_push_atom_value);
     }
     db.putValue(expr.value);
     return null;
@@ -276,11 +284,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
+    DynBuf bc_buf = new DynBuf();
     JSAtom name = expr.name.ident_atom;
     int scope = expr.scope_level;
     DynBuf bc = cur_func.byte_code;
     ctx.resolve_scope_var(cur_func, name, scope,
-      OP_scope_get_var.ordinal(), bc, bc.buf, 0, true);
+      OP_scope_get_var.ordinal(), bc, bc_buf, 0, true);
     return null;
   }
 
@@ -364,13 +373,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       JSVarDef vd = s.vars.get(scopeIdx);
       if (vd.scope_level == scopeIdx) {
         if (JSFunctionDef.isFuncDecl(vd.varKind)) {
-          bcOut.putOpcode(OP_fclosure);
+          bcOut.emit_op(OP_fclosure);
           bcOut.putU32(vd.funcPoolOrScopeIdx);
-          bcOut.putOpcode(OP_put_loc);
+          bcOut.emit_op(OP_put_loc);
         } else {
-          bcOut.putOpcode(OP_set_loc_uninitialized);
+          bcOut.emit_op(OP_set_loc_uninitialized);
         }
-        bcOut.putU16((short) scopeIdx);
+        bcOut.emit_u16((short) scopeIdx);
         scopeIdx = vd.scope_next;
       } else {
         break;

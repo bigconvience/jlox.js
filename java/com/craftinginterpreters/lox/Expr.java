@@ -33,13 +33,6 @@ abstract class Expr {
       this.value = value;
     }
 
-    public Assign(Expr left, TokenType operator, Expr value, PutLValueEnum putLValueEnum) {
-      this.left = left;
-      this.operator = operator;
-      this.value = value;
-      this.putLValueEnum = putLValueEnum;
-    }
-
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitAssignExpr(this);
@@ -48,8 +41,6 @@ abstract class Expr {
     final Expr left;
     final TokenType operator;
     final Expr value;
-    PutLValueEnum putLValueEnum;
-    OPCodeEnum opCode;
   }
   //< expr-assign
 

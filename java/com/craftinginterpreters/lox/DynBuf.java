@@ -14,6 +14,7 @@ public class DynBuf {
   int size;
   int allocatedSize;
   boolean error;
+  int last_opcode_pos;
 
   private void memcpy(byte[] data, int len) {
     for (int i = 0; i < len; i++) {
@@ -37,7 +38,7 @@ public class DynBuf {
 
     return 0;
   }
-  
+
 
   int put(byte[] data) {
     int len = data.length;
@@ -50,6 +51,10 @@ public class DynBuf {
     memcpy(data, len);
     size += len;
     return 0;
+  }
+
+  int get_byte(int index) {
+    return 0xFF & buf[index];
   }
 
   int putc(int v) {
@@ -71,26 +76,32 @@ public class DynBuf {
     return put(JUtils.intToByteArray(val));
   }
 
-  int putU16(int val) {
-    return putU16((short)val);
+  int emit_u16(int val) {
+    return emit_u16((short) val);
   }
 
-  int putU16(short val) {
+  int emit_u16(short val) {
     return put(shortToByteArray(val));
   }
 
   int putValue(Object val) {
     if (val instanceof JSAtom) {
-      return putAtom((JSAtom) val);
+      return emit_atom((JSAtom) val);
     }
     return 0;
   }
-  int putAtom(JSAtom atom) {
+
+  int emit_atom(JSAtom atom) {
     return putU32(atom.getVal());
   }
 
-  int putOpcode(OPCodeEnum opcode) {
-    byte[] input = {(byte) opcode.ordinal()};
+  int emit_op(OPCodeEnum opCodeEnum) {
+    return emit_op((byte) opCodeEnum.ordinal());
+  }
+
+  int emit_op(byte val) {
+    last_opcode_pos = size;
+    byte[] input = {val};
     return put(input);
   }
 

@@ -57,6 +57,9 @@ public class JUtils {
     return byteArrToInteger(tab, pc);
   }
 
+  static int get_u16(final byte[] tab, int cp) {
+    return 0XFFFF & tab[cp];
+  }
 
   static int get_u8(final byte[] tab, int cp) {
     return 0XFF & tab[cp];

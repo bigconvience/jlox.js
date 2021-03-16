@@ -2,6 +2,8 @@ package com.craftinginterpreters.lox;
 
 import java.util.Arrays;
 
+import static com.craftinginterpreters.lox.OPCodeEnum.OP_label;
+
 /**
  * @author benpeng.jiang
  * @title: DynBuf
@@ -53,6 +55,18 @@ public class DynBuf {
     return 0;
   }
 
+  void remove_last_op() {
+   size = last_opcode_pos;
+   last_opcode_pos = -1;
+  }
+
+  OPCodeEnum get_prev_code() {
+    if (last_opcode_pos < 0) {
+      return OPCodeEnum.OP_invalid;
+    }
+    return OPCodeEnum.values()[get_byte(last_opcode_pos)];
+  }
+
   int get_byte(int index) {
     return 0xFF & buf[index];
   }
@@ -72,7 +86,7 @@ public class DynBuf {
     return put(str.getBytes());
   }
 
-  int putU32(int val) {
+  int emit_u32(int val) {
     return put(JUtils.intToByteArray(val));
   }
 
@@ -92,7 +106,7 @@ public class DynBuf {
   }
 
   int emit_atom(JSAtom atom) {
-    return putU32(atom.getVal());
+    return emit_u32(atom.getVal());
   }
 
   int emit_op(OPCodeEnum opCodeEnum) {
@@ -103,6 +117,18 @@ public class DynBuf {
     last_opcode_pos = size;
     byte[] input = {val};
     return put(input);
+  }
+
+   int emit_label(JSFunctionDef fd, int label)
+  {
+    if (label >= 0) {
+      emit_op(OP_label);
+      emit_u32(label);
+      fd.label_slots.get(label).pos = size;
+      return size - 4;
+    } else {
+      return -1;
+    }
   }
 
 

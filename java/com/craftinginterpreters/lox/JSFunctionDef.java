@@ -30,6 +30,7 @@ public class JSFunctionDef extends Stmt {
   final List<JSFunctionDef> child_list;
 
   final List<JSValue> cpool;
+  final List<LabelSlot> label_slots;
 
 
   JSFunctionDef(JSFunctionDef parent,
@@ -47,6 +48,7 @@ public class JSFunctionDef extends Stmt {
     closureVar = new ArrayList<>();
     child_list = new ArrayList<>();
     cpool = new ArrayList<>();
+    label_slots = new ArrayList<>();
   }
 
   @Override
@@ -240,7 +242,7 @@ public class JSFunctionDef extends Stmt {
       if (vd.scope_level == scopeIdx) {
         if (isFuncDecl(vd.varKind)) {
           bcOut.emit_op(OP_fclosure);
-          bcOut.putU32(vd.funcPoolOrScopeIdx);
+          bcOut.emit_u32(vd.funcPoolOrScopeIdx);
           bcOut.emit_op(OP_put_loc);
         } else {
           bcOut.emit_op(OP_set_loc_uninitialized);
@@ -278,7 +280,7 @@ public class JSFunctionDef extends Stmt {
 
           if (hf.cpool_idx >= 0 && !hf.is_lexical) {
             bc.emit_op(OP_fclosure);
-            bc.putU32(hf.cpool_idx);
+            bc.emit_u32(hf.cpool_idx);
             bc.emit_op(OP_define_func);
             bc.emit_atom(hf.var_name);
             bc.putc(flags);
@@ -299,7 +301,7 @@ public class JSFunctionDef extends Stmt {
         if (hf.cpool_idx >= 0 || force_init) {
           if (hf.cpool_idx >= 0) {
             bc.emit_op(OP_fclosure);
-            bc.putU32(hf.cpool_idx);
+            bc.emit_u32(hf.cpool_idx);
             if (hf.var_name.getVal() == JS_ATOM__default_.ordinal()) {
               /* set default export function name */
               bc.emit_op(OP_set_name);
@@ -340,5 +342,29 @@ public class JSFunctionDef extends Stmt {
   public static boolean isFuncDecl(JSVarKindEnum varKind) {
     return varKind == JSVarKindEnum.JS_VAR_FUNCTION_DECL ||
       varKind == JSVarKindEnum.JS_VAR_NEW_FUNCTION_DECL;
+  }
+
+  int new_label() {
+    return new_label(-1);
+  }
+
+  int update_label(int label, int delta) {
+    LabelSlot ls = label_slots.get(label);
+    ls.ref_count += delta;
+    return ls.ref_count;
+  }
+
+  int new_label(int label) {
+    LabelSlot ls;
+    if (label < 0) {
+      label = label_slots.size();
+      ls = new LabelSlot();
+      label_slots.add(ls);
+      ls.ref_count = 0;
+      ls.pos = -1;
+      ls.pos2 = -1;
+      ls.addr = -1;
+    }
+    return label;
   }
 }

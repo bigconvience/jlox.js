@@ -4,6 +4,8 @@ import java.util.*;
 
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
+import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP;
+import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP_DEPTH;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
@@ -136,11 +138,16 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     JSAtom name = stmt.name;
     int scope = stmt.scope;
     if (initializer != null) {
-      initializer.accept(this);
 
       if (varDef == JS_VAR_DEF_VAR) {
-
+        bc_buf.emit_op(OP_scope_get_var);
+        bc_buf.emit_atom(name);
+        bc_buf.emit_u16(scope);
+        LValue lValue = LValue.get_lvalue(s, bc_buf, false, '=');
+        initializer.accept(this);
+        lValue.put_lvalue(s, bc_buf, lValue, PUT_LVALUE_NOKEEP, false);
       } else {
+        initializer.accept(this);
         bc_buf.emit_op((varDef == JS_VAR_DEF_LET || varDef == JS_VAR_DEF_CONST)
           ? OP_scope_put_var_init : OP_scope_put_var);
         bc_buf.emit_atom(name);
@@ -374,7 +381,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       if (vd.scope_level == scopeIdx) {
         if (JSFunctionDef.isFuncDecl(vd.varKind)) {
           bcOut.emit_op(OP_fclosure);
-          bcOut.putU32(vd.funcPoolOrScopeIdx);
+          bcOut.emit_u32(vd.funcPoolOrScopeIdx);
           bcOut.emit_op(OP_put_loc);
         } else {
           bcOut.emit_op(OP_set_loc_uninitialized);

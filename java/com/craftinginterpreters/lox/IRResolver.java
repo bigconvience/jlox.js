@@ -126,7 +126,7 @@ JSContext ctx;
         case OP_scope_put_var_init:
           var_name = new JSAtom(get_u32(bc_buf, pos + 1));
           scope = get_u16(bc_buf, pos + 5);
-          pos_next = resolve_scope_var(ctx, s, var_name, scope, op, bc_out,
+          pos_next = ScopeVarResolver.resolve_scope_var(ctx, s, var_name, scope, op, bc_out,
             null, null, pos_next, arg_valid);
 
           break;
@@ -139,7 +139,7 @@ JSContext ctx;
           scope = get_u16(bc_buf, pos + 9);
           ls = s.label_slots.get(label);
           ls.ref_count--;  /* always remove label reference */
-          pos_next = resolve_scope_var(ctx, s, var_name, scope, op, bc_out,
+          pos_next = ScopeVarResolver.resolve_scope_var(ctx, s, var_name, scope, op, bc_out,
             bc_buf, ls, pos_next, arg_valid);
           
         }
@@ -312,121 +312,6 @@ break;
     s.byte_code = bc_out;
   }
 
-
-  static int resolve_scope_var(JSContext ctx, JSFunctionDef s,
-                               JSAtom var_name, int scope_level, int op,
-                               DynBuf bc, byte[] bc_buf,
-                               LabelSlot ls, int pos_next, int arg_valid) {
-    int var_idx = -1;
-    JSFunctionDef fd = s;
-    JSVarDef vd;
-    for (int idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
-      vd = fd.vars.get(idx);
-      if (vd.var_name.equals(var_name)) {
-
-        var_idx = idx;
-        break;
-      } else {
-
-      }
-      idx = vd.scope_next;
-    }
-
-    OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
-
-    /* global variable access */
-    switch (opCodeEnum) {
-      case OP_scope_make_ref:
-        optimize_scope_make_global_ref(ctx, s, bc, bc_buf, ls, pos_next, var_name);
-        break;
-      case OP_scope_get_var_undef:
-      case OP_scope_get_var:
-      case OP_scope_put_var:
-        bc.dbuf_putc(OPCodeEnum.values()[OP_get_var_undef.ordinal() + (op - OP_scope_get_var_undef.ordinal())]);
-        bc.put_atom(var_name);
-        break;
-      case OP_scope_put_var_init:
-        bc.dbuf_putc(OP_put_var_init);
-        bc.put_atom(var_name);
-        break;
-      default:
-        break;
-    }
-
-    return var_idx;
-  }
-
-
-
-  static int optimize_scope_make_global_ref(JSContext ctx, JSFunctionDef s,
-                                            DynBuf bc, byte[] bc_buf,
-                                            LabelSlot ls, int pos_next,
-                                            JSAtom var_name)
-  {
-    int label_pos, end_pos, pos;
-    OPCodeEnum op;
-    boolean is_strict;
-    is_strict = false;
-
-    /* replace the reference get/put with normal variable
-       accesses */
-    if (is_strict) {
-        /* need to check if the variable exists before evaluating the right
-           expression */
-      /* XXX: need an extra OP_true if destructuring an array */
-      bc.dbuf_putc(OP_check_var);
-      bc.dbuf_put_u32(var_name);
-    } else {
-      /* XXX: need 2 extra OP_true if destructuring an array */
-    }
-    if (get_opcode(bc_buf, pos_next) == OP_get_ref_value) {
-      bc.dbuf_putc(OP_get_var);
-      bc.dbuf_put_u32(var_name);
-      pos_next++;
-    }
-    /* remove the OP_label to make room for replacement */
-    /* label should have a refcount of 0 anyway */
-    /* XXX: should have emitted several OP_nop to avoid this kludge */
-    label_pos = ls.pos;
-    pos = label_pos - 5;
-    assert(get_opcode(bc_buf, pos) == OP_label);
-    end_pos = label_pos + 2;
-    op = get_opcode(bc_buf, label_pos);
-    if (is_strict) {
-      if (op != OP_nop) {
-        switch(op) {
-          case OP_insert3:
-            op = OP_insert2;
-            break;
-          case OP_perm4:
-            op = OP_perm3;
-            break;
-          case OP_rot3l:
-            op = OP_swap;
-            break;
-          default:
-          break;
-        }
-        put_u8(bc_buf, pos++, op);
-      }
-    } else {
-      if (op == OP_insert3)
-        put_u8(bc_buf, pos++, OP_dup);
-    }
-    if (is_strict) {
-      put_u8(bc_buf, pos++, OP_put_var_strict);
-      /* XXX: need 1 extra OP_drop if destructuring an array */
-    } else {
-      put_u8(bc_buf, pos++, OP_put_var);
-      /* XXX: need 2 extra OP_drop if destructuring an array */
-    }
-    put_u32(bc_buf, pos + 1, var_name);
-    pos += 5;
-    /* pad with OP_nop */
-    while (pos < end_pos)
-      put_u8(bc_buf, pos++, OP_nop);
-    return pos_next;
-  }
 
 
   void mark_eval_captured_variables(JSContext ctx, JSFunctionDef s,

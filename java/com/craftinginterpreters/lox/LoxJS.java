@@ -22,6 +22,10 @@ public class LoxJS {
   public static final int JS_EVAL_TYPE_INDIRECT = 3;
   public static final int JS_EVAL_TYPE_MASK = 3;
 
+  public static final int JS_MODE_STRICT = (1 << 0);
+  public static final int JS_MODE_STRIP  = (1 << 1);
+  public static final int JS_MODE_MATH   = (1 << 2);
+
   public static int evalFile(JSContext ctx, String filename, boolean module) throws IOException {
     int ret, evalFlags;
     byte[] bytes = Files.readAllBytes(Paths.get(filename));

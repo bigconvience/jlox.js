@@ -6,10 +6,10 @@ import static com.craftinginterpreters.lox.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.TokenType.*;
+import static com.craftinginterpreters.lox.JSVarDef.*;
 
 class Parser {
-  static final int GLOBAL_VAR_OFFSET = 0x40000000;
-  static final int ARGUMENT_VAR_OFFSET = 0x20000000;
+
 
   private static class ParseError extends RuntimeException {
   }
@@ -259,12 +259,12 @@ class Parser {
           }
         }
 
-        if (fd.isEval &&
+        if (fd.is_eval &&
           (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL ||
             fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE)
           && fd.scope_level == 1) {
           hf = fd.addHoistedDef(-1, varName, -1, true);
-          hf.isConst = varDefType == JS_VAR_DEF_CONST;
+          hf.is_const = varDefType == JS_VAR_DEF_CONST;
           idx = GLOBAL_VAR_OFFSET;
         } else {
           JSVarKindEnum varKind;
@@ -274,11 +274,11 @@ class Parser {
             varKind = JS_VAR_NEW_FUNCTION_DECL;
           else
             varKind = JS_VAR_NORMAL;
-          idx = fd.addScopeVar(varName, varKind);
+          idx = JSVarDef.add_scope_var(ctx, fd, varName, varKind);
           vd = fd.vars.get(idx);
           if (vd != null) {
             vd.is_lexical = true;
-            vd.isConst = varDefType == JS_VAR_DEF_CONST;
+            vd.is_const = varDefType == JS_VAR_DEF_CONST;
           }
         }
         break;
@@ -303,7 +303,7 @@ class Parser {
             if (idx >= 0) {
               break;
             }
-            idx = fd.addVar(varName);
+            idx = JSVarDef.add_var(ctx, fd, varName);
             if (idx >= 0) {
               vd = fd.vars.get(idx);
               vd.func_pool_or_scope_idx = fd.scope_level;

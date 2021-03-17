@@ -63,6 +63,10 @@ public class DynBuf {
     return 0xFF & buf[index];
   }
 
+  static int dbuf_putc(DynBuf bc, int val) {
+    return bc.dbuf_putc(val);
+  }
+
   int dbuf_putc(int v) {
     byte input = (byte) v;
     return dbuf_putc(input);
@@ -86,6 +90,10 @@ public class DynBuf {
   int dbuf_put_u32(int val) {
     byte[] input = JUtils.intToByteArray(val);
     return dbuf_put(input);
+  }
+
+  static int dbuf_put_u16(DynBuf bc, int val) {
+    return bc.dbuf_put_u16((short) val);
   }
 
   int dbuf_put_u16(int val) {

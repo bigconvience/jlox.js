@@ -82,6 +82,12 @@ public class JUtils {
     return OPCodeEnum.values()[get_u8(tab, pc)];
   }
 
+  static void put_u16(final byte[] tab, int pos, int val) {
+    tab[pos + 0] =  (byte) ((val >> 8)  & 0xFF);
+    tab[pos + 1] =  (byte) (val & 0xFF);
+  }
+
+
   static int get_u16(final byte[] tab, int cp) {
     return 0XFFFF & tab[cp];
   }

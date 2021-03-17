@@ -76,7 +76,7 @@ public class LValue {
      /* get the value but keep the object/fields on the stack */
      switch(opcode) {
        case OP_scope_get_var:
-         label = fd.new_label();
+         label = fd.new_label_fd();
          s.emit_op(OP_scope_make_ref);
          s.emit_u32(name);
          s.emit_u32(label);
@@ -111,7 +111,7 @@ public class LValue {
    } else {
      switch(opcode) {
        case OP_scope_get_var:
-         label = fd.new_label();
+         label = fd.new_label_fd();
          s.emit_op( OP_scope_make_ref);
          s.emit_u32(name);
          s.emit_u32(label);

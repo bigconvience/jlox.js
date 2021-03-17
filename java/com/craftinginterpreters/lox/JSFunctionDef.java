@@ -7,11 +7,12 @@ import java.util.Map;
 
 import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__default_;
 import static com.craftinginterpreters.lox.JSContext.DEFINE_GLOBAL_LEX_VAR;
+import static com.craftinginterpreters.lox.JSVarDef.ARGUMENT_VAR_OFFSET;
 import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_CONFIGURABLE;
 import static com.craftinginterpreters.lox.JS_PROP.JS_PROP_WRITABLE;
 import static com.craftinginterpreters.lox.LoxJS.JS_EVAL_TYPE_GLOBAL;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
-import static com.craftinginterpreters.lox.Parser.ARGUMENT_VAR_OFFSET;
+
 
 /**
  * @author benpeng.jiang
@@ -39,7 +40,7 @@ public class JSFunctionDef extends Stmt {
 
   final List<JSVarScope> scopes;
   int scope_level;
-  int scopeFirst;
+  int scope_first;
 
   final Map<String, JSVarDef> varDefMap;
   final List<JSVarDef> vars;
@@ -49,11 +50,11 @@ public class JSFunctionDef extends Stmt {
   final Map<String, JSHoistedDef> hoistDef;
   Stmt.Block body;
   int eval_type;
-  boolean isEval;
+  boolean is_eval;
   boolean is_global_var;
   JSVarScope curScope;
   DynBuf byte_code;
-
+  byte js_mode;
   JSAtom func_name;
 
   List<JumpSlot> jump_slots;
@@ -66,10 +67,23 @@ public class JSFunctionDef extends Stmt {
   int line_number_last;
   int line_number_last_pc;
 
+  int var_object_idx;
+  int func_var_idx;
+  boolean has_arguments_binding;
+  boolean is_func_expr;
+  boolean has_this_binding;
+  boolean is_derived_class_constructor;
+
+  int arguments_var_idx;
+  int home_object_var_idx;
+  int this_active_func_var_idx;
+  int new_target_var_idx;
+  int this_var_idx;
+
   JSFunctionDef(JSFunctionDef parent,
-                boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
+                boolean is_eval, boolean isFuncExpr, String filename, int lineNum) {
     this.parent = parent;
-    this.isEval = isEval;
+    this.is_eval = is_eval;
 
     params = new ArrayList<>();
     varDefMap = new HashMap<>();
@@ -92,28 +106,8 @@ public class JSFunctionDef extends Stmt {
   }
 
 
-  void addVarDef(String name, JSVarDef varDef) {
-    varDefMap.put(name, varDef);
-  }
-
-  JSVarDef getVarDef(String name) {
-    return varDefMap.get(name);
-  }
-
-
-  JSVarDef getArgDef(String name) {
-    return varDefMap.get(name);
-  }
-
   JSHoistedDef findHoistedDef(Token name) {
     return hoistDef.get(name.lexeme);
-  }
-
-  JSHoistedDef addHoistedDef(Token name) {
-    JSHoistedDef hoistedDef = new JSHoistedDef();
-    hoistedDef.name = name;
-    hoistDef.put(name.lexeme, hoistedDef);
-    return hoistedDef;
   }
 
   int getScopeCount() {
@@ -138,7 +132,7 @@ public class JSFunctionDef extends Stmt {
       scope = scope.prev;
     }
 
-    if (isEval && eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL) {
+    if (is_eval && eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL) {
       return findLexicalHoistedDef(varName);
     }
     return null;
@@ -198,26 +192,6 @@ public class JSFunctionDef extends Stmt {
     return hf;
   }
 
-  public int addScopeVar(JSAtom varName, JSVarKindEnum varKind) {
-    int idx = addVar(varName);
-    if (idx >= 0) {
-      JSVarDef vd = vars.get(idx);
-      vd.var_kind = varKind;
-      vd.scope_level = scope_level;
-      vd.scope_next = scopeFirst;
-      curScope.first = idx;
-      scopeFirst = idx;
-    }
-
-    return idx;
-  }
-
-  public int addVar(JSAtom varName) {
-    JSVarDef vd = new JSVarDef();
-    vars.add(vd);
-    vd.var_name = varName;
-    return vars.size() - 1;
-  }
 
   public int findVar(JSAtom varName) {
     for (int i = 0; i < vars.size(); i++) {
@@ -234,7 +208,7 @@ public class JSFunctionDef extends Stmt {
     for (int i = 0; i < args.size(); i++) {
       JSVarDef vd = args.get(i);
       if (vd.var_name.equals(varName)) {
-        return i | Parser.ARGUMENT_VAR_OFFSET;
+        return i | ARGUMENT_VAR_OFFSET;
       }
     }
     return -1;
@@ -297,7 +271,7 @@ public class JSFunctionDef extends Stmt {
           } else {
             if (hf.is_lexical) {
               flags |= DEFINE_GLOBAL_LEX_VAR;
-              if (!hf.isConst) {
+              if (!hf.is_const) {
                 flags |= JS_PROP_WRITABLE;
               }
             }
@@ -353,8 +327,8 @@ public class JSFunctionDef extends Stmt {
       varKind == JSVarKindEnum.JS_VAR_NEW_FUNCTION_DECL;
   }
 
-  int new_label() {
-    return new_label(-1);
+  int new_label_fd() {
+    return new_label_fd(-1);
   }
 
   int update_label(int label, int delta) {
@@ -363,7 +337,7 @@ public class JSFunctionDef extends Stmt {
     return ls.ref_count;
   }
 
-  int new_label(int label) {
+  int new_label_fd(int label) {
     LabelSlot ls;
     if (label < 0) {
       label = label_slots.size();

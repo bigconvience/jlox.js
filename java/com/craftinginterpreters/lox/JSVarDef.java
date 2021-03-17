@@ -24,8 +24,8 @@ public class JSVarDef {
   int func_pool_or_scope_idx;
   boolean isGlobalVar;
   int cpool_idx;
-  int varIdx;
-  boolean forceInit;
+  int var_idx;
+  boolean force_init;
   boolean is_captured;
   boolean is_func_var;
 

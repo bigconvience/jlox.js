@@ -63,6 +63,10 @@ public class DynBuf {
     return 0xFF & buf[index];
   }
 
+  static int dbuf_putc(DynBuf bc, OPCodeEnum val) {
+    return dbuf_putc(bc, val.ordinal());
+  }
+
   static int dbuf_putc(DynBuf bc, int val) {
     return bc.dbuf_putc(val);
   }
@@ -85,6 +89,18 @@ public class DynBuf {
 
   int dbuf_put_u32(JSAtom val) {
     return dbuf_put_u32(val.getVal());
+  }
+
+  static int dbuf_put_u32(DynBuf bc, int val) {
+    return bc.dbuf_put_u32(val);
+  }
+
+  static int dbuf_put_u32(DynBuf bc, JSAtom val) {
+    return bc.dbuf_put_u32(val);
+  }
+
+  static int dbuf_put_u32(DynBuf bc, JSAtomEnum val) {
+    return bc.dbuf_put_u32(val.toJSAtom());
   }
 
   int dbuf_put_u32(int val) {

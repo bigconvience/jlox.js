@@ -1,16 +1,14 @@
 package com.craftinginterpreters.lox;
 
-import static com.craftinginterpreters.lox.DynBuf.*;
+import static com.craftinginterpreters.lox.DynBuf.dbuf_put_u16;
+import static com.craftinginterpreters.lox.DynBuf.dbuf_putc;
 import static com.craftinginterpreters.lox.JSAtomEnum.*;
 import static com.craftinginterpreters.lox.JSContext.JS_MAX_LOCAL_VARS;
+import static com.craftinginterpreters.lox.JSThrower.*;
 import static com.craftinginterpreters.lox.JSVarDef.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.JS_VAR_NORMAL;
 import static com.craftinginterpreters.lox.JUtils.*;
-import static com.craftinginterpreters.lox.JUtils.put_u8;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
-import static com.craftinginterpreters.lox.JSThrower.*;
-import static com.craftinginterpreters.lox.JSVarDef.*;
-import static com.craftinginterpreters.lox.PrintUtils.printf;
 
 /**
  * @author benpeng.jiang
@@ -214,45 +212,44 @@ public class ScopeVarResolver {
                to be visible, should refine this method.
              */
         var_idx = find_arg(ctx, fd, var_name);
-            goto check_idx;
-      }
-      for (idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
-        vd = fd.vars.get(idx);
-        if (vd.var_name == var_name) {
-          if (op == OP_scope_put_var.ordinal() || op == OP_scope_make_ref.ordinal()) {
-            if (vd.is_const) {
-              bc.dbuf_putc(OP_throw_var);
-              bc.dbuf_put_u32(var_name);
-              bc.dbuf_putc(JS_THROW_VAR_RO);
-              on_resolve_done(label_done, bc, s);
-              return pos_next;
+      } else {
+        for (idx = fd.scopes.get(scope_level).first; idx >= 0; ) {
+          vd = fd.vars.get(idx);
+          if (vd.var_name == var_name) {
+            if (op == OP_scope_put_var.ordinal() || op == OP_scope_make_ref.ordinal()) {
+              if (vd.is_const) {
+                bc.dbuf_putc(OP_throw_var);
+                bc.dbuf_put_u32(var_name);
+                bc.dbuf_putc(JS_THROW_VAR_RO);
+                on_resolve_done(label_done, bc, s);
+                return pos_next;
+              }
+              is_func_var = vd.is_func_var;
             }
-            is_func_var = vd.is_func_var;
+            var_idx = idx;
+            break;
+          } else if (vd.var_name == JS_ATOM__with_.toJSAtom() && !is_pseudo_var) {
+            vd.is_captured = true;
+            idx = get_closure_var(ctx, s, fd, false, idx, vd.var_name, false, false, JS_VAR_NORMAL);
+            if (idx >= 0) {
+              bc.dbuf_putc(OP_get_var_ref);
+              dbuf_put_u16(bc, idx);
+              bc.dbuf_putc(get_with_scope_opcode(op));
+              bc.dbuf_put_u32(var_name);
+              label_done = s.new_label_fd(label_done);
+              bc.dbuf_put_u32(label_done);
+              bc.dbuf_putc(1);
+              s.update_label(label_done, 1);
+              s.jump_size++;
+            }
           }
-          var_idx = idx;
-          break;
-        } else if (vd.var_name == JS_ATOM__with_.toJSAtom() && !is_pseudo_var) {
-          vd.is_captured = true;
-          idx = get_closure_var(ctx, s, fd, false, idx, vd.var_name, false, false, JS_VAR_NORMAL);
-          if (idx >= 0) {
-            bc.dbuf_putc(OP_get_var_ref);
-            dbuf_put_u16(bc, idx);
-            bc.dbuf_putc(get_with_scope_opcode(op));
-            bc.dbuf_put_u32(var_name);
-            label_done = s.new_label_fd(label_done);
-            bc.dbuf_put_u32(label_done);
-            bc.dbuf_putc(1);
-            s.update_label(label_done, 1);
-            s.jump_size++;
-          }
+          idx = vd.scope_next;
         }
-        idx = vd.scope_next;
-      }
-      if (var_idx >= 0)
-        break;
+        if (var_idx >= 0)
+          break;
 
-      var_idx = find_var(ctx, fd, var_name);
-      check_idx:
+        var_idx = find_var(ctx, fd, var_name);
+      }
       if (var_idx >= 0) {
         if ((var_idx & ARGUMENT_VAR_OFFSET) == 0)
           is_func_var = fd.vars.get(var_idx).is_func_var;
@@ -313,7 +310,7 @@ public class ScopeVarResolver {
           } else {
             idx = idx1;
           }
-                goto has_idx;
+          return on_has_idx(ctx, opCode, s, bc, var_name, idx, label_done, is_func_var, pos_next, bc_buf, ls);
         } else if ((cv.var_name == JS_ATOM__var_.toJSAtom() ||
           cv.var_name == JS_ATOM__with_.toJSAtom()) && !is_pseudo_var) {
           int is_with = (cv.var_name == JS_ATOM__with_.toJSAtom()) ? 1 : 0;
@@ -356,84 +353,7 @@ public class ScopeVarResolver {
           fd.vars.get(var_idx).var_kind);
       }
       if (idx >= 0) {
-        has_idx:
-        if ((op == OP_scope_put_var.ordinal() || op == OP_scope_make_ref.ordinal()) &&
-          s.closure_var.get(idx).is_const) {
-          bc.dbuf_putc(OP_throw_var);
-          bc.dbuf_put_u32(var_name);
-          bc.dbuf_putc(JS_THROW_VAR_RO);
-          on_resolve_done(label_done, bc, s);
-          return pos_next;
-        }
-        switch (opCode) {
-          case OP_scope_make_ref:
-            if (is_func_var) {
-              /* Create a dummy object reference for the func_var */
-              bc.dbuf_putc(OP_object);
-              bc.dbuf_putc(OP_get_var_ref);
-              dbuf_put_u16(bc, idx);
-              bc.dbuf_putc(OP_define_field);
-              bc.dbuf_put_u32(var_name);
-              bc.dbuf_putc(OP_push_atom_value);
-              bc.dbuf_put_u32(var_name);
-            } else if (label_done == -1 &&
-              can_opt_put_ref_value(bc_buf, ls.pos)) {
-              int get_op;
-              if (s.closure_var.get(idx).is_lexical)
-                get_op = OP_get_var_ref_check.ordinal();
-              else
-                get_op = OP_get_var_ref.ordinal();
-              pos_next = optimize_scope_make_ref(ctx, s, bc, bc_buf, ls,
-                pos_next,
-                get_op, idx);
-            } else {
-                    /* Create a dummy object with a named slot that is
-                       a reference to the closure variable */
-              bc.dbuf_putc(OP_make_var_ref_ref);
-              bc.dbuf_put_u32(var_name);
-              dbuf_put_u16(bc, idx);
-            }
-            break;
-          case OP_scope_get_ref:
-                /* XXX: should create a dummy object with a named slot that is
-                   a reference to the closure variable */
-            bc.dbuf_putc(OP_undefined);
-            /* fall thru */
-          case OP_scope_get_var_undef:
-          case OP_scope_get_var:
-          case OP_scope_put_var:
-          case OP_scope_put_var_init:
-            is_put = (op == OP_scope_put_var.ordinal() ||
-              op == OP_scope_put_var_init.ordinal());
-            if (is_put) {
-              if (s.closure_var.get(idx).is_lexical) {
-                if (op == OP_scope_put_var_init.ordinal()) {
-                  /* 'this' can only be initialized once */
-                  if (var_name == JS_ATOM_this.toJSAtom())
-                    bc.dbuf_putc(OP_put_var_ref_check_init);
-                  else
-                    bc.dbuf_putc(OP_put_var_ref);
-                } else {
-                  bc.dbuf_putc(OP_put_var_ref_check);
-                }
-              } else {
-                bc.dbuf_putc(OP_put_var_ref);
-              }
-            } else {
-              if (s.closure_var.get(idx).is_lexical) {
-                bc.dbuf_putc(OP_get_var_ref_check);
-              } else {
-                bc.dbuf_putc(OP_get_var_ref);
-              }
-            }
-            dbuf_put_u16(bc, idx);
-            break;
-          case OP_scope_delete_var:
-            bc.dbuf_putc(OP_push_false);
-            break;
-        }
-        on_resolve_done(label_done, bc, s);
-        return pos_next;
+        return on_has_idx(ctx, opCode, s, bc, var_name, idx, label_done, is_func_var, pos_next, bc_buf, ls);
       }
     }
 
@@ -474,6 +394,88 @@ public class ScopeVarResolver {
     return pos_next;
   }
 
+  private static int on_has_idx(JSContext ctx, OPCodeEnum opCode, JSFunctionDef s, DynBuf bc, JSAtom var_name,
+                                int idx, int label_done, boolean is_func_var, int pos_next, byte[] bc_buf,
+                                LabelSlot ls) {
+    if ((opCode == OP_scope_put_var || opCode == OP_scope_make_ref) &&
+      s.closure_var.get(idx).is_const) {
+      bc.dbuf_putc(OP_throw_var);
+      bc.dbuf_put_u32(var_name);
+      bc.dbuf_putc(JS_THROW_VAR_RO);
+      on_resolve_done(label_done, bc, s);
+      return pos_next;
+    }
+    switch (opCode) {
+      case OP_scope_make_ref:
+        if (is_func_var) {
+          /* Create a dummy object reference for the func_var */
+          bc.dbuf_putc(OP_object);
+          bc.dbuf_putc(OP_get_var_ref);
+          dbuf_put_u16(bc, idx);
+          bc.dbuf_putc(OP_define_field);
+          bc.dbuf_put_u32(var_name);
+          bc.dbuf_putc(OP_push_atom_value);
+          bc.dbuf_put_u32(var_name);
+        } else if (label_done == -1 &&
+          can_opt_put_ref_value(bc_buf, ls.pos)) {
+          int get_op;
+          if (s.closure_var.get(idx).is_lexical)
+            get_op = OP_get_var_ref_check.ordinal();
+          else
+            get_op = OP_get_var_ref.ordinal();
+          pos_next = optimize_scope_make_ref(ctx, s, bc, bc_buf, ls,
+            pos_next,
+            get_op, idx);
+        } else {
+                    /* Create a dummy object with a named slot that is
+                       a reference to the closure variable */
+          bc.dbuf_putc(OP_make_var_ref_ref);
+          bc.dbuf_put_u32(var_name);
+          dbuf_put_u16(bc, idx);
+        }
+        break;
+      case OP_scope_get_ref:
+                /* XXX: should create a dummy object with a named slot that is
+                   a reference to the closure variable */
+        bc.dbuf_putc(OP_undefined);
+        /* fall thru */
+      case OP_scope_get_var_undef:
+      case OP_scope_get_var:
+      case OP_scope_put_var:
+      case OP_scope_put_var_init:
+        boolean is_put = (opCode == OP_scope_put_var ||
+          opCode == OP_scope_put_var_init);
+        if (is_put) {
+          if (s.closure_var.get(idx).is_lexical) {
+            if (opCode == OP_scope_put_var_init) {
+              /* 'this' can only be initialized once */
+              if (var_name == JS_ATOM_this.toJSAtom())
+                bc.dbuf_putc(OP_put_var_ref_check_init);
+              else
+                bc.dbuf_putc(OP_put_var_ref);
+            } else {
+              bc.dbuf_putc(OP_put_var_ref_check);
+            }
+          } else {
+            bc.dbuf_putc(OP_put_var_ref);
+          }
+        } else {
+          if (s.closure_var.get(idx).is_lexical) {
+            bc.dbuf_putc(OP_get_var_ref_check);
+          } else {
+            bc.dbuf_putc(OP_get_var_ref);
+          }
+        }
+        dbuf_put_u16(bc, idx);
+        break;
+      case OP_scope_delete_var:
+        bc.dbuf_putc(OP_push_false);
+        break;
+    }
+    on_resolve_done(label_done, bc, s);
+    return pos_next;
+  }
+
   private static void on_resolve_done(int label_done, DynBuf bc, JSFunctionDef s) {
     if (label_done >= 0) {
       bc.dbuf_putc(OP_label);
@@ -486,8 +488,7 @@ public class ScopeVarResolver {
                              boolean is_local, boolean is_arg,
                              int var_idx, JSAtom var_name,
                              boolean is_const, boolean is_lexical,
-                             JSVarKindEnum var_kind)
-  {
+                             JSVarKindEnum var_kind) {
     JSClosureVar cv = new JSClosureVar();
 
     /* the closure variable indexes are currently stored on 16 bits */
@@ -509,10 +510,9 @@ public class ScopeVarResolver {
   }
 
   static int find_closure_var(JSContext ctx, JSFunctionDef s,
-                              JSAtom var_name)
-  {
+                              JSAtom var_name) {
     int i;
-    for(i = 0; i < s.closure_var.size(); i++) {
+    for (i = 0; i < s.closure_var.size(); i++) {
       JSClosureVar cv = s.closure_var.get(i);
       if (cv.var_name == var_name)
         return i;
@@ -527,8 +527,7 @@ public class ScopeVarResolver {
                               JSFunctionDef fd, boolean is_local,
                               boolean is_arg, int var_idx, JSAtom var_name,
                               boolean is_const, boolean is_lexical,
-                              JSVarKindEnum var_kind)
-  {
+                              JSVarKindEnum var_kind) {
     int i;
 
     if (fd != s.parent) {
@@ -539,7 +538,7 @@ public class ScopeVarResolver {
         return -1;
       is_local = false;
     }
-    for(i = 0; i < s.closure_var.size(); i++) {
+    for (i = 0; i < s.closure_var.size(); i++) {
       JSClosureVar cv = s.closure_var.get(i);
       if (cv.var_idx == var_idx && cv.is_arg == is_arg &&
         cv.is_local == is_local)
@@ -548,53 +547,48 @@ public class ScopeVarResolver {
     return add_closure_var(ctx, s, is_local, is_arg, var_idx, var_name,
       is_const, is_lexical, var_kind);
   }
-  
-  
+
+
   static int get_closure_var(JSContext ctx, JSFunctionDef s,
                              JSFunctionDef fd, boolean is_arg,
                              int var_idx, JSAtom var_name,
                              boolean is_const, boolean is_lexical,
-                             JSVarKindEnum var_kind)
-  {
+                             JSVarKindEnum var_kind) {
     return get_closure_var2(ctx, s, fd, true, is_arg,
       var_idx, var_name, is_const, is_lexical,
       var_kind);
   }
 
 
-  static int get_with_scope_opcode(int op)
-  {
+  static int get_with_scope_opcode(int op) {
     if (op == OP_scope_get_var_undef.ordinal())
       return OP_with_get_var.ordinal();
     else
       return OP_with_get_var.ordinal() + (op - OP_scope_get_var.ordinal());
   }
 
-  static boolean can_opt_put_ref_value(final byte[] bc_buf, int pos)
-  {
-    int opcode = bc_buf[pos];
-    return (bc_buf[pos + 1] == OP_put_ref_value.ordinal() &&
-      (opcode == OP_insert3.ordinal() ||
-        opcode == OP_perm4.ordinal() ||
-        opcode == OP_nop.ordinal() ||
-        opcode == OP_rot3l.ordinal()));
+  static boolean can_opt_put_ref_value(final byte[] bc_buf, int pos) {
+    OPCodeEnum opcode = JUtils.get_opcode(bc_buf, pos);
+    return (JUtils.get_opcode(bc_buf, pos + 1) == OP_put_ref_value &&
+      (opcode == OP_insert3 ||
+        opcode == OP_perm4 ||
+        opcode == OP_nop ||
+        opcode == OP_rot3l));
   }
 
-  static boolean can_opt_put_global_ref_value(final byte[] bc_buf, int pos)
-  {
-    int opcode = bc_buf[pos];
-    return (bc_buf[pos + 1] == OP_put_ref_value.ordinal() &&
-      (opcode == OP_insert3.ordinal() ||
-        opcode == OP_perm4.ordinal() ||
-        opcode == OP_nop.ordinal() ||
-        opcode == OP_rot3l.ordinal()));
+  static boolean can_opt_put_global_ref_value(final byte[] bc_buf, int pos) {
+    OPCodeEnum opcode = JUtils.get_opcode(bc_buf, pos);
+    return (JUtils.get_opcode(bc_buf, pos + 1) == OP_put_ref_value &&
+      (opcode == OP_insert3 ||
+        opcode == OP_perm4 ||
+        opcode == OP_nop ||
+        opcode == OP_rot3l));
   }
 
   static int optimize_scope_make_ref(JSContext ctx, JSFunctionDef s,
                                      DynBuf bc, byte[] bc_buf,
                                      LabelSlot ls, int pos_next,
-                                     int get_op, int var_idx)
-  {
+                                     int get_op, int var_idx) {
     int label_pos, end_pos, pos;
 
     /* XXX: should optimize `loc(a) += expr` as `expr add_loc(a)`
@@ -625,7 +619,7 @@ public class ScopeVarResolver {
     if (get_opcode(bc_buf, label_pos) == OP_insert3)
       put_u8(bc_buf, pos++, OP_dup);
     put_u8(bc_buf, pos, get_op + 1);
-    put_u16(bc_buf,  pos + 1, var_idx);
+    put_u16(bc_buf, pos + 1, var_idx);
     pos += 3;
     /* pad with OP_nop */
     while (pos < end_pos)
@@ -704,14 +698,13 @@ public class ScopeVarResolver {
   }
 
   static int resolve_pseudo_var(JSContext ctx, JSFunctionDef s,
-                                JSAtom var_name)
-  {
+                                JSAtom var_name) {
     int var_idx;
 
     if (!s.has_this_binding)
       return -1;
     JSAtomEnum atomEnum = JSAtomEnum.values()[var_name.getVal()];
-    switch(atomEnum) {
+    switch (atomEnum) {
       case JS_ATOM_home_object:
         /* 'home_object' pseudo variable */
         var_idx = s.home_object_var_idx = add_var(ctx, s, var_name);

@@ -334,7 +334,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       declare(param);
       define(param);
     }
-    function.instantiate_hoisted_definitions(function.byte_code);
+
     resolve(function.body);
     enter_scope(function, 1, null);
     endScope();
@@ -379,7 +379,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   private void enter_scope(JSFunctionDef s, int scope, DynBuf bcOut) {
     if (scope == 1) {
-      s.instantiate_hoisted_definitions(bcOut);
+
     }
 
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {

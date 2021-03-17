@@ -93,7 +93,8 @@ JSContext ctx;
       op = Byte.toUnsignedInt(bc_buf[pos]);
       len = opcode_info.get(op).size;
       pos_next = pos + len;
-      switch(OPCodeEnum.values()[op]) {
+      OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
+      switch(opCodeEnum) {
         case OP_line_num:
           line_num = get_u32(bc_buf, pos + 1);
           s.line_number_size++;
@@ -205,7 +206,7 @@ break;
           scope = get_u16(bc_buf, pos + 1);
 
           if (scope == 1) {
-            s.instantiate_hoisted_definitions(bc_out);
+            JSHoistedDef.instantiate_hoisted_definitions(ctx, fd, bc_out);
           }
 
           for(scope_idx = s.scopes.get(scope).first; scope_idx >= 0;) {
@@ -282,7 +283,7 @@ break;
           break;
 
         default:
-          no_change:
+
           bc_out.dbuf_put(bc_buf, pos, len);
           break;
       }

@@ -67,7 +67,7 @@ public class JSFunctionDef extends Stmt {
   int line_number_last;
   int line_number_last_pc;
 
-  int var_object_idx;
+  int var_object_idx = -1;
   int func_var_idx;
   boolean has_arguments_binding;
   boolean is_func_expr;
@@ -186,8 +186,8 @@ public class JSFunctionDef extends Stmt {
     hf.var_name = varName;
     hf.cpool_idx = cpoolIdx;
     hf.is_lexical = isLexical;
-    hf.forceInit = false;
-    hf.varIdx = varIdx;
+    hf.force_init = false;
+    hf.var_idx = varIdx;
     hf.scope_level = scope_level;
     return hf;
   }
@@ -217,7 +217,7 @@ public class JSFunctionDef extends Stmt {
   void enter_scope(int scope, DynBuf bcOut) {
     JSFunctionDef s = this;
     if (scope == 1) {
-      instantiate_hoisted_definitions(bcOut);
+
     }
 
     for (int scopeIdx = s.scopes.get(scope).first; scopeIdx >= 0; ) {
@@ -245,7 +245,7 @@ public class JSFunctionDef extends Stmt {
     for (i = 0; i < s.hoisted_def.size(); i++) {
       JSHoistedDef hf = s.hoisted_def.get(i);
       int has_closure = 0;
-      boolean force_init = hf.forceInit;
+      boolean force_init = hf.force_init;
       if (s.is_global_var && hf.var_name != JSAtom.JS_ATOM_NULL) {
         for (idx = 0; idx < s.closure_var.size(); idx++) {
           JSClosureVar cv = s.closure_var.get(idx);
@@ -307,7 +307,7 @@ public class JSFunctionDef extends Stmt {
               bc.put_atom(hf.var_name);
             }
           } else {
-            var_idx = hf.varIdx;
+            var_idx = hf.var_idx;
             if ((var_idx & ARGUMENT_VAR_OFFSET) != 0) {
               bc.dbuf_putc(OP_put_arg);
               bc.dbuf_put_u16(var_idx - ARGUMENT_VAR_OFFSET);

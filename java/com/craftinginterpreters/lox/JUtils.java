@@ -28,23 +28,24 @@ public class JUtils {
     return result;
   }
 
-  private static int byteArrToInteger(byte[] byteArr, int startIdx){
+  public static int byteArrToInteger(byte[] byteArr, int startIdx){
+    return byteArrToInteger(byteArr, startIdx, 4);
+  }
+
+  public static int byteArrToShort(byte[] byteArr, int startIdx){
+    return byteArrToInteger(byteArr, startIdx, 2);
+  }
+
+  public static int byteArrToInteger(byte[] byteArr, int startIdx, int len){
     int convertedInterger = 0;
 
-    //follow works:
-    //int readbackBaudrate= (baudrateByteArr[3]<<24)&0xff000000|(baudrateByteArr[2]<<16)&0xff0000|(baudrateByteArr[1]<<8)&0xff00|(baudrateByteArr[0]<<0)&0xff;
+    for(int i = 0; i < len; i++){
 
-    //115200 == [0, -62, 1, 0]
-    //1200==[-80, 4, 0, 0]
-    for(int i = 0; i < 4; i++){
-      //long curValue = byteArr[i];
-      //int curValue = byteArr[i];
-      byte curValue = byteArr[startIdx + 3 - i];
+      byte curValue = byteArr[startIdx + len - 1 - i];
       long shiftedValue = curValue << (i * 8);
       long mask = 0xFF << (i * 8);
       long maskedShiftedValue = shiftedValue & mask;
-      //0x0, 0xC200, 0x10000, 0x0 -> 115200==0x1C200
-      //0xB0, 0x400, 0x0, 0x0-> 1200==0x4B0
+
       convertedInterger |= maskedShiftedValue;
     }
 
@@ -89,7 +90,7 @@ public class JUtils {
 
 
   static int get_u16(final byte[] tab, int cp) {
-    return 0XFFFF & tab[cp];
+    return byteArrToShort(tab, cp);
   }
 
   static int get_i16(final byte[] tab, int cp) {

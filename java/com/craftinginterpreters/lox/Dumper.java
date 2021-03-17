@@ -166,6 +166,9 @@ public class Dumper {
   }
 
   static void js_dump_function_bytecode(JSContext ctx, JSFunctionBytecode b) {
+    if (!Config.dump) {
+      return;
+    }
     int i;
     char[] atom_buf = new char[64];
     byte[] str;

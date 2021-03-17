@@ -326,14 +326,19 @@ public class JSContext {
       "", fd.line_number,
       fd.label_slots.toArray(new LabelSlot[0]), null);
 
+    LabelSlot.resolve_labels(this, fd);
+
     stack_size = compute_stack_size(fd);
 
     b = new JSFunctionBytecode();
     b.byte_code_buf = Arrays.copyOf(fd.byte_code.buf, fd.byte_code.size);
     b.byte_code_len = fd.byte_code.size;
 
-    b.cpool = null;
+    b.cpool = new JSValue[0];
+    b.vardefs = new JSVarDef[0];
+    b.closure_var = new JSClosureVar[0];
     b.stack_size = (short) stack_size;
+
     b.func_name = fd.func_name;
     b.var_count = fd.vars.size();
     b.arg_count = fd.args.size();

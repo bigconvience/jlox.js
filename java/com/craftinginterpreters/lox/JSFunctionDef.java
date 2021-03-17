@@ -34,6 +34,7 @@ public class JSFunctionDef extends Stmt {
   final List<LabelSlot> label_slots;
   int last_opcode_line_num = -1;
   int last_opcode_pos = -1;
+  int line_num;
 
   final Token name = null;
   final List<Token> params;
@@ -57,29 +58,31 @@ public class JSFunctionDef extends Stmt {
   byte js_mode;
   JSAtom func_name;
 
-  List<JumpSlot> jump_slots;
+  JumpSlot[] jump_slots;
   int jump_size;
   int jump_count;
   int defined_arg_count;
 
-  List<LineNumberSlot> line_number_slots;
+  boolean has_simple_parameter_list;
+
+  LineNumberSlot[] line_number_slots;
   int line_number_size;
   int line_number_count;
   int line_number_last;
   int line_number_last_pc;
 
   int var_object_idx = -1;
-  int func_var_idx;
+  int func_var_idx = -1;
   boolean has_arguments_binding;
   boolean is_func_expr;
   boolean has_this_binding;
   boolean is_derived_class_constructor;
 
-  int arguments_var_idx;
-  int home_object_var_idx;
-  int this_active_func_var_idx;
-  int new_target_var_idx;
-  int this_var_idx;
+  int arguments_var_idx = -1;;
+  int home_object_var_idx = -1;
+  int this_active_func_var_idx = -1;;
+  int new_target_var_idx = -1;;
+  int this_var_idx = -1;;
 
   JSFunctionDef(JSFunctionDef parent,
                 boolean is_eval, boolean isFuncExpr, String filename, int lineNum) {
@@ -97,8 +100,7 @@ public class JSFunctionDef extends Stmt {
     child_list = new ArrayList<>();
     cpool = new ArrayList<>();
     label_slots = new ArrayList<>();
-    line_number_slots = new ArrayList<>();
-    jump_slots = new ArrayList<>();
+
   }
 
   @Override

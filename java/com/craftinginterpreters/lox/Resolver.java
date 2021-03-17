@@ -5,6 +5,7 @@ import java.util.*;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.PutLValueEnum.*;
+import static com.craftinginterpreters.lox.stdlib.abort;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
@@ -12,7 +13,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private FunctionType currentFunction = FunctionType.NONE;
   JSFunctionDef cur_func;
   private DynBuf bc;
-  private final JSContext ctx;
+   final JSContext ctx;
   private final JSRuntime rt;
   int last_line_num;
 
@@ -144,7 +145,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         emit_op(OP_scope_get_var);
         emit_u32(name);
         emit_u16(scope);
-        LValue lValue = LValue.get_lvalue(this, bc_buf, false, '=');
+        LValue lValue = LValue.get_lvalue(this, bc_buf, false, TOK_ASSIGN);
         initializer.accept(this);
         LValue.put_lvalue(this,  lValue, PUT_LVALUE_NOKEEP, false);
       } else {
@@ -186,7 +187,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     if (tok == TOK_ASSIGN.ordinal()
       || tok >= TOK_MUL_ASSIGN.ordinal() && tok <= TOK_POW_ASSIGN.ordinal()) {
-      LValue lValue = LValue.get_lvalue(this, bc_buf, tok != TOK_ASSIGN.ordinal(), tok);
+      LValue lValue = LValue.get_lvalue(this, bc_buf, tok != TOK_ASSIGN.ordinal(), TokenType.values()[tok]);
       value.accept(this);
       LValue.put_lvalue(this,  lValue, PUT_LVALUE_KEEP_TOP, false);
     }
@@ -280,7 +281,37 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitUnaryExpr(Expr.Unary expr) {
-    resolve(expr.right);
+    Resolver s = this;
+    TokenType op = expr.operator.type;
+    switch (op) {
+      case TOK_PLUS:
+      case TOK_MINUS:
+      case TOK_BANG:
+      case TOK_BITWISE_BANG:
+      case TOK_VOID:
+        resolve(expr.right);
+        switch(op) {
+          case TOK_MINUS:
+            emit_op(s, OP_neg);
+            break;
+          case TOK_PLUS:
+            emit_op(s, OP_plus);
+            break;
+          case TOK_BANG:
+            emit_op(s, OP_lnot);
+            break;
+          case TOK_BITWISE_BANG:
+            emit_op(s, OP_not);
+            break;
+          case TOK_VOID:
+            emit_op(s, OP_drop);
+            emit_op(s, OP_undefined);
+            break;
+          default:
+            abort();
+        }
+        break;
+    }
     return null;
   }
 
@@ -400,6 +431,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
   }
 
+  static int emit_op(Resolver s, OPCodeEnum opCodeEnum) {
+    return s.emit_op(opCodeEnum);
+  }
+
+  static int emit_op(Resolver s, byte val) {
+    return s.emit_op(val);
+  }
+
   int emit_op(OPCodeEnum opCodeEnum) {
     return emit_op((byte)opCodeEnum.ordinal());
   }
@@ -410,7 +449,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     DynBuf bc = s.cur_func.byte_code;
 
     if (fd.last_opcode_line_num != s.last_line_num) {
-      System.out.println("last line: " + last_line_num);
       bc.dbuf_putc(OP_line_num);
       bc.dbuf_put_u32(s.last_line_num);
       fd.last_opcode_line_num = s.last_line_num;

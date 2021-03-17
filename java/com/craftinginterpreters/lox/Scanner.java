@@ -33,7 +33,7 @@ class Scanner {
     keywords.put("instance", TOK_INSTANCEOF);
     keywords.put("do", TOK_DO);
     keywords.put("while", WHILE);
-    keywords.put("for", FOR);
+    keywords.put("for", TOK_FOR);
     keywords.put("break", TOK_BREAK);
     keywords.put("continue", TOK_CONTINUE);
     keywords.put("switch", TOK_SWITCH);
@@ -108,10 +108,10 @@ class Scanner {
         addToken(RIGHT_BRACE);
         break;
       case '[':
-        addToken(LEFT_BRACKET);
+        addToken(TOK_LEFT_BRACKET);
         break;
       case ']':
-        addToken(RIGHT_BRACKET);
+        addToken(TOK_RIGHT_BRACKET);
         break;
       case ',':
         addToken(COMMA);
@@ -131,7 +131,7 @@ class Scanner {
         } else if (match('-')) {
           addToken(TOK_DEC);
         } else {
-          addToken(MINUS);
+          addToken(TOK_MINUS);
         }
         break;
       case '+':
@@ -140,7 +140,7 @@ class Scanner {
         } else if (match('+')) {
           addToken(TOK_INC);
         } else {
-          addToken(PLUS);
+          addToken(TOK_PLUS);
         }
         break;
       case ';':
@@ -170,11 +170,11 @@ class Scanner {
         if (match('=')) {
           addToken(match('=') ? TOK_STRICT_NEQ : TOK_NEQ);
         } else {
-          addToken(BANG);
+          addToken(TOK_BANG);
         }
         break;
       case '~':
-        addToken(BITWISE_BANG);
+        addToken(TOK_BITWISE_BANG);
         break;
       case '&':
         if (match('=')) {

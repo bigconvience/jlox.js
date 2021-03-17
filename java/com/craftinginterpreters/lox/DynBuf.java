@@ -41,6 +41,9 @@ public class DynBuf {
     return 0;
   }
 
+  static int dbuf_put(DynBuf bc,byte[] data, int position, int len) {
+    return bc.dbuf_put(data, position, len);
+  }
   int dbuf_put(byte[] data, int position, int len) {
     if (size + len > allocatedSize) {
       if (realloc(size + len) != 0) {
@@ -65,6 +68,21 @@ public class DynBuf {
 
   static int dbuf_putc(DynBuf bc, OPCodeEnum val) {
     return dbuf_putc(bc, val.ordinal());
+  }
+
+  static int dbuf_putc(DynBuf bc, OPSpecialObjectEnum val) {
+   return dbuf_putc(bc, val.ordinal());
+  }
+
+  static void put_short_code(DynBuf bc_out, OPCodeEnum op, int idx)
+  {
+   put_short_code(bc_out, op.ordinal(), idx);
+  }
+
+  static void put_short_code(DynBuf bc_out, int op, int idx)
+  {
+    dbuf_putc(bc_out, op);
+    dbuf_put_u16(bc_out, idx);
   }
 
   static int dbuf_putc(DynBuf bc, int val) {

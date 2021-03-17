@@ -11,7 +11,7 @@ import static com.craftinginterpreters.lox.JSVarDef.*;
 class Parser {
 
 
-  private static class ParseError extends RuntimeException {
+  public static class ParseError extends RuntimeException {
   }
 
   private final List<Token> tokens;
@@ -90,7 +90,7 @@ class Parser {
   }
 
   private Stmt statement() {
-    if (match(FOR)) return forStatement();
+    if (match(TOK_FOR)) return forStatement();
     if (match(TOK_IF)) return ifStatement();
     if (match(PRINT)) return printStatement();
     if (match(TOK_RETURN)) return returnStatement();
@@ -534,7 +534,7 @@ class Parser {
   private Expr addition() {
     Expr expr = multiplication();
 
-    while (match(MINUS, PLUS)) {
+    while (match(TOK_MINUS, TOK_PLUS)) {
       Token operator = previous();
       Expr right = multiplication();
       expr = new Expr.Binary(expr, operator, right);
@@ -566,7 +566,7 @@ class Parser {
   }
 
   private Expr unary() {
-    if (match(MINUS, PLUS, BANG, BITWISE_BANG,
+    if (match(TOK_MINUS, TOK_PLUS, TOK_BANG, TOK_BITWISE_BANG,
       TOK_DEC, TOK_INC,
       TOK_VOID, TOK_TYPEOF, TOK_DELETE, TOK_AWAIT)) {
       Token operator = previous();
@@ -615,7 +615,7 @@ class Parser {
       return literal;
     }
 
-    if (match(LEFT_BRACKET)) {
+    if (match(TOK_LEFT_BRACKET)) {
       Expr.Literal literal = parseArrayLiteral();
       return literal;
     }
@@ -727,7 +727,7 @@ class Parser {
         case TOK_CLASS:
         case TOK_FUNCTION:
         case TOK_VAR:
-        case FOR:
+        case TOK_FOR:
         case TOK_IF:
         case WHILE:
         case PRINT:

@@ -23,6 +23,17 @@ public class JSThrower {
   static final int JS_THROW_VAR_UNINITIALIZED = 2;
   static final int JS_THROW_VAR_DELETE_SUPER = 3;
 
+  static int js_parse_error(Resolver s, String fmt, Object... args)
+  {
+    JSContext ctx = s.ctx;
+
+    if (Config.loxTest) {
+      stdio.err_printf("[line %d] Error ", s.last_line_num);
+    }
+    JS_ThrowError2(ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args), false);
+    return -1;
+  }
+
   static int JS_ThrowTypeErrorReadOnly(JSContext ctx, int flags, JSAtom atom) {
     if ((flags & JS_PROP_THROW) != 0 ||
       ((flags & JS_PROP_THROW_STRICT) != 0 && ctx.is_strict_mode())) {
@@ -74,7 +85,13 @@ public class JSThrower {
 
     obj = ctx.JS_NewObjectClass(JS_CLASS_OBJECT);
     if (obj != null) {
-      throw new RuntimeException(String.format(fmt, ap.toArray()));
+
+      if (error_num != null) {
+        stdio.err_printf("%s: ", error_num.toString());
+      }
+      stdio.err_printf(fmt + "\n", ap.toArray());
+
+      stdlib.abort();
     }
 
 //    if (unlikely(JS_IsException(obj))) {

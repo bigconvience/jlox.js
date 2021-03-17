@@ -46,6 +46,6 @@ public class JSFunctionBytecode {
     int source_len;
     int pc2line_len;
     int[] pc2line_buf;
-    char[] source;
+    char[] source = {1};
   }
 }

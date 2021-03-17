@@ -9,11 +9,11 @@ package com.craftinginterpreters.lox;
 enum TokenType {
     // Single-character tokens.
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-    LEFT_BRACKET, RIGHT_BRACKET,
-    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, TOK_STAR, TOK_MOD,
+    TOK_LEFT_BRACKET, TOK_RIGHT_BRACKET,
+    COMMA, DOT, TOK_MINUS, TOK_PLUS, SEMICOLON, SLASH, TOK_STAR, TOK_MOD,
 
     // One or two character tokens.
-    BANG, BITWISE_BANG,
+    TOK_BANG, TOK_BITWISE_BANG,
     TOK_ASSIGN,
     TOK_BIT_AND,
     TOK_XOR,
@@ -97,7 +97,7 @@ enum TokenType {
     TOK_INSTANCEOF,
     TOK_DO,
     WHILE,
-    FOR,
+    TOK_FOR,
     TOK_BREAK,
     TOK_CONTINUE,
     TOK_SWITCH,

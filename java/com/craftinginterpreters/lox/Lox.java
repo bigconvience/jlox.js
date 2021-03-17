@@ -46,6 +46,9 @@ public class Lox {
 
 
   private static void run(String source, String filename) {
+    if (source.length() == 0) {
+      return;
+    }
     JSRuntime rt = new JSRuntime();
 
     JSContext ctx = rt.JS_NewCustomContext();

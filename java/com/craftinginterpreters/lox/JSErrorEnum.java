@@ -18,4 +18,15 @@ public enum JSErrorEnum {
   JS_AGGREGATE_ERROR,
 
   JS_NATIVE_ERROR_COUNT,
+  ;
+
+
+  @Override
+  public String toString() {
+    switch (this) {
+      case JS_SYNTAX_ERROR:
+        return "SyntaxError";
+    }
+    return super.toString();
+  }
 }

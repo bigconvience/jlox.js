@@ -1,10 +1,10 @@
 package com.craftinginterpreters.lox;
 
-import static com.craftinginterpreters.lox.JSAtom.JS_ATOM_NULL;
+import static com.craftinginterpreters.lox.JSAtom.*;
+import static com.craftinginterpreters.lox.JSThrower.js_parse_error;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_put_super_value;
-import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP;
-import static com.craftinginterpreters.lox.PutLValueEnum.PUT_LVALUE_NOKEEP_DEPTH;
+import static com.craftinginterpreters.lox.PutLValueEnum.*;
+import static com.craftinginterpreters.lox.TokenType.*;
 
 /**
  * @author benpeng.jiang
@@ -20,7 +20,7 @@ public class LValue {
   int label;
   int depth;
 
- static LValue get_lvalue(Resolver s, DynBuf bc_buf, boolean keep, int tok) {
+ static LValue get_lvalue(Resolver s, DynBuf bc_buf, boolean keep, TokenType tok) {
     LValue lValue = new LValue();
    JSFunctionDef fd = s.cur_func;
    int scope, label, depth;
@@ -58,15 +58,15 @@ public class LValue {
        break;
      default:
       
-//       if (tok == TOK_FOR) {
-//         return js_parse_error(s, "invalid for in/of left hand-side");
-//       } else if (tok == TOK_INC || tok == TOK_DEC) {
-//         return js_parse_error(s, "invalid increment/decrement operand");
-//       } else if (tok == '[' || tok == '{') {
-//         return js_parse_error(s, "invalid destructuring target");
-//       } else {
-//         return js_parse_error(s, "invalid assignment left-hand side");
-//       }
+       if (tok == TOK_FOR) {
+          js_parse_error(s, "invalid for in/of left hand-side");
+       } else if (tok == TOK_INC || tok == TOK_DEC) {
+          js_parse_error(s, "invalid increment/decrement operand");
+       } else if (tok == TOK_LEFT_BRACKET || tok == TOK_RIGHT_BRACKET) {
+          js_parse_error(s, "invalid destructuring target");
+       } else {
+         js_parse_error(s, "invalid assignment left-hand side");
+       }
    }
    /* remove the last opcode */
    fd.byte_code.size = fd.last_opcode_pos;

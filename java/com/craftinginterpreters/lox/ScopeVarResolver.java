@@ -683,10 +683,10 @@ public class ScopeVarResolver {
         put_u8(bc_buf, pos++, OP_dup);
     }
     if (is_strict) {
-      put_u8(bc_buf, pos++, OP_put_var_strict);
+      put_u8(bc_buf, pos, OP_put_var_strict);
       /* XXX: need 1 extra OP_drop if destructuring an array */
     } else {
-      put_u8(bc_buf, pos++, OP_put_var);
+      put_u8(bc_buf, pos, OP_put_var);
       /* XXX: need 2 extra OP_drop if destructuring an array */
     }
     put_u32(bc_buf, pos + 1, var_name);

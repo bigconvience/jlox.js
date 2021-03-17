@@ -1,32 +1,51 @@
 package com.craftinginterpreters.lox;
 
-import java.util.List;
 
 /**
  * @author benpeng.jiang
- * @title: JSFunctionByteCode
+ * @title=JSFunctionByteCode
  * @projectName LoxScript
- * @description: TODO
+ * @description=TODO
  * @date 2021/3/31:42 PM
  */
 public class JSFunctionBytecode {
-  JSClassID class_Id;
-  byte js_mode;
-
-
-  byte[] byte_code_buf;
+  int js_mode;
+  int has_prototype =1; /* true if a prototype field is necessary */
+  int has_simple_parameter_list =1;
+  int is_derived_class_constructor =1;
+  /* true if home_object needs to be initialized */
+  int need_home_object =1;
+  int func_kind =2;
+  int new_target_allowed =1;
+  int super_call_allowed =1;
+  int super_allowed =1;
+  int arguments_allowed =1;
+  boolean has_debug = true;
+  int backtrace_barrier =1; /* stop backtrace on this function */
+  int read_only_bytecode =1;
+  /* XXX=4 bits available */
+  byte[] byte_code_buf; /* (self pointer) */
   int byte_code_len;
   JSAtom func_name;
-  List<JSVarDef> vardefs;
-
-  short func_kind = 2;
-  short arg_count;
-  short var_count;
-  short defined_arg_count;
-  short stack_size;
-
-
-  JSContext realm;
-  List<JSValue> cpool;
+  JSVarDef[] vardefs; /* arguments + local variables (arg_count + var_count) (self pointer) */
+  JSClosureVar[] closure_var; /* list of variables in the closure (self pointer) */
+  int arg_count;
+  int var_count;
+  int defined_arg_count; /* for length function property */
+  int stack_size; /* maximum stack size */
+  JSContext realm; /* function realm */
+  JSValue[] cpool; /* constant pool (self pointer) */
+  int cpool_count;
   int closure_var_count;
+
+  Debug debug = new Debug();
+
+  class Debug {
+    JSAtom filename;
+    int line_num;
+    int source_len;
+    int pc2line_len;
+    int[] pc2line_buf;
+    char[] source;
+  }
 }

@@ -335,7 +335,13 @@ public class JSContext {
     b.cpool = null;
     b.stack_size = (short) stack_size;
     b.func_name = fd.func_name;
+    b.var_count = fd.vars.size();
+    b.arg_count = fd.args.size();
+    b.defined_arg_count = fd.defined_arg_count;
+
     b.realm = this;
+
+    Dumper.js_dump_function_bytecode(this, b);
     if (fd.parent != null) {
       fd.parent = null;
     }

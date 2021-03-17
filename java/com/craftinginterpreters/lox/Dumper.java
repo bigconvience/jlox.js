@@ -1,10 +1,13 @@
 package com.craftinginterpreters.lox;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static com.craftinginterpreters.lox.JSFunctionKindEnum.*;
+import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.JUtils.*;
-import static com.craftinginterpreters.lox.OPCodeFormat.atom_label_u8;
+import static com.craftinginterpreters.lox.OPCodeFormat.*;
 
 /**
  * @author benpeng.jiang
@@ -160,6 +163,82 @@ public class Dumper {
       println("");
       pos += oi.size - 1;
     }
+  }
+
+  static void js_dump_function_bytecode(JSContext ctx, JSFunctionBytecode b) {
+    int i;
+    char[] atom_buf = new char[64];
+    byte[] str;
+
+    if (b.has_debug && b.debug.filename != null) {
+      str = ctx.JS_AtomGetStr(b.debug.filename).getBytes();
+      printf("%s:%d: ", str, b.debug.line_num);
+    }
+
+    str = ctx.JS_AtomGetStr(b.func_name).getBytes();
+    printf("function: %s%s\n", b.func_kind, str);
+    if (b.js_mode != 0) {
+      printf("  mode:");
+      if ((b.js_mode & (1 << 0)) != 0)
+        printf(" strict");
+
+      if ((b.js_mode & (1 << 2)) != 0)
+        printf(" math");
+
+      printf("\n");
+    }
+    if (b.arg_count != 0 && b.vardefs != null) {
+      printf("  args:");
+      for (i = 0; i < b.arg_count; i++) {
+        printf(" %s", ctx.JS_AtomGetStr(b.vardefs[i].var_name));
+      }
+      printf("\n");
+    }
+    if (b.var_count != 0 && b.vardefs != null) {
+      printf("  locals:\n");
+      for (i = 0; i < b.var_count; i++) {
+        JSVarDef vd = b.vardefs[b.arg_count + i];
+        printf("%5d: %s %s", i,
+          vd.var_kind == JS_VAR_CATCH ? "catch" :
+            (vd.var_kind == JS_VAR_FUNCTION_DECL ||
+              vd.var_kind == JS_VAR_NEW_FUNCTION_DECL) ? "function" :
+              vd.is_const ? "const" :
+                vd.is_lexical ? "let" : "var",
+          ctx.JS_AtomGetStr(vd.var_name));
+        if (vd.scope_level != 0)
+          printf(" [level:%d next:%d]", vd.scope_level, vd.scope_next);
+        printf("\n");
+      }
+    }
+    if (b.closure_var_count != 0) {
+      printf("  closure vars:\n");
+      for (i = 0; i < b.closure_var_count; i++) {
+        JSClosureVar cv = b.closure_var[i];
+        printf("%5d: %s %s:%s%d %s\n", i,
+          ctx.JS_AtomGetStr(cv.var_name),
+          cv.is_local ? "local" : "parent",
+          cv.is_arg ? "arg" : "loc", cv.var_idx,
+          cv.is_const ? "const" :
+            cv.is_lexical ? "let" : "var");
+      }
+    }
+    printf("  stack_size: %d\n", b.stack_size);
+    printf("  opcodes:\n");
+    dump_byte_code(ctx,
+      3,
+      b.byte_code_buf, b.byte_code_len,
+      Arrays.asList(b.vardefs), b.arg_count,
+      b.vardefs != null ? Arrays.asList(b.vardefs) : null, b.var_count,
+      Arrays.asList(b.closure_var), b.closure_var_count,
+      Arrays.asList(b.cpool), b.cpool_count,
+      b.has_debug ? new String(b.debug.source) : null,
+      b.has_debug ? b.debug.line_num : -1,
+      null, b);
+
+    if (b.has_debug)
+//      dump_pc2line(ctx, b.debug.pc2line_buf, b.debug.pc2line_len, b.debug.line_num);
+
+      printf("\n");
   }
 
   private static void println(String fmt, Object... args) {

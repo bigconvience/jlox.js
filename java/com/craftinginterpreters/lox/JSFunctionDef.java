@@ -60,6 +60,7 @@ public class JSFunctionDef extends Stmt {
   List<JumpSlot> jump_slots;
   int jump_size;
   int jump_count;
+  int defined_arg_count;
 
   List<LineNumberSlot> line_number_slots;
   int line_number_size;

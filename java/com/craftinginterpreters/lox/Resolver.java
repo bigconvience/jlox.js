@@ -206,6 +206,16 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   public Void visitBinaryExpr(Expr.Binary expr) {
     resolve(expr.left);
     resolve(expr.right);
+    OPCodeEnum opcode = null;
+    Token tok = expr.operator;
+    switch (tok.type) {
+      case TOK_PLUS:
+          opcode = OP_add;
+        break;
+      default:
+        stdlib.abort();
+    }
+    emit_op(opcode);
     return null;
   }
 

@@ -1,2 +1,3 @@
 var a = "a";
-!a = "value";
+var b = "b";
+a + b = 1; // Error at '=': Invalid assignment target.

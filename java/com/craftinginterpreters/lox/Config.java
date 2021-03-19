@@ -8,7 +8,7 @@ package com.craftinginterpreters.lox;
  * @date 2021/3/99:14 AM
  */
 public class Config {
-  static final boolean dump = true;
+  static final boolean dump = false;
 
   static final boolean loxTest = true;
 }

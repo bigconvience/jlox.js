@@ -12,7 +12,6 @@ import java.util.Map;
  */
 public class JSVarScope {
   public JSVarScope prev;
-  public JSVarScope next;
   public int level;
   final Map<JSAtom, JSVarDef> vars;
   int first = -1;

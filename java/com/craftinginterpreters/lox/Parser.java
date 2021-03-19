@@ -349,7 +349,7 @@ class Parser {
     }
     consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
-    fd = ctx.jsNewFunctionDef(fd, false, isExpr, fileName, name.line);
+    fd = ctx.js_new_function_def(fd, false, isExpr, fileName, name.line);
     fd.func_name = rt.JS_NewAtomStr(name.lexeme);
     curFunc = fd;
 
@@ -742,7 +742,7 @@ class Parser {
   public int push_scope() {
     if (curFunc != null) {
       JSFunctionDef fd = curFunc;
-      int scope = fd.addScope();
+      int scope = fd.add_scope();
       return scope;
     }
     return 0;
@@ -750,8 +750,7 @@ class Parser {
 
   public void popScope() {
     if (curFunc != null) {
-      JSVarScope varScope = curFunc.curScope;
-      curFunc.curScope = varScope.prev;
+      curFunc.pop_scope();
     }
   }
 

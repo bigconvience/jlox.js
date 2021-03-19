@@ -253,7 +253,7 @@ public class JSContext {
     int evalType = flags & LoxJS.JS_EVAL_TYPE_MASK;
     Scanner scanner = new Scanner(input, this);
 
-    JSFunctionDef fd = jsNewFunctionDef(null, true, false, filename, 1);
+    JSFunctionDef fd = js_new_function_def(null, true, false, filename, 1);
     fd.ctx = this;
     fd.eval_type = evalType;
     fd.func_name = rt.JS_NewAtomStr("<eval>");
@@ -514,12 +514,14 @@ public class JSContext {
     return jsString.str;
   }
 
-  static JSFunctionDef jsNewFunctionDef(JSFunctionDef parent,
-                                        boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
+  static JSFunctionDef js_new_function_def(JSFunctionDef parent,
+                                           boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
     JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
+
     fd.scope_level = 0;
     fd.scope_first = -1;
-    fd.addScope();
+    JSVarScope varScope = new JSVarScope();
+    fd.scopes.add(varScope);
     fd.scopes.get(0).first = -1;
     fd.scopes.get(0).parent = -1;
     return fd;

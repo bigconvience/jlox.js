@@ -1,3 +1,1 @@
-var a = "a";
-var b = "b";
-a + b = 1; // Error at '=': Invalid assignment target.
+print 2 - 6 / 3; // expect: 0

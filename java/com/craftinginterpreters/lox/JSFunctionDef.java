@@ -117,12 +117,31 @@ public class JSFunctionDef extends Stmt {
     return scopes.size();
   }
 
-  int addScope() {
+  int add_scope() {
     int scope = getScopeCount();
     JSVarScope varScope = new JSVarScope();
     scopes.add(varScope);
+    varScope.parent = scope_level;
+    varScope.first = scope_first;
     scope_level = scope;
     return scope;
+  }
+
+  void pop_scope() {
+    int scope = scope_level;
+    scope_level = scopes.get(scope).parent;
+    scope_first = get_first_lexical_var(this, scope_level);
+  }
+
+   static int get_first_lexical_var(JSFunctionDef fd, int scope)
+  {
+    while (scope >= 0) {
+      int scope_idx = fd.scopes.get(scope).first;
+      if (scope_idx >= 0)
+        return scope_idx;
+      scope = fd.scopes.get(scope).parent;
+    }
+    return -1;
   }
 
   public JSVarDef findLexicalDef(JSAtom varName) {

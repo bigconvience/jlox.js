@@ -1,7 +1,6 @@
 package com.craftinginterpreters.lox;
 
-import static com.craftinginterpreters.lox.JSTag.JS_TAG_EXCEPTION;
-import static com.craftinginterpreters.lox.JSTag.JS_TAG_OBJECT;
+import static com.craftinginterpreters.lox.JSTag.*;
 import static com.craftinginterpreters.lox.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.craftinginterpreters.lox.JS_PROP.*;
 
@@ -27,11 +26,50 @@ public class JSValue {
     this.value = value;
   }
 
+  public static JSTag JS_VALUE_GET_NORM_TAG(JSValue v) {
+    return JS_VALUE_GET_TAG(v);
+  }
+
+  public static JSTag JS_VALUE_GET_TAG(JSValue v) {
+    return v.tag;
+  }
+
+  public static boolean JS_VALUE_IS_BOTH_INT(JSValue v1, JSValue v2) {
+    return v1.tag == JS_TAG_INT && v2.tag == JS_TAG_INT;
+  }
+
   public JSObject JS_VALUE_GET_OBJ() {
     if (value instanceof JSObject) {
       return (JSObject) value;
     }
     return null;
+  }
+
+  public static JSObject JS_VALUE_GET_OBJ(JSValue v) {
+    return v.JS_VALUE_GET_OBJ();
+  }
+
+  public static int JS_VALUE_GET_BOOL(JSValue v) {
+    return (int)v.value;
+  }
+
+  public static float JS_VALUE_GET_FLOAT64(JSValue v) {
+    return (float)v.value;
+  }
+
+  public static int JS_VALUE_GET_INT(JSValue v) {
+    return v.JS_VALUE_GET_INT();
+  }
+
+  public int JS_VALUE_GET_INT() {
+    if (value instanceof Integer) {
+      return (Integer) value;
+    }
+    return 0;
+  }
+
+  public static Object JS_VALUE_GET_PTR(JSValue v) {
+    return v.value;
   }
 
   public JSTag JS_VALUE_GET_TAG() {
@@ -44,6 +82,10 @@ public class JSValue {
     }else {
       return null;
     }
+  }
+
+  public static JSString JS_VALUE_GET_STRING(JSValue v) {
+    return v.JS_VALUE_GET_String();
   }
 
   JSObject get_proto_obj() {
@@ -72,8 +114,38 @@ public class JSValue {
     return tag == JSTag.JS_TAG_STRING;
   }
 
+  public static JSValue JS_NewBool(JSContext ctx, boolean val) {
+    return new JSValue(JS_TAG_BOOL, val);
+  }
+
   public static JSValue JS_NewInt32(JSContext ctx, int val) {
     return new JSValue(JSTag.JS_TAG_INT, val);
+  }
+
+  public static JSValue JS_NewFloat64(JSContext ctx, double d)
+  {
+    JSValue v;
+    int val = (int) d;
+
+    /* -0 cannot be represented as integer, so we compare the bit
+        representation */
+    if (val == d) {
+      v = JS_MKVAL(JS_TAG_INT, val);
+    } else {
+      v = __JS_NewFloat64(ctx, d);
+    }
+    return v;
+  }
+
+  static JSValue JS_MKVAL(JSTag tag, int val) {
+    JSValue v = new JSValue(tag, val);
+    return v;
+  }
+
+  static JSValue __JS_NewFloat64(JSContext ctx, double d)
+  {
+    JSValue v = new JSValue(JS_TAG_FLOAT64, d);
+    return v;
   }
 
   public static JSValue JS_NewString(JSContext ctx, String str) {

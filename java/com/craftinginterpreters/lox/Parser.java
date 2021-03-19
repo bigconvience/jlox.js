@@ -546,7 +546,7 @@ class Parser {
   private Expr multiplication() {
     Expr expr = pow();
 
-    while (match(SLASH, TOK_STAR, TOK_MOD)) {
+    while (match(TOK_SLASH, TOK_STAR, TOK_MOD)) {
       Token operator = previous();
       Expr right = pow();
       expr = new Expr.Binary(expr, operator, right);
@@ -587,15 +587,19 @@ class Parser {
 
 
   private Expr primary() {
+    Object val;
     if (match(TOK_FALSE)) return new Expr.Literal(false);
     if (match(TOK_TRUE)) return new Expr.Literal(true);
     if (match(TOK_NULL)) return new Expr.Literal(null);
 
-    if (match(TOK_NUMBER, TOK_TEMPLATE)) {
+    if (match(TOK_NUMBER)) {
+      return new Expr.Literal(previous().literal);
+    }
+    if (match(TOK_TEMPLATE)) {
       return new Expr.Literal(previous().literal);
     }
     if (match(TOK_STRING)) {
-      return emitPushConst(previous(), true);
+      return emit_push_const(previous(), true);
     }
 
     if (match(TOK_THIS)) return new Expr.This(previous());
@@ -634,7 +638,7 @@ class Parser {
     return 0;
   }
 
-  private  Expr.Literal emitPushConst(Token token, boolean asAtom) {
+  private  Expr.Literal emit_push_const(Token token, boolean asAtom) {
     Expr.Literal literal = null;
     if (token.type == TOK_STRING && asAtom) {
       JSAtom atom = token.str_str;

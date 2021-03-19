@@ -2,6 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
+import static com.craftinginterpreters.lox.DynBuf.put_value;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.PutLValueEnum.*;
@@ -13,7 +14,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private FunctionType currentFunction = FunctionType.NONE;
   JSFunctionDef cur_func;
   private DynBuf bc;
-   final JSContext ctx;
+  final JSContext ctx;
   private final JSRuntime rt;
   int last_line_num;
 
@@ -147,7 +148,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         emit_u16(scope);
         LValue lValue = LValue.get_lvalue(this, bc_buf, false, TOK_ASSIGN);
         initializer.accept(this);
-        LValue.put_lvalue(this,  lValue, PUT_LVALUE_NOKEEP, false);
+        LValue.put_lvalue(this, lValue, PUT_LVALUE_NOKEEP, false);
       } else {
         initializer.accept(this);
         emit_op((varDef == JS_VAR_DEF_LET || varDef == JS_VAR_DEF_CONST)
@@ -189,7 +190,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       || tok >= TOK_MUL_ASSIGN.ordinal() && tok <= TOK_POW_ASSIGN.ordinal()) {
       LValue lValue = LValue.get_lvalue(this, bc_buf, tok != TOK_ASSIGN.ordinal(), TokenType.values()[tok]);
       value.accept(this);
-      LValue.put_lvalue(this,  lValue, PUT_LVALUE_KEEP_TOP, false);
+      LValue.put_lvalue(this, lValue, PUT_LVALUE_KEEP_TOP, false);
     }
     return null;
   }
@@ -210,7 +211,40 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     Token tok = expr.operator;
     switch (tok.type) {
       case TOK_PLUS:
-          opcode = OP_add;
+        opcode = OP_add;
+        break;
+      case TOK_MINUS:
+        opcode = OP_sub;
+        break;
+      case TOK_STAR:
+        opcode = OP_mul;
+        break;
+      case TOK_SLASH:
+        opcode = OP_div;
+        break;
+      case TOK_LT:
+        opcode = OP_lt;
+        break;
+      case TOK_LTE:
+        opcode = OP_lte;
+        break;
+      case TOK_GT:
+        opcode = OP_gt;
+        break;
+      case TOK_GTE:
+        opcode = OP_gte;
+        break;
+      case TOK_EQ:
+        opcode = OP_eq;
+        break;
+      case TOK_NEQ:
+        opcode = OP_neq;
+        break;
+      case TOK_STRICT_EQ:
+        opcode = OP_strict_eq;
+        break;
+      case TOK_STRICT_NEQ:
+        opcode = OP_strict_neq;
         break;
       default:
         stdlib.abort();
@@ -244,10 +278,16 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitLiteralExpr(Expr.Literal expr) {
-    if (expr.value instanceof JSAtom) {
+    Object val = expr.value;
+    if (val instanceof JSAtom) {
       emit_op(OP_push_atom_value);
+      put_value(bc, val);
+    } else if (val instanceof Integer) {
+      emit_op(OP_push_i32);
+      emit_u32((Integer) val);
+    } else if (val instanceof Boolean) {
+      emit_op((Boolean) val ? OP_push_true : OP_push_false);
     }
-    bc.put_value(expr.value);
     return null;
   }
 
@@ -300,7 +340,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       case TOK_BITWISE_BANG:
       case TOK_VOID:
         resolve(expr.right);
-        switch(op) {
+        switch (op) {
           case TOK_MINUS:
             emit_op(s, OP_neg);
             break;
@@ -450,7 +490,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   }
 
   int emit_op(OPCodeEnum opCodeEnum) {
-    return emit_op((byte)opCodeEnum.ordinal());
+    return emit_op((byte) opCodeEnum.ordinal());
   }
 
   int emit_op(byte val) {
@@ -467,8 +507,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return bc.dbuf_putc(val);
   }
 
-  int emit_label(int label)
-  {
+  int emit_label(int label) {
     if (label >= 0) {
       emit_op(OP_label);
       emit_u32(label);

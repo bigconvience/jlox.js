@@ -54,4 +54,11 @@ public class JSString {
   public String toString() {
     return str;
   }
+
+
+  static int js_string_compare(JSContext ctx,
+                             final JSString p1, final JSString p2)
+  {
+    return p1.equals(p2) ? 1 : 0;
+  }
 }

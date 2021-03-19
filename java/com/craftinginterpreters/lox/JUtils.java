@@ -8,6 +8,18 @@ package com.craftinginterpreters.lox;
  * @date 2020/12/299:37 PM
  */
 public class JUtils {
+  static int to_digit(int c)
+  {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    else if (c >= 'A' && c <= 'Z')
+      return c - 'A' + 10;
+    else if (c >= 'a' && c <= 'z')
+      return c - 'a' + 10;
+    else
+      return 36;
+  }
+
   public static int toInt(Object value) {
     if (value instanceof Double) {
       return ((Double) value).intValue();

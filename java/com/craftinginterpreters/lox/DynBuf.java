@@ -138,9 +138,9 @@ public class DynBuf {
     return dbuf_put(shortToByteArray(val));
   }
 
-  int put_value(Object val) {
+  static int put_value(DynBuf bc, Object val) {
     if (val instanceof JSAtom) {
-      return put_atom((JSAtom) val);
+      return bc.put_atom((JSAtom) val);
     }
     return 0;
   }

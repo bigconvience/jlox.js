@@ -1,1 +1,1 @@
-print 2 - 6 / 3; // expect: 0
+print false == 2 < 1;

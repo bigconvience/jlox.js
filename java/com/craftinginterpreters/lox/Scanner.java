@@ -260,7 +260,7 @@ class Scanner {
         } else if (match('=')) {
           addToken(TOK_DIV_ASSIGN);
         } else {
-          addToken(SLASH);
+          addToken(TOK_SLASH);
         }
         break;
       case '\\':
@@ -344,7 +344,7 @@ class Scanner {
       && peek() != 'e'
       && peek() != 'E') {
       addToken(TOK_NUMBER,
-        (double)Integer.parseInt(source.substring(start, current), radix));
+        Integer.parseInt(source.substring(start, current), radix));
       return;
     }
 

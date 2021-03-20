@@ -81,6 +81,10 @@ public class JSContext {
     pval.value = new_val.value;
   }
 
+  static void set_value(JSContext ctx, JSValue pval, JSValue new_val) {
+    ctx.set_value(pval, new_val);
+  }
+
    JSValue JS_GetGlobalVar(JSAtom prop,
                                  int throw_ref_error)
   {
@@ -272,6 +276,7 @@ public class JSContext {
     JSValue func_obj;
     JSFunctionBytecode b;
     int stack_size, scope, idx;
+    int i;
 
     for (scope = 0; scope < fd.scopes.size(); scope++) {
       fd.scopes.get(scope).first = -1;
@@ -335,14 +340,27 @@ public class JSContext {
     b.byte_code_len = fd.byte_code.size;
 
     b.cpool = new JSValue[0];
-    b.vardefs = new JSVarDef[0];
     b.closure_var = new JSClosureVar[0];
     b.stack_size = (short) stack_size;
 
     b.func_name = fd.func_name;
+
+    int arg_count = fd.args.size();
+    int var_count = fd.vars.size();
+    int total_count = arg_count + var_count;
+    if (total_count > 0) {
+      b.vardefs = new JSVarDef[total_count];
+      for (i = 0; i < fd.args.size(); i++) {
+        b.vardefs[i] = fd.args.get(i);
+      }
+      for (i = 0; i < fd.vars.size(); i++) {
+        b.vardefs[arg_count + i] = fd.vars.get(i);
+      }
+    }
     b.var_count = fd.vars.size();
     b.arg_count = fd.args.size();
     b.defined_arg_count = fd.defined_arg_count;
+
 
     b.realm = this;
 

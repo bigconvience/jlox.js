@@ -81,7 +81,8 @@ public class JSFunctionDef extends Stmt {
   int arguments_var_idx = -1;;
   int home_object_var_idx = -1;
   int this_active_func_var_idx = -1;;
-  int new_target_var_idx = -1;;
+  int new_target_var_idx = -1;
+  int eval_ret_idx = -1;
   int this_var_idx = -1;;
 
   JSFunctionDef(JSFunctionDef parent,

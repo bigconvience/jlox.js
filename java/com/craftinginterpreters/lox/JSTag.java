@@ -26,6 +26,13 @@ public enum JSTag {
   JS_TAG_UNINITIALIZED,
   JS_TAG_CATCH_OFFSET,
   JS_TAG_EXCEPTION,
-  JS_TAG_FLOAT64,
+  JS_TAG_FLOAT64;
   /* any larger tag is FLOAT64 if JS_NAN_BOXING */
+
+  static boolean tag_is_number(JSTag tag)
+  {
+    return (tag == JS_TAG_INT || tag == JS_TAG_BIG_INT ||
+      tag == JS_TAG_FLOAT64 || tag == JS_TAG_BIG_FLOAT ||
+      tag == JS_TAG_BIG_DECIMAL);
+  }
 }

@@ -11,12 +11,12 @@ import static com.craftinginterpreters.lox.TokenType.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
-  private FunctionType currentFunction = FunctionType.NONE;
   JSFunctionDef cur_func;
   private DynBuf bc;
   final JSContext ctx;
   private final JSRuntime rt;
   int last_line_num;
+  boolean is_module;
 
   Resolver(JSContext jsContext, JSFunctionDef fd) {
     ctx = jsContext;
@@ -85,6 +85,15 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   @Override
   public Void visitExpressionStmt(Stmt.Expression stmt) {
     resolve(stmt.expression);
+    Resolver s = this;
+    if (cur_func.eval_ret_idx >= 0) {
+            /* store the expression value so that it can be returned
+               by eval() */
+      emit_op(s, OP_put_loc);
+      emit_u16(s, cur_func.eval_ret_idx);
+    } else {
+      emit_op(s, OP_drop); /* drop the result */
+    }
     return null;
   }
 
@@ -113,15 +122,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitReturnStmt(Stmt.Return stmt) {
-    if (currentFunction == FunctionType.NONE) {
-      Lox.error(stmt.keyword, "Cannot return from top-level code.");
-    }
+
 
     if (stmt.value != null) {
-      if (currentFunction == FunctionType.INITIALIZER) {
-        Lox.error(stmt.keyword,
-          "Cannot return a value from an initializer.");
-      }
 
       resolve(stmt.value);
     }
@@ -392,6 +395,17 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   public void resolve() {
     resolve(cur_func.body);
+    Resolver s = this;
+    JSFunctionDef fd = cur_func;
+    if (!s.is_module) {
+      /* return the value of the hidden variable eval_ret_idx  */
+      emit_op(s, OP_get_loc);
+      emit_u16(s, fd.eval_ret_idx);
+
+      emit_op(s, OP_return);
+    } else {
+      emit_op(s, OP_return_undef);
+    }
   }
 
   private void resolve(Stmt stmt) {
@@ -405,8 +419,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   private void resolveFunction(
     JSFunctionDef function, FunctionType type) {
-    FunctionType enclosingFunction = currentFunction;
-    currentFunction = type;
+
     JSFunctionDef enclosureFunc = cur_func;
     cur_func = function;
 
@@ -419,7 +432,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     resolve(function.body);
     enter_scope(function, 1, null);
     endScope();
-    currentFunction = enclosingFunction;
     cur_func = enclosureFunc;
   }
 
@@ -530,7 +542,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return bc.dbuf_put_u16(val);
   }
 
-  int emit_u16(short val) {
-    return bc.dbuf_put_u16(val);
+  static int emit_u16(Resolver s, int val) {
+    return s.emit_u16(val);
   }
 }

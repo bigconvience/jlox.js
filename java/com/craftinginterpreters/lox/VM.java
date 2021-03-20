@@ -2,10 +2,11 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
-import static com.craftinginterpreters.lox.JSContext.JS_CALL_FLAG_COPY_ARGV;
+import static com.craftinginterpreters.lox.JSCompare.*;
+import static com.craftinginterpreters.lox.JSContext.*;
 import static com.craftinginterpreters.lox.JSValue.*;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_get_var_undef;
-import static com.craftinginterpreters.lox.OPCodeEnum.OP_put_var;
+import static com.craftinginterpreters.lox.OPCodeEnum.*;
+import static com.craftinginterpreters.lox.JUtils.*;
 
 /*
   @author benpeng.jiang
@@ -43,7 +44,8 @@ public class VM {
     JSContext ctx;
     List<JSValue> local_buf = new ArrayList<>();
     JSValue[] stack_buf;
-    List<JSValue> var_buf = new ArrayList<>(), arg_buf = new ArrayList<>(), pva = new ArrayList<>();
+    JSValue[] var_buf,arg_buf,pva;
+
     JSValue ret_val = null;
     int sp;
     JSObject p;
@@ -65,16 +67,18 @@ public class VM {
 
     stack_buf = new JSValue[b.stack_size];
     int n = Math.min(argc, b.arg_count);
+    arg_buf = new JSValue[n + b.arg_count];
+    var_buf = new JSValue[b.var_count];
     int i;
     for (i = 0; i < n; i++) {
-      arg_buf.add(argv[i]);
+      arg_buf[i] = argv[i];
     }
     for (; i < b.arg_count; i++) {
-      arg_buf.add(JS_UNDEFINED);
+      arg_buf[i] = JS_UNDEFINED;
     }
 
     for (i = 0; i < b.var_count; i++) {
-      var_buf.add(JS_UNDEFINED);
+      var_buf[i] = JS_UNDEFINED;
     }
     sf.arg_buf = arg_buf;
     sf.var_buf = var_buf;
@@ -89,6 +93,7 @@ public class VM {
     JSValue val;
     int ret;
     byte[] code_buf = b.byte_code_buf;
+    int show_call;
     while (pc < b.byte_code_len) {
       int call_argc;
       int u32;
@@ -143,7 +148,7 @@ public class VM {
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           pc += 4;
 
-          val = ctx.JS_GetGlobalVar( atom, op - OP_get_var_undef.ordinal());
+          val = ctx.JS_GetGlobalVar(atom, op - OP_get_var_undef.ordinal());
           if (val.JS_IsException()) {
             return JSThrower.JS_Throw(ctx, val);
           }
@@ -156,61 +161,61 @@ public class VM {
           push(stack_buf, sp++, JS_NULL);
           break;
         case OP_dup:
-          top = peek(stack_buf, (sp-1));
+          top = peek(stack_buf, (sp - 1));
           push(stack_buf, sp++, top);
           break;
         case OP_add:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             long r;
             r = op1.JS_VALUE_GET_INT() + op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
               stdlib.abort();
             }
-            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int)r));
+            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
           }
           break;
         case OP_sub:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             long r;
             r = op1.JS_VALUE_GET_INT() - op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
               stdlib.abort();
             }
-            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int)r));
+            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
           }
           break;
         case OP_mul:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             long r;
             r = op1.JS_VALUE_GET_INT() * op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
               stdlib.abort();
             }
-            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int)r));
+            push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
           }
           break;
         case OP_div:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
-            push(stack_buf, sp - 2, JSValue.JS_NewFloat64(ctx, (double)v1/ (double) v2));
+            push(stack_buf, sp - 2, JSValue.JS_NewFloat64(ctx, (double) v1 / (double) v2));
             sp--;
           }
           break;
         case OP_lt:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
@@ -219,8 +224,8 @@ public class VM {
           }
           break;
         case OP_lte:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
@@ -229,8 +234,8 @@ public class VM {
           }
           break;
         case OP_gt:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
@@ -239,8 +244,8 @@ public class VM {
           }
           break;
         case OP_gte:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
@@ -249,42 +254,66 @@ public class VM {
           }
           break;
         case OP_eq:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
+          show_call = js_eq_slow(ctx, stack_buf, sp, false);
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
             push(stack_buf, sp - 2, JSValue.JS_NewBool(ctx, v1 == v2));
+            sp--;
+          } else {
+            if (show_call != 0) {
+
+            }
             sp--;
           }
           break;
         case OP_neq:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
+          show_call = js_eq_slow(ctx, stack_buf, sp, true);
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
             push(stack_buf, sp - 2, JSValue.JS_NewBool(ctx, v1 != v2));
             sp--;
+          } else {
+            if (show_call != 0) {
+
+            }
+            sp--;
           }
           break;
         case OP_strict_eq:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
+          show_call = js_strict_eq_slow(ctx, stack_buf, sp, false);
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
             push(stack_buf, sp - 2, JSValue.JS_NewBool(ctx, v1 == v2));
             sp--;
+          } else {
+            if (show_call != 0) {
+
+            }
+            sp--;
           }
           break;
         case OP_strict_neq:
-          op1 = peek(stack_buf, (sp-2));
-          op2 = peek(stack_buf, (sp-1));
+          op1 = peek(stack_buf, (sp - 2));
+          op2 = peek(stack_buf, (sp - 1));
+          show_call = js_strict_eq_slow(ctx, stack_buf, sp, true);
           if (JS_VALUE_IS_BOTH_INT(op1, op2)) {
             int v1 = op1.JS_VALUE_GET_INT();
             int v2 = op2.JS_VALUE_GET_INT();
             push(stack_buf, sp - 2, JSValue.JS_NewBool(ctx, v1 != v2));
+            sp--;
+          } else {
+            if (show_call != 0) {
+
+            }
             sp--;
           }
           break;
@@ -293,6 +322,13 @@ public class VM {
           break;
         case OP_push_true:
           push(stack_buf, sp++, JS_TRUE);
+          break;
+        case OP_put_loc:
+          int idx;
+          idx = get_u16(code_buf, pc);
+          pc += 2;
+          set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
+          sp--;
           break;
       }
     }

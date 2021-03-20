@@ -2,9 +2,11 @@ package com.craftinginterpreters.lox;
 
 import java.util.*;
 
+import static com.craftinginterpreters.lox.JSAtomEnum.JS_ATOM__ret_;
 import static com.craftinginterpreters.lox.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
+import static com.craftinginterpreters.lox.LoxJS.*;
 import static com.craftinginterpreters.lox.TokenType.*;
 import static com.craftinginterpreters.lox.JSVarDef.*;
 
@@ -21,6 +23,7 @@ class Parser {
   JSContext ctx;
   String fileName;
   private JSRuntime rt;
+  private boolean is_module;
 
   Parser(Scanner scanner, JSContext ctx, JSFunctionDef curFunc, JSRuntime rt) {
     this.scanner = scanner;
@@ -42,20 +45,30 @@ class Parser {
   boolean push_scope_and_parse_program() {
     push_scope();
     boolean success = true;
-    JSFunctionDef fd = curFunc;
-    fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
-    Stmt.Block block = new Stmt.Block(0, parse(), 1);
-    curFunc.body = block;
+    parse_program(this);
     return success;
   }
 
-  boolean parseProgram() {
-    boolean success = true;
-    JSFunctionDef fd = curFunc;
-    fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
-    Stmt.Block block = new Stmt.Block(parse());
-    curFunc.body = block;
-    return success;
+  static void parse_program(Parser s) {
+    JSFunctionDef fd = s.curFunc;
+    int idx;
+    fd.is_global_var = (fd.eval_type == JS_EVAL_TYPE_GLOBAL);
+
+    fd.is_global_var = (fd.eval_type == JS_EVAL_TYPE_GLOBAL) ||
+      (fd.eval_type == JS_EVAL_TYPE_MODULE) ||
+      (fd.js_mode & JS_MODE_STRICT) == 0;
+
+    if (!s.is_module) {
+      /* hidden variable for the return value */
+      fd.eval_ret_idx = idx = add_var(s.ctx, fd, JS_ATOM__ret_.toJSAtom());
+      if (idx < 0)
+         stdlib.abort();
+    }
+
+    
+    List<Stmt> stmts = s.parse();
+    Stmt.Block block = new Stmt.Block(0, stmts, 1);
+    fd.body = block;
   }
 
   private Expr expression() {
@@ -260,7 +273,7 @@ class Parser {
         }
 
         if (fd.is_eval &&
-          (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL ||
+          (fd.eval_type == JS_EVAL_TYPE_GLOBAL ||
             fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE)
           && fd.scope_level == 1) {
           hf = fd.addHoistedDef(-1, varName, -1, true);

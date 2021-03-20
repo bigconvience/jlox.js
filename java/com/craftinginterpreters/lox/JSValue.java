@@ -118,6 +118,10 @@ public class JSValue {
     return new JSValue(JS_TAG_BOOL, val);
   }
 
+  public static JSValue JS_NewBool(JSContext ctx, int val) {
+    return new JSValue(JS_TAG_BOOL, val == 0 ? false : true);
+  }
+
   public static JSValue JS_NewInt32(JSContext ctx, int val) {
     return new JSValue(JSTag.JS_TAG_INT, val);
   }

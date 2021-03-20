@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import static com.craftinginterpreters.lox.JSAtomEnum.*;
 import static com.craftinginterpreters.lox.JSAtom.*;
+import static com.craftinginterpreters.lox.PrintUtils.printf;
 
 /**
  * @author benpeng.jiang
@@ -57,6 +58,9 @@ public class JSRuntime {
   }
 
   private JSAtom __JS_NewAtom(String str, int atom_type) {
+    if (true) {
+      printf("__JS_NewAtom: "  + str + "\n");
+    }
     JSString p = new JSString(str, atom_type);
     if (atom_hash.containsKey(p)) {
       Integer atom = atom_hash.get(p);
@@ -81,6 +85,7 @@ public class JSRuntime {
   private void JS_InitAtoms() {
     atom_array.clear();
     atom_hash.clear();
+    JS_NewAtomStr(null);
     int atom_type;
     String str;
     for (int i = JS_ATOM_null.ordinal(); i < JS_ATOM_END.ordinal(); i++) {

@@ -8,6 +8,7 @@ import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.JUtils.*;
 import static com.craftinginterpreters.lox.OPCodeFormat.*;
+import static com.craftinginterpreters.lox.PrintUtils.print_atom;
 
 /**
  * @author benpeng.jiang
@@ -159,9 +160,28 @@ public class Dumper {
           break;
 
 
+        case none_loc:
+          idx = (op - OP_get_loc0.ordinal()) % 4;
+          on_has_loc(idx, var_count, ctx, vars);
+          break;
+        case loc8:
+          idx = get_u8(tab,  pos);
+          on_has_loc(idx, var_count, ctx, vars);
+          break;
+        case loc:
+          idx = get_u16(tab,  pos);
+          on_has_loc(idx, var_count, ctx, vars);
+          break;
       }
       println("");
       pos += oi.size - 1;
+    }
+  }
+
+  static void on_has_loc(int idx, int var_count, JSContext ctx, List<JSVarDef> vars) {
+    printf(" %d: ", idx);
+    if (idx < var_count) {
+      print_atom(ctx, vars.get(idx).var_name);
     }
   }
 

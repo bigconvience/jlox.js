@@ -329,8 +329,13 @@ class Scanner {
         }
       }
 
-      addToken(TOK_NUMBER,
-        (double)Integer.parseInt(source.substring(startIndex, current), radix));
+      if (startIndex + 1 == current) {
+        addToken(TOK_NUMBER,
+           Integer.parseInt(source.substring(startIndex, current), radix));
+      } else {
+        addToken(TOK_NUMBER,
+          (double) Integer.parseInt(source.substring(startIndex, current), radix));
+      }
       return;
     }
 

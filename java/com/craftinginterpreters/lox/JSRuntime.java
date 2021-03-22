@@ -58,7 +58,7 @@ public class JSRuntime {
   }
 
   private JSAtom __JS_NewAtom(String str, int atom_type) {
-    if (true) {
+    if (false) {
       printf("__JS_NewAtom: "  + str + "\n");
     }
     JSString p = new JSString(str, atom_type);

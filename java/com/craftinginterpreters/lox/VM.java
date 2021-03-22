@@ -92,6 +92,7 @@ public class VM {
     JSAtom atom;
     JSValue val;
     int ret;
+    int idx;
     byte[] code_buf = b.byte_code_buf;
     int show_call;
     while (pc < b.byte_code_len) {
@@ -323,12 +324,22 @@ public class VM {
         case OP_push_true:
           push(stack_buf, sp++, JS_TRUE);
           break;
+        case OP_get_loc:
+          idx = get_u16(code_buf, pc);
+          pc += 2;
+          push(stack_buf, sp, var_buf[idx]);
+          sp++;
+        break;
         case OP_put_loc:
-          int idx;
           idx = get_u16(code_buf, pc);
           pc += 2;
           set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
           sp--;
+          break;
+        case OP_set_loc:
+          idx = get_u16(code_buf, pc);
+          pc += 2;
+          set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
           break;
       }
     }

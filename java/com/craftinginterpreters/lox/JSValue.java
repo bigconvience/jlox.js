@@ -3,6 +3,8 @@ package com.craftinginterpreters.lox;
 import static com.craftinginterpreters.lox.JSTag.*;
 import static com.craftinginterpreters.lox.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.craftinginterpreters.lox.JS_PROP.*;
+import static com.craftinginterpreters.lox.stdio_h.print_atom;
+import static com.craftinginterpreters.lox.stdio_h.printf;
 
 /**
  * @author benpeng.jiang
@@ -183,9 +185,9 @@ public class JSValue {
     JSPropertyDescriptor desc;
     int ret = 0;
     if (false) {
-      PrintUtils.printf("JS_SetPropertyInternal: ");
-      PrintUtils.print_atom(ctx, prop);
-      PrintUtils.printf("\n");
+      printf("JS_SetPropertyInternal: ");
+      print_atom(ctx, prop);
+      printf("\n");
     }
 
     JSValue this_obj = this;

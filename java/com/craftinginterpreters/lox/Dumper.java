@@ -3,12 +3,11 @@ package com.craftinginterpreters.lox;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.craftinginterpreters.lox.JSFunctionKindEnum.*;
 import static com.craftinginterpreters.lox.JSVarKindEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.JUtils.*;
 import static com.craftinginterpreters.lox.OPCodeFormat.*;
-import static com.craftinginterpreters.lox.PrintUtils.print_atom;
+import static com.craftinginterpreters.lox.stdio_h.print_atom;
 
 /**
  * @author benpeng.jiang

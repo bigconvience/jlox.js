@@ -28,7 +28,7 @@ public class JSThrower {
     JSContext ctx = s.ctx;
 
     if (Config.loxTest) {
-      stdio.err_printf("[line %d] Error ", s.last_line_num);
+      stdio_h.perror("[line %d] Error ", s.last_line_num);
     }
     JS_ThrowError2(ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args), false);
     return -1;
@@ -87,11 +87,11 @@ public class JSThrower {
     if (obj != null) {
 
       if (error_num != null) {
-        stdio.err_printf("%s: ", error_num.toString());
+        stdio_h.perror("%s: ", error_num.toString());
       }
-      stdio.err_printf(fmt + "\n", ap.toArray());
+      stdio_h.perror(fmt + "\n", ap.toArray());
 
-      stdlib.abort();
+      stdlib_h.abort();
     }
 
 //    if (unlikely(JS_IsException(obj))) {

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import static com.craftinginterpreters.lox.JSAtomEnum.*;
 import static com.craftinginterpreters.lox.JSAtom.*;
-import static com.craftinginterpreters.lox.PrintUtils.printf;
+import static com.craftinginterpreters.lox.stdio_h.printf;
 
 /**
  * @author benpeng.jiang

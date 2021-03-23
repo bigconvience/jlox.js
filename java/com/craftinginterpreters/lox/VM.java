@@ -172,7 +172,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() + op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib.abort();
+              stdlib_h.abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
@@ -185,7 +185,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() - op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib.abort();
+              stdlib_h.abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
@@ -198,7 +198,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() * op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib.abort();
+              stdlib_h.abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;

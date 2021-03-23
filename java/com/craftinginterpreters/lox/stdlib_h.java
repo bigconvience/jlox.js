@@ -7,12 +7,12 @@ package com.craftinginterpreters.lox;
  * @description: TODO
  * @date 2021/3/1810:40 AM
  */
-public class stdlib {
+public class stdlib_h {
   static void abort() {
     System.exit(65);
   }
 
-  static void exit() {
-    System.exit(0);
+  static void exit(int status) {
+    System.exit(status);
   }
 }

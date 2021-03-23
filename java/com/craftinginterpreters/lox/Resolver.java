@@ -6,7 +6,7 @@ import static com.craftinginterpreters.lox.DynBuf.put_value;
 import static com.craftinginterpreters.lox.JSVarDefEnum.*;
 import static com.craftinginterpreters.lox.OPCodeEnum.*;
 import static com.craftinginterpreters.lox.PutLValueEnum.*;
-import static com.craftinginterpreters.lox.stdlib.abort;
+import static com.craftinginterpreters.lox.stdlib_h.abort;
 import static com.craftinginterpreters.lox.TokenType.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
@@ -250,7 +250,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         opcode = OP_strict_neq;
         break;
       default:
-        stdlib.abort();
+        stdlib_h.abort();
     }
     emit_op(opcode);
     return null;

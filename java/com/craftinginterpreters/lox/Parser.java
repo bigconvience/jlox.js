@@ -62,7 +62,7 @@ class Parser {
       /* hidden variable for the return value */
       fd.eval_ret_idx = idx = add_var(s.ctx, fd, JS_ATOM__ret_.toJSAtom());
       if (idx < 0)
-         stdlib.abort();
+         stdlib_h.abort();
     }
 
     

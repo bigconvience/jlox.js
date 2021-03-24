@@ -1,5 +1,8 @@
 package com.lox.test;
 
+import static com.lox.clibrary.string_h.strlen;
+import static com.lox.clibrary.string_h.strncmp;
+
 /**
  * @author benpeng.jiang
  * @title: TextUtils
@@ -15,5 +18,16 @@ public class TextUtils {
    */
   public static boolean isEmpty(CharSequence str) {
     return str == null || str.length() == 0;
+  }
+
+  public static boolean has_prefix(final char[] str, final char[] prefix) {
+    return strncmp(str, prefix, strlen(prefix)) == 0;
+  }
+
+  public static String skip_prefix(final String str, final String prefix) {
+    if (str.startsWith(prefix)) {
+      return str.substring(prefix.length());
+    }
+    return str;
   }
 }

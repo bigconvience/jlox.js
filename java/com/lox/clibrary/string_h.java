@@ -55,7 +55,7 @@ public class string_h {
 
 
   // https://blog.csdn.net/jerry9032/article/details/6551900#:~:text=strcspn%20%28%29%20%E6%98%AF%E7%94%A8%E6%9D%A5%E9%A1%BA%E5%BA%8F%E5%9C%A8%E5%AD%97%E7%AC%A6%E4%B8%B2%20s1%20%E4%B8%AD%E6%90%9C%E5%AF%BB%E4%B8%8E%E5%AD%97%E7%AC%A6%E4%B8%B2%20s2%20%E4%B8%AD%E5%AD%97%E7%AC%A6%E7%9A%84%E7%AC%AC%E4%B8%80%E4%B8%AA%E7%9B%B8%E5%90%8C%E5%AD%97%E7%AC%A6%EF%BC%8C%E8%BF%94%E5%9B%9E%E8%BF%99%E4%B8%AA%E5%AD%97%E7%AC%A6%E5%9C%A8%20s1,%2Apstr%2C%20const%20char%20%2AstrCharset%29%20%E5%8F%A6%E5%A4%96%E6%9C%89%E4%B8%80%E4%B8%AA%E7%B1%BB%E4%BC%BC%E7%9A%84%E5%87%BD%E6%95%B0%20strpbrk%20%28%29%20%E7%9B%B8%E5%90%8C%E5%8A%9F%E8%83%BD%EF%BC%8C%E4%BD%86%E6%98%AF%E8%BF%94%E5%9B%9E%E7%9A%84%E6%98%AF%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%8C%87%E9%92%88%E3%80%82
-  static int strcspn ( final char[] pStr, final char[] pStrSet ) {
+  public static int strcspn ( final char[] pStr, final char[] pStrSet ) {
 
     // map有32个字节的大小，也就是256个bit，可把map看成一个2维数组[32][8]
     char[] map = new char[32];

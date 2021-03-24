@@ -35,6 +35,22 @@ public class Test262Utils {
     return strdup_len(filename, p);
   }
 
+  public static String str_append(String p, String sep, String str) {
+    StringBuilder pp = new StringBuilder(p);
+    pp.append(sep);
+    pp.append(str);
+    return pp.toString();
+  }
+
+  public static String str_append(String pp, String sep, char[] str) {
+    return str_append(pp, sep, new String(str));
+  }
+
+
+  public static String compose_path(final String path, char[] name) {
+    return compose_path(path, new String(name));
+  }
+
   static String compose_path(final String path, final String name) {
     String d;
 

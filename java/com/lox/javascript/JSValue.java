@@ -3,8 +3,8 @@ package com.lox.javascript;
 import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.lox.javascript.JS_PROP.*;
-import static com.lox.clibrary.stdio_h.print_atom;
 import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.javascript.JUtils.print_atom;
 
 /**
  * @author benpeng.jiang

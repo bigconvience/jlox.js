@@ -130,6 +130,10 @@ public class namelist_t {
     }
   }
 
+
+  static void namelist_add(namelist_t lp, final String base, final char[] name) {
+    namelist_add(lp, base, new String(name));
+  }
   static void namelist_add(namelist_t lp, final String base, final String name) {
     String s;
 

@@ -85,31 +85,6 @@ public class Test262 {
     }
   }
 
-  String str_append(StringBuilder pp, String sep, String str) {
-    pp.append(sep);
-    pp.append(str);
-
-    return pp.toString();
-  }
-
-
-  boolean has_prefix(final char[] str, final char[] prefix) {
-    return strncmp(str, prefix, strlen(prefix)) == 0;
-  }
-
-  char[] skip_prefix(final char[] str, final char[] prefix) {
-    int i;
-    for (i = 0; ; i++) {
-      if (prefix[i] == '\0') {  /* skip the prefix */
-        str += i;
-        break;
-      }
-      if (str[i] != prefix[i])
-        break;
-    }
-    return (char[]) str;
-  }
-
 
 
 
@@ -131,7 +106,7 @@ public class Test262 {
       "-e file        load the known errors from 'file'\n" +
       "-f file        execute single test from 'file'\n" +
       "-r file        set the report file name (default=none)\n" +
-      "-x file        exclude tests listed in 'file'\n" +);
+      "-x file        exclude tests listed in 'file'\n");
     exit(1);
   }
 
@@ -150,7 +125,7 @@ public class Test262 {
   void load_config(String filename) {
     char[] buf = new char[1024];
     File f;
-    Reader reader;
+    Reader reader = null;
     String base_name;
 
     Section section = SECTION_NONE;
@@ -165,7 +140,7 @@ public class Test262 {
       base_name = get_basename(filename);
       String buf_str;
       while (reader.read(buf) != -1) {
-        char[] p, q;
+        char[] p, q = null;
         lineno++;
         p = str_strip(buf);
         int idx = 0;
@@ -210,8 +185,7 @@ public class Test262 {
             }
             if (str_equal(p, "testdir")) {
               String testdir = compose_path(base_name, new String(q));
-              enumerate_tests(testdir);
-              free(testdir);
+              enumerate_tests(test_list, testdir);
               continue;
             }
             if (str_equal(p, "harnessdir")) {
@@ -219,15 +193,15 @@ public class Test262 {
               continue;
             }
             if (str_equal(p, "harnessexclude")) {
-              str_append( & harness_exclude, " ", q);
+              harness_exclude = str_append(harness_exclude, " ", q);
               continue;
             }
             if (str_equal(p, "features")) {
-              str_append( & harness_features, " ", q);
+              harness_features = str_append(harness_features, " ", q);
               continue;
             }
             if (str_equal(p, "skip-features")) {
-              str_append( & harness_skip_features, " ", q);
+              harness_skip_features = str_append(harness_skip_features, " ", q);
               continue;
             }
             if (str_equal(p, "mode")) {
@@ -272,9 +246,8 @@ public class Test262 {
               continue;
             }
             if (str_equal(p, "excludefile")) {
-              char[] path = compose_path(base_name, q);
-              namelist_load( & exclude_list, path);
-              free(path);
+              String path = compose_path(base_name, q);
+              namelist_load(exclude_list, path);
               continue;
             }
             if (str_equal(p, "reportfile")) {
@@ -282,16 +255,16 @@ public class Test262 {
               continue;
             }
           case SECTION_EXCLUDE:
-            namelist_add( & exclude_list, base_name, p);
+            namelist_add(exclude_list, base_name, p);
             break;
           case SECTION_FEATURES:
-            if (!q || str_equal(q, "yes"))
-              str_append( & harness_features, " ", p);
+            if (q == null || str_equal(q, "yes"))
+              str_append( harness_features, " ", p);
             else
-            str_append( & harness_skip_features, " ", p);
+            str_append( harness_skip_features, " ", p);
             break;
           case SECTION_TESTS:
-            namelist_add( & test_list, base_name, p);
+            namelist_add( test_list, base_name, p);
             break;
           default:
             /* ignore settings in other sections */

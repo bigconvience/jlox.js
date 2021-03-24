@@ -91,6 +91,7 @@ clox
 exercises/chapter01_introduction/3/linked_list
 .idea/
 *.iml
+test262/
 
 
 # I keep a scratch file at the top level to try stuff out.

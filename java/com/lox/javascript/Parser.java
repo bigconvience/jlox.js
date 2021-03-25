@@ -154,9 +154,8 @@ class Parser {
   }
 
   private Stmt ifStatement() {
-    consume(LEFT_PAREN, "Expect '(' after 'if'.");
-    Expr condition = expression();
-    consume(RIGHT_PAREN, "Expect ')' after if condition."); // [parens]
+    int line = previous().line;
+    Expr condition = js_parse_expr_paren();
 
     Stmt thenBranch = statement();
     Stmt elseBranch = null;
@@ -164,7 +163,16 @@ class Parser {
       elseBranch = statement();
     }
 
-    return new Stmt.If(condition, thenBranch, elseBranch);
+    Stmt stmt = new Stmt.If(condition, thenBranch, elseBranch);
+    stmt.line_number = line;
+    return stmt;
+  }
+
+  private Expr js_parse_expr_paren() {
+    consume(LEFT_PAREN, "Expect '('");
+    Expr expr = expression();
+    consume(RIGHT_PAREN, "Expect ')'"); // [parens]
+    return expr;
   }
 
   private Stmt printStatement() {
@@ -637,17 +645,6 @@ class Parser {
     }
 
     throw error(peek(), "Expect expression.");
-  }
-
-   int js_parse_expr_paren()
-  {
-    if (match(LEFT_PAREN))
-      return -1;
-    if (expression() == null)
-      return -1;
-    if (match(RIGHT_PAREN))
-      return -1;
-    return 0;
   }
 
   private  Expr.Literal emit_push_const(Token token, boolean asAtom) {

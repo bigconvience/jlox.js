@@ -125,7 +125,7 @@ public class Dumper {
         case atom_u16:
           printf(" ");
           ctx.print_atom(JUtils.get_u32(tab, pos));
-          printf(", %d", JUtils.get_u16(tab, pos + 4));
+          printf(",%d", JUtils.get_u16(tab, pos + 4));
           break;
         case atom_label_u8:
         case atom_label_u16:

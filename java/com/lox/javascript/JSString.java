@@ -59,4 +59,11 @@ public class JSString {
   {
     return p1.equals(p2) ? 1 : 0;
   }
+
+  public char[] getChars() {
+    if (str != null) {
+      return str.toCharArray();
+    }
+    return null;
+  }
 }

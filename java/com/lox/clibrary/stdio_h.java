@@ -22,9 +22,22 @@ public class stdio_h {
      System.out.printf(format, args);
   }
 
+  public static void printf(int count, char[] p) {
+    for (int i = 0; i < Math.min(count, p.length); i++) {
+     putchar(p[i]);
+    }
+  }
+
   public static void perror(String format, Object ... args) {
     System.err.printf(format, args);
   }
 
+  public static void putchar(int chr) {
+    System.out.print((char)chr);
+  }
+
+  public static void putchar(char chr) {
+    System.out.print(chr);
+  }
 
 }

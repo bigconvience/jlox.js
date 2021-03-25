@@ -2,6 +2,8 @@ package com.lox.javascript;
 
 import java.util.Arrays;
 
+import static com.lox.javascript.OPCodeEnum.OP_invalid;
+
 /**
  * @author benpeng.jiang
  * @title: DynBuf
@@ -159,5 +161,15 @@ public class DynBuf {
     result[0] = (byte) ((i >> 8) & 0xFF);
     result[1] = (byte) (i & 0xFF);
     return result;
+  }
+
+  public static OPCodeEnum getOPCode(byte[] buf, int pc) {
+    if ( pc < 0)
+      return OP_invalid;
+    else {
+      int op = Byte.toUnsignedInt(buf[pc]);
+      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(op);
+      return opcode;
+    }
   }
 }

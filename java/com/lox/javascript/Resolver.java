@@ -4,13 +4,25 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
-import static com.lox.javascript.DynBuf.put_value;
+import static com.lox.javascript.DynBuf.*;
+import static com.lox.javascript.JSFunctionDef.get_first_lexical_var;
 import static com.lox.javascript.JSVarDefEnum.*;
+import static com.lox.javascript.LoxJS.JS_MODE_STRICT;
+import static com.lox.javascript.OPCodeEnum.*;
 import static com.lox.javascript.PutLValueEnum.*;
 import static com.lox.clibrary.stdlib_h.abort;
 import static com.lox.javascript.TokenType.*;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
+  
+static final int DECL_MASK_FUNC = (1 << 0); /* allow normal function declaration */
+  /* ored with DECL_MASK_FUNC if function declarations are allowed with a label */
+static final int DECL_MASK_FUNC_WITH_LABEL = (1 << 1);
+static final int DECL_MASK_OTHER  = (1 << 2); /* all other declarations */
+static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | DECL_MASK_OTHER);
+    
   private final Stack<Map<String, Boolean>> scopes = new Stack<>();
   JSFunctionDef cur_func;
   private DynBuf bc;
@@ -90,7 +102,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     if (cur_func.eval_ret_idx >= 0) {
             /* store the expression value so that it can be returned
                by eval() */
-      emit_op(s, OPCodeEnum.OP_put_loc);
+      emit_op(s, OP_put_loc);
       emit_u16(s, cur_func.eval_ret_idx);
     } else {
       emit_op(s, OPCodeEnum.OP_drop); /* drop the result */
@@ -106,9 +118,27 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
   @Override
   public Void visitIfStmt(Stmt.If stmt) {
+    int label1, label2, mask;
+    Resolver s = this;
+    push_scope(s);
+    set_eval_ret_undefined(s);
     resolve(stmt.condition);
+    label1 = emit_goto(s, OP_if_false, -1);
+    if ((cur_func.js_mode & JS_MODE_STRICT) != 0) {
+      mask = 0;
+    } else {
+      mask = DECL_MASK_FUNC;
+    }
     resolve(stmt.thenBranch);
-    if (stmt.elseBranch != null) resolve(stmt.elseBranch);
+    if (stmt.elseBranch != null) {
+      label2 = emit_goto(s, OP_goto, -1);
+
+      emit_label(s, label1);
+      resolve(stmt.elseBranch);
+      label1 = label2;
+    }
+    emit_label(s, label1);
+    pop_scope(s);
     return null;
   }
 
@@ -162,7 +192,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
       }
     } else {
       if (varDef == JS_VAR_DEF_LET) {
-        emit_op(OPCodeEnum.OP_undefined);
+        emit_op(OP_undefined);
         emit_op(OPCodeEnum.OP_scope_put_var_init);
         emit_u32(name);
         emit_u16(scope);
@@ -359,7 +389,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             break;
           case TOK_VOID:
             emit_op(s, OPCodeEnum.OP_drop);
-            emit_op(s, OPCodeEnum.OP_undefined);
+            emit_op(s, OP_undefined);
             break;
           default:
             abort();
@@ -482,7 +512,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (JSFunctionDef.isFuncDecl(vd.var_kind)) {
           bcOut.dbuf_putc(OPCodeEnum.OP_fclosure);
           bcOut.dbuf_put_u32(vd.func_pool_or_scope_idx);
-          bcOut.dbuf_putc(OPCodeEnum.OP_put_loc);
+          bcOut.dbuf_putc(OP_put_loc);
         } else {
           bcOut.dbuf_putc(OPCodeEnum.OP_set_loc_uninitialized);
         }
@@ -502,6 +532,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return s.emit_op(val);
   }
 
+  static int emit_op(Resolver s, int opcode) {
+    return s.emit_op((byte)(0xFF & opcode));
+  }
   int emit_op(OPCodeEnum opCodeEnum) {
     return emit_op((byte) opCodeEnum.ordinal());
   }
@@ -520,6 +553,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     return bc.dbuf_putc(val);
   }
 
+  public static int emit_label(Resolver s, int label) {
+    return s.emit_label(label);
+  }
   int emit_label(int label) {
     if (label >= 0) {
       emit_op(OPCodeEnum.OP_label);
@@ -546,4 +582,79 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
   static int emit_u16(Resolver s, int val) {
     return s.emit_u16(val);
   }
+
+  static int emit_u32(Resolver s, int val) {
+    return s.emit_u32(val);
+  }
+
+
+  static int new_label(Resolver s) {
+    return s.cur_func.new_label_fd();
+  }
+
+  static int emit_goto(Resolver s, OPCodeEnum opcode, int label) {
+    if (js_is_live_code(s)) {
+      if (label < 0)
+        label = new_label(s);
+      emit_op(s, opcode);
+      emit_u32(s, label);
+      s.cur_func.label_slots.get(label).ref_count++;
+      return label;
+    }
+    return -1;
+  }
+
+  static OPCodeEnum get_prev_opcode(JSFunctionDef fd) {
+      return DynBuf.getOPCode(fd.byte_code.buf, fd.last_opcode_pos);
+  }
+
+  static boolean js_is_live_code(Resolver s) {
+    switch (get_prev_opcode(s.cur_func)) {
+      case OP_tail_call:
+      case OP_tail_call_method:
+      case OP_return:
+      case OP_return_undef:
+      case OP_return_async:
+      case OP_throw:
+      case OP_throw_var:
+      case OP_goto:
+      case OP_goto8:
+      case OP_goto16:
+      case OP_ret:
+        return FALSE;
+      default:
+        return TRUE;
+    }
+  }
+
+  static void set_eval_ret_undefined(Resolver s)
+  {
+    if (s.cur_func.eval_ret_idx >= 0) {
+      emit_op(s, OP_undefined);
+      emit_op(s, OP_put_loc);
+      emit_u16(s, s.cur_func.eval_ret_idx);
+    }
+  }
+
+  static int push_scope(Resolver s) {
+    if (s.cur_func != null) {
+      JSFunctionDef fd = s.cur_func;
+      int scope = fd.add_scope();
+      return scope;
+    }
+    return 0;
+  }
+
+  static void pop_scope(Resolver s) {
+    if (s.cur_func != null) {
+      /* disable scoped variables */
+      JSFunctionDef fd = s.cur_func;
+      int scope = fd.scope_level;
+      emit_op(s, OP_leave_scope);
+      emit_u16(s, scope);
+      fd.scope_level = fd.scopes.get(scope).parent;
+      fd.scope_first = get_first_lexical_var(fd, fd.scope_level);
+    }
+  }
+
 }

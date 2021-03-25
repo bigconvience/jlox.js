@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
 import static com.lox.javascript.JS_PROP.*;
@@ -514,7 +516,36 @@ public class JSContext {
 
   void print_atom(int atom) {
     JSString jsString = rt.atom_array.get(atom);
-    System.out.print(jsString);
+
+    char[] p = jsString.str.toCharArray();
+    int i;
+    for (i = 0; i < p.length; i++) {
+      int c = 0xFF&p[i];
+      if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+        (c == '_' || c == '$') || (c >= '0' && c <= '9' && i > 0)))
+        break;
+    }
+    if (i > 0 && i == p.length) {
+      printf("%s", jsString.toString());
+    } else {
+      putchar('"');
+      printf(i, p);
+      for (; i < p.length; i++) {
+        int c = 0xFF&p[i];
+        if (c == '\"' || c == '\\') {
+          putchar('\\');
+          putchar(c);
+        } else if (c >= ' ' && c <= 126) {
+          putchar(c);
+        } else if (c == '\n') {
+          putchar('\\');
+          putchar('n');
+        } else {
+          printf("\\u%04x", c);
+        }
+      }
+      putchar('\"');
+    }
   }
 
   void print_atom(JSAtom atom) {

@@ -264,8 +264,8 @@ public class JSContext {
 
     Parser parser = new Parser(scanner, this, fd, rt);
     parser.fileName = filename;
-
-    parser.push_scope_and_parse_program();
+    parser.push_scope();
+    parser.parse_program();
 
     fun_obj = js_create_function(fd);
     retVal = VM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);

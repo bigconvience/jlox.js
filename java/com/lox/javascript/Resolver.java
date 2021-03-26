@@ -165,17 +165,17 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitVarStmt(Stmt.Var stmt) {
-    JSFunctionDef s = cur_func;
-
+    Resolver s = this;
+    JSFunctionDef fd = cur_func;
 
     DynBuf bc_buf = bc;
     JSVarDefEnum varDef = stmt.varDef;
-    Expr initializer = stmt.initializer;
-
     JSAtom name = stmt.name;
-    int scope = stmt.scope;
-    if (initializer != null) {
+    JSVarUtils.define_var(s, fd, name, varDef);
+    int scope = fd.scope_level;
 
+    Expr initializer = stmt.initializer;
+    if (initializer != null) {
       if (varDef == JS_VAR_DEF_VAR) {
         emit_op(OPCodeEnum.OP_scope_get_var);
         emit_u32(name);
@@ -408,7 +408,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
     JSAtom name = expr.name.ident_atom;
-    int scope = expr.scope_level;
+    int scope = cur_func.scope_level;
     emit_op(OPCodeEnum.OP_scope_get_var);
     emit_u32(name);
     emit_u16(scope);
@@ -640,6 +640,8 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     if (s.cur_func != null) {
       JSFunctionDef fd = s.cur_func;
       int scope = fd.add_scope();
+      emit_op(s, OP_enter_scope);
+      emit_u16(s, scope);
       return scope;
     }
     return 0;

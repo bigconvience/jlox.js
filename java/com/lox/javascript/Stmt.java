@@ -139,11 +139,10 @@ abstract class Stmt {
   //< stmt-return
 //> stmt-var
   static class Var extends Stmt {
-    Var(int line, final JSVarDefEnum varDef, JSAtom name, int scope, Expr initializer) {
+    Var(int line, final JSVarDefEnum varDef, JSAtom name,  Expr initializer) {
       this.line_number = line;
       this.varDef = varDef;
       this.name = name;
-      this.scope = scope;
       this.initializer = initializer;
     }
 
@@ -153,7 +152,6 @@ abstract class Stmt {
     }
 
     final JSAtom name;
-    final int scope;
     final JSVarDefEnum varDef;
     final Expr initializer;
   }

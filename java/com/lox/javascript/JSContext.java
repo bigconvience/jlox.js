@@ -10,6 +10,7 @@ import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
 import static com.lox.javascript.JS_PROP.*;
+import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 
 /**
  * @author benpeng.jiang
@@ -313,6 +314,7 @@ public class JSContext {
     Resolver s = new Resolver(ctx, fd);
     Resolver.push_scope(s);
     ast_2_opcode(s, fd);
+    printf("pass 1\n");
     Dumper.dump_byte_code(this, 1,
       fd.byte_code.buf, fd.byte_code.size,
       fd.args, fd.args.size(),
@@ -321,8 +323,9 @@ public class JSContext {
       fd.cpool, fd.cpool.size(),
       "", fd.line_number,
       fd.label_slots.toArray(new LabelSlot[0]), null);
-
+    printf("\n");
     new IRResolver(this, fd).resolve_variables();
+    printf("pass 2\n");
     Dumper.dump_byte_code(this, 2,
       fd.byte_code.buf, fd.byte_code.size,
       fd.args, fd.args.size(),
@@ -331,7 +334,7 @@ public class JSContext {
       fd.cpool, fd.cpool.size(),
       "", fd.line_number,
       fd.label_slots.toArray(new LabelSlot[0]), null);
-
+    printf("\n");
     LabelSlot.resolve_labels(this, fd);
 
     stack_size = compute_stack_size(fd);
@@ -365,7 +368,9 @@ public class JSContext {
 
     b.realm = this;
 
-    Dumper.js_dump_function_bytecode(this, b);
+    if ((fd.js_mode & JS_MODE_STRIP) == 0) {
+      Dumper.js_dump_function_bytecode(this, b);
+    }
     if (fd.parent != null) {
       fd.parent = null;
     }

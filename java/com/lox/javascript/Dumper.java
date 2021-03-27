@@ -25,7 +25,6 @@ public class Dumper {
     if (!Config.dump) {
       return;
     }
-    printf("pass %d\n", pass);
     JSOpCode oi;
     int pos, pos_next = 0, op, size, idx, addr, line, line1, in_source;
     byte[] bits = new byte[len];
@@ -120,7 +119,7 @@ public class Dumper {
         case atom_u8:
           printf(" ");
           ctx.print_atom(JUtils.get_u32(tab, pos));
-          printf(", %d", JUtils.get_u8(tab, pos + 4));
+          printf(",%d", JUtils.get_u8(tab, pos + 4));
           break;
         case atom_u16:
           printf(" ");
@@ -253,7 +252,7 @@ public class Dumper {
       b.has_debug ? b.debug.line_num : -1,
       null, b);
 
-    if (b.has_debug)
+//    if (b.has_debug)
 //      dump_pc2line(ctx, b.debug.pc2line_buf, b.debug.pc2line_len, b.debug.line_num);
 
       printf("\n");

@@ -52,7 +52,7 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     builder.append(") ");
 
-    for (Stmt body : stmt.body.statements) {
+    for (Stmt body : stmt.body) {
       builder.append(body.accept(this));
     }
 

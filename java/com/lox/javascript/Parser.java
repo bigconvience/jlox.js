@@ -65,8 +65,8 @@ class Parser {
 
     
     List<Stmt> stmts = s.parse();
-    Stmt.Block block = new Stmt.Block(0, stmts, 1);
-    fd.body = block;
+//    Stmt.Block block = new Stmt.Block(0, stmts);
+    fd.body = stmts;
   }
 
   private Expr expression() {
@@ -106,7 +106,10 @@ class Parser {
     if (match(PRINT)) return printStatement();
     if (match(TOK_RETURN)) return returnStatement();
     if (match(WHILE)) return whileStatement();
-    if (match(LEFT_BRACE)) return new Stmt.Block(block());
+    if (match(LEFT_BRACE)) {
+      int start_line = previous().line;
+      return new Stmt.Block(start_line, block());
+    }
 
     return expressionStatement();
   }
@@ -153,17 +156,23 @@ class Parser {
   }
 
   private Stmt ifStatement() {
-    int line = previous().line;
+    int expr_line = previous().line;
     Expr condition = js_parse_expr_paren();
 
+    int then_line = previous().line;
     Stmt thenBranch = statement();
+    thenBranch.line_number = then_line;
     Stmt elseBranch = null;
     if (match(TOK_ELSE)) {
+      int else_line = previous().line;
       elseBranch = statement();
+      elseBranch.line_number = else_line;
     }
 
-    Stmt stmt = new Stmt.If(condition, thenBranch, elseBranch);
-    stmt.line_number = line;
+    int end_line = previous().line;
+    Stmt.If stmt = new Stmt.If(condition, thenBranch, elseBranch);
+    stmt.line_number = expr_line;
+    stmt.end_line = end_line;
     return stmt;
   }
 
@@ -271,7 +280,8 @@ class Parser {
     curFunc = fd;
 
     consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-    fd.body = new Stmt.Block(block());
+//    fd.body = new Stmt.Block(block());
+    fd.body = block();
     curFunc = fd.parent;
     return fd;
   }

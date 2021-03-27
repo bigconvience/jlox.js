@@ -44,7 +44,7 @@ public class JSFunctionDef extends Stmt {
   final List<JSHoistedDef> hoisted_def;
   final List<JSClosureVar> closure_var;
   final Map<String, JSHoistedDef> hoistDef;
-  Stmt.Block body;
+  List<Stmt> body;
   int eval_type;
   boolean is_eval;
   boolean is_global_var;

@@ -29,12 +29,10 @@ abstract class Stmt {
   static class Block extends Stmt {
     Block(List<Stmt> statements) {
       this.statements = statements;
-      scope = 0;
     }
 
-    public Block(int line, List<Stmt> statements, int scope) {
+    public Block(int line, List<Stmt> statements) {
       this.statements = statements;
-      this.scope = scope;
       this.line_number = line;
     }
 
@@ -44,7 +42,6 @@ abstract class Stmt {
     }
 
     final List<Stmt> statements;
-    final int scope;
   }
 
   //< stmt-block
@@ -101,6 +98,7 @@ abstract class Stmt {
     final Expr condition;
     final Stmt thenBranch;
     final Stmt elseBranch;
+    int end_line;
   }
 
   //< stmt-if

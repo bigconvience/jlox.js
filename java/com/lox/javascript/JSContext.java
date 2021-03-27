@@ -264,15 +264,14 @@ public class JSContext {
 
     Parser parser = new Parser(scanner, this, fd, rt);
     parser.fileName = filename;
-    parser.push_scope();
     parser.parse_program();
 
-    fun_obj = js_create_function(fd);
+    fun_obj = js_create_function(this, fd);
     retVal = VM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);
     return retVal;
   }
 
-  JSValue js_create_function(JSFunctionDef fd) {
+  JSValue js_create_function(JSContext ctx, JSFunctionDef fd) {
     JSValue func_obj;
     JSFunctionBytecode b;
     int stack_size, scope, idx;
@@ -307,11 +306,13 @@ public class JSContext {
 
     for (JSFunctionDef fd1 : fd.child_list) {
       int cpool_idx = fd1.parent_cpool_idx;
-      func_obj = js_create_function(fd1);
+      func_obj = js_create_function(ctx, fd1);
       fd.cpool.set(cpool_idx, func_obj);
     }
 
-    ast_2_opcode(fd);
+    Resolver s = new Resolver(ctx, fd);
+    Resolver.push_scope(s);
+    ast_2_opcode(s, fd);
     Dumper.dump_byte_code(this, 1,
       fd.byte_code.buf, fd.byte_code.size,
       fd.args, fd.args.size(),
@@ -427,8 +428,8 @@ public class JSContext {
     return 0;
   }
 
-  void ast_2_opcode(JSFunctionDef s) {
-    new Resolver(this, s).resolve();
+  void ast_2_opcode(Resolver s, JSFunctionDef fd) {
+    s.resolve();
   }
 
 

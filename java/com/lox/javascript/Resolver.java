@@ -63,9 +63,10 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitBlockStmt(Stmt.Block stmt) {
-    emit_op(OPCodeEnum.OP_enter_scope);
-    emit_u16(stmt.scope);
+    update_line(stmt.line_number);
+    push_scope(this);
     resolve(stmt.statements);
+    pop_scope(this);
     return null;
   }
 
@@ -123,6 +124,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     push_scope(s);
     set_eval_ret_undefined(s);
     resolve(stmt.condition);
+    update_line(stmt.line_number);
     label1 = emit_goto(s, OP_if_false, -1);
     if ((cur_func.js_mode & JS_MODE_STRICT) != 0) {
       mask = 0;
@@ -131,12 +133,14 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     }
     resolve(stmt.thenBranch);
     if (stmt.elseBranch != null) {
+      update_line(stmt.elseBranch);
       label2 = emit_goto(s, OP_goto, -1);
 
       emit_label(s, label1);
       resolve(stmt.elseBranch);
       label1 = label2;
     }
+    update_line(stmt.end_line);
     emit_label(s, label1);
     pop_scope(s);
     return null;
@@ -439,8 +443,16 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     }
   }
 
+  private void update_line(Stmt stmt) {
+    update_line(stmt.line_number);
+  }
+
+ private void update_line(int line_number) {
+   last_line_num = line_number;
+ }
+
   private void resolve(Stmt stmt) {
-    last_line_num = stmt.line_number;
+    update_line(stmt);
     stmt.accept(this);
   }
 

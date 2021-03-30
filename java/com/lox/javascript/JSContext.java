@@ -324,7 +324,7 @@ public class JSContext {
       "", fd.line_number,
       fd.label_slots.toArray(new LabelSlot[0]), null);
     printf("\n");
-    new IRResolver(this, fd).resolve_variables();
+    IRResolver.resolve_variables(this, fd);
     printf("pass 2\n");
     Dumper.dump_byte_code(this, 2,
       fd.byte_code.buf, fd.byte_code.size,

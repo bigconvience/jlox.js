@@ -10,18 +10,10 @@ import static com.lox.javascript.JSVarKindEnum.*;
  * @date 2021/3/1611:31 PM
  */
 public class IRResolver {
-JSFunctionDef fd;
-JSContext ctx;
-
-  public IRResolver(JSContext ctx, JSFunctionDef fd) {
-    this.fd = fd;
-    this.ctx = ctx;
-  }  
 
   /* convert global variable accesses to local variables or closure
    variables when necessary */
-  int resolve_variables()
-  {
+  public static int resolve_variables(JSContext ctx, JSFunctionDef fd) {
     JSFunctionDef s = fd;
     int pos, pos_next, bc_len, op, len, i, idx, arg_valid, line_num;
     byte[] bc_buf;
@@ -32,18 +24,18 @@ JSContext ctx;
 
     cc.bc_buf = bc_buf = s.byte_code.buf;
     cc.bc_len = bc_len = s.byte_code.size;
-   bc_out = new DynBuf();
+    bc_out = new DynBuf();
 
     /* first pass for runtime checks (must be done before the
        variables are created) */
     if (s.is_global_var) {
-      for(i = 0; i < s.hoisted_def.size() ; i++) {
+      for (i = 0; i < s.hoisted_def.size(); i++) {
         JSHoistedDef hf = s.hoisted_def.get(i);
         int flags;
 
         if (hf.var_name != JSAtom.JS_ATOM_NULL) {
           /* check if global variable (XXX: simplify) */
-          for(idx = 0; idx < s.closure_var.size(); idx++) {
+          for (idx = 0; idx < s.closure_var.size(); idx++) {
             JSClosureVar cv = s.closure_var.get(i);
             if (cv.var_name == hf.var_name) {
               if (s.eval_type == LoxJS.JS_EVAL_TYPE_DIRECT &&
@@ -57,10 +49,10 @@ JSContext ctx;
                 bc_out.dbuf_put_u32(hf.var_name);
                 bc_out.dbuf_putc(JSThrower.JS_THROW_VAR_REDECL);
               }
-                      break;
+              break;
             }
             if (cv.var_name.getVal() == JSAtomEnum.JS_ATOM__var_.ordinal()) {
-                       break; 
+              break;
             }
           }
 
@@ -84,17 +76,16 @@ JSContext ctx;
       len = OPCodeInfo.opcode_info.get(op).size;
       pos_next = pos + len;
       OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
-      switch(opCodeEnum) {
+      switch (opCodeEnum) {
         case OP_line_num:
           line_num = JUtils.get_u32(bc_buf, pos + 1);
           s.line_number_size++;
-           on_on_change(pos, len,  bc_buf, bc_out);
+          on_on_change(pos, len, bc_buf, bc_out);
 
         case OP_set_arg_valid_upto:
           arg_valid = JUtils.get_u16(bc_buf, pos + 1);
           break;
-        case OP_eval: /* convert scope index to adjusted variable index */
-        {
+        case OP_eval: /* convert scope index to adjusted variable index */ {
           int call_argc = JUtils.get_u16(bc_buf, pos + 1);
           scope = JUtils.get_u16(bc_buf, pos + 1 + 2);
           mark_eval_captured_variables(ctx, s, scope);
@@ -121,8 +112,7 @@ JSContext ctx;
             null, null, pos_next, arg_valid);
 
           break;
-        case OP_scope_make_ref:
-        {
+        case OP_scope_make_ref: {
           int label;
           LabelSlot ls;
           var_name = JUtils.get_atom(bc_buf, pos + 1);
@@ -132,13 +122,12 @@ JSContext ctx;
           ls.ref_count--;  /* always remove label reference */
           pos_next = ScopeVarResolver.resolve_scope_var(ctx, s, var_name, scope, op, bc_out,
             bc_buf, ls, pos_next, arg_valid);
-          
+
         }
         break;
         case OP_scope_get_private_field:
         case OP_scope_get_private_field2:
-        case OP_scope_put_private_field:
-        {
+        case OP_scope_put_private_field: {
           int ret;
           var_name = JUtils.get_atom(bc_buf, pos + 1);
           scope = JUtils.get_u16(bc_buf, pos + 5);
@@ -153,15 +142,15 @@ JSContext ctx;
         case OP_gosub:
           s.jump_size++;
 
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+          on_on_change(pos, len, bc_buf, bc_out);
+          break;
         case OP_drop:
-  
-break;
+
+          break;
         case OP_insert3:
 
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+          on_on_change(pos, len, bc_buf, bc_out);
+          break;
 
         case OP_goto:
           s.jump_size++;
@@ -174,24 +163,22 @@ break;
         case OP_throw_var:
         case OP_ret:
 
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+          on_on_change(pos, len, bc_buf, bc_out);
+          break;
 
-        case OP_label:
-        {
+        case OP_label: {
           int label;
           LabelSlot ls;
 
           label = JUtils.get_u32(bc_buf, pos + 1);
-          assert(label >= 0 && label < s.label_slots.size());
+          assert (label >= 0 && label < s.label_slots.size());
           ls = s.label_slots.get(label);
           ls.pos2 = bc_out.size + OPCodeInfo.opcode_info.get(op).size;
         }
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+        on_on_change(pos, len, bc_buf, bc_out);
+        break;
 
-        case OP_enter_scope:
-        {
+        case OP_enter_scope: {
           int scope_idx;
           scope = JUtils.get_u16(bc_buf, pos + 1);
 
@@ -199,7 +186,7 @@ break;
             JSHoistedDef.instantiate_hoisted_definitions(ctx, fd, bc_out);
           }
 
-          for(scope_idx = s.scopes.get(scope).first; scope_idx >= 0;) {
+          for (scope_idx = s.scopes.get(scope).first; scope_idx >= 0; ) {
             JSVarDef vd = s.vars.get(scope_idx);
             if (vd.scope_level == scope) {
               if (vd.var_kind == JS_VAR_FUNCTION_DECL ||
@@ -223,12 +210,11 @@ break;
         }
         break;
 
-        case OP_leave_scope:
-        {
+        case OP_leave_scope: {
           int scope_idx;
           scope = JUtils.get_u16(bc_buf, pos + 1);
 
-          for(scope_idx = s.scopes.get(scope).first; scope_idx >= 0;) {
+          for (scope_idx = s.scopes.get(scope).first; scope_idx >= 0; ) {
             JSVarDef vd = s.vars.get(scope_idx);
             if (vd.scope_level == scope) {
               if (vd.is_captured) {
@@ -243,27 +229,26 @@ break;
         }
         break;
 
-        case OP_set_name:
-        {
+        case OP_set_name: {
           /* remove dummy set_name opcodes */
           JSAtom name = JUtils.get_atom(bc_buf, pos + 1);
           if (name == JSAtomEnum.JS_ATOM_null.toJSAtom())
             break;
         }
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+        on_on_change(pos, len, bc_buf, bc_out);
+        break;
 
         case OP_if_false:
         case OP_if_true:
         case OP_catch:
           s.jump_size++;
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+          on_on_change(pos, len, bc_buf, bc_out);
+          break;
 
         case OP_dup:
 
-           on_on_change(pos, len,  bc_buf, bc_out);
-break;
+          on_on_change(pos, len, bc_buf, bc_out);
+          break;
 
         case OP_nop:
           /* remove erased code */
@@ -284,12 +269,11 @@ break;
     return 0;
   }
 
-  private void on_on_change(int pos, int len, byte[] bc_buf, DynBuf bc_out) {
-    bc_out.dbuf_put(bc_buf,  pos, len);
+  private static void on_on_change(int pos, int len, byte[] bc_buf, DynBuf bc_out) {
+    bc_out.dbuf_put(bc_buf, pos, len);
   }
-  
-  private void on_resolve_fail(int pos,  int bc_len, byte[] bc_buf, DynBuf bc_out) {
-  JSFunctionDef s = fd;
+
+  private static void on_resolve_fail(JSFunctionDef s, int pos, int bc_len, byte[] bc_buf, DynBuf bc_out) {
     /* continue the copy to keep the atom refcounts consistent */
     /* XXX: find a better solution ? */
     int pos_next, op, len;
@@ -304,14 +288,12 @@ break;
   }
 
 
-
-  void mark_eval_captured_variables(JSContext ctx, JSFunctionDef s,
-                                           int scope_level)
-  {
+  static void mark_eval_captured_variables(JSContext ctx, JSFunctionDef s,
+                                           int scope_level) {
     int idx;
     JSVarDef vd;
 
-    for (idx = s.scopes.get(scope_level).first; idx >= 0;) {
+    for (idx = s.scopes.get(scope_level).first; idx >= 0; ) {
       vd = s.vars.get(idx);
       vd.is_captured = true;
       idx = vd.scope_next;

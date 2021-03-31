@@ -34,6 +34,7 @@ public class JSContext {
   public JSValue global_obj;
   public JSValue global_var_obj;
   final JSRuntime rt;
+  public int interrupt_counter;
 
   public JSContext(JSRuntime rt) {
     this.rt = rt;

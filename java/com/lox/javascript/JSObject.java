@@ -11,6 +11,8 @@ import java.util.List;
  * @date 2021/1/151:47 PM
  */
 public class JSObject {
+  boolean is_HTMLDDA;
+  boolean is_uncatchable_error;
   boolean extensible = true;
   boolean is_exotic;
   JSShape shape;

@@ -35,4 +35,8 @@ public enum JSTag {
       tag == JS_TAG_FLOAT64 || tag == JS_TAG_BIG_FLOAT ||
       tag == JS_TAG_BIG_DECIMAL);
   }
+
+  static boolean JS_TAG_IS_FLOAT64(JSTag jsTag) {
+    return jsTag == JS_TAG_FLOAT64;
+  }
 }

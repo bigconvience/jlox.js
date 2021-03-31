@@ -23,6 +23,15 @@ public class JSRuntime {
   int stack_size;
   int stack_top;
   JSStackFrame current_stack_frame;
+  JSValue current_exception;
+
+  static boolean interrupt_handler(JSRuntime rt, Object opaque) {
+
+    return false;
+  }
+
+  Object interrupt_opaque;
+
 
   public JSRuntime() {
     this.atom_array = new ArrayList<>();

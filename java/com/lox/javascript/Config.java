@@ -13,4 +13,6 @@ public class Config {
   static final boolean loxTest = true;
 
   static final boolean OPTIMIZE = true;
+
+  static final int JS_INTERRUPT_COUNTER_INIT = 10000;
 }

@@ -5,6 +5,7 @@ import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JUtils.print_atom;
+import static com.lox.javascript.math.isnan;
 
 /**
  * @author benpeng.jiang
@@ -22,6 +23,7 @@ public class JSValue {
   public static final JSValue JS_TRUE = new JSValue(JSTag.JS_TAG_BOOL, 1);
   public static final JSValue JS_EXCEPTION = new JSValue(JS_TAG_EXCEPTION, 0);
   public static final JSValue JS_UNINITIALIZED = new JSValue(JSTag.JS_TAG_UNINITIALIZED, 0);
+  public static final JSValue JS_NAN = new JSValue(JS_TAG_FLOAT64, 0);
 
   public JSValue(JSTag tag, Object value) {
     this.tag = tag;
@@ -430,5 +432,61 @@ public class JSValue {
       }
     }
     return JS_UNDEFINED;
+  }
+
+  static boolean JS_IsHTMLDDA(JSContext ctx, JSValue obj)
+  {
+    JSObject p;
+    if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
+      return false;
+    p = JS_VALUE_GET_OBJ(obj);
+    return p.is_HTMLDDA;
+  }
+
+  static int JS_ToBoolFree(JSContext ctx, JSValue val)
+  {
+    JSTag tag = JS_VALUE_GET_TAG(val);
+    switch(tag) {
+      case JS_TAG_INT:
+        return JS_VALUE_GET_INT(val) != 0 ? 1 : 0;
+      case JS_TAG_BOOL:
+      case JS_TAG_NULL:
+      case JS_TAG_UNDEFINED:
+        return JS_VALUE_GET_INT(val);
+      case JS_TAG_EXCEPTION:
+        return -1;
+      case JS_TAG_STRING:
+      {
+        int ret = JS_VALUE_GET_STRING(val).str.length() != 0 ? 1 : 0;
+        JS_FreeValue(ctx, val);
+        return ret;
+      }
+      case JS_TAG_OBJECT:
+      {
+        JSObject p = JS_VALUE_GET_OBJ(val);
+        int ret;
+        ret = !p.is_HTMLDDA ? 1 : 0;
+        JS_FreeValue(ctx, val);
+        return ret;
+      }
+
+      default:
+        if (JS_TAG_IS_FLOAT64(tag)) {
+          double d = JS_VALUE_GET_FLOAT64(val);
+          return !isnan(d) && d != 0 ? 1 : 0;
+        } else {
+          JS_FreeValue(ctx, val);
+          return 1;
+        }
+    }
+  }
+
+  static void JS_FreeValue(JSContext ctx, JSValue v)
+  {
+
+  }
+  static int JS_ToBool(JSContext ctx, final JSValue val)
+  {
+    return JS_ToBoolFree(ctx, val);
   }
 }

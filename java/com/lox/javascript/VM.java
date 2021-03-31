@@ -4,7 +4,12 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
+import static com.lox.javascript.Config.JS_INTERRUPT_COUNTER_INIT;
 import static com.lox.javascript.JSCompare.*;
+import static com.lox.javascript.JSTag.*;
+import static com.lox.javascript.JSThrower.*;
+import static com.lox.javascript.JSValue.*;
+import static com.lox.javascript.JUtils.*;
 
 /*
   @author benpeng.jiang
@@ -339,11 +344,127 @@ public class VM {
           pc += 2;
           JSContext.set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
           break;
+        case OP_goto:
+          pc += get_u32(code_buf, pc);
+          if (js_poll_interrupts(ctx))
+                  on_exception();
+          break;
+
+        case OP_goto16:
+          pc += get_u16(code_buf, pc);
+          if (js_poll_interrupts(ctx))
+            on_exception();
+          break;
+        case OP_goto8:
+        pc += get_u8(code_buf, pc);
+        if (js_poll_interrupts(ctx))
+          on_exception();
+        break;
+        case OP_if_true:
+        {
+          int res;
+
+          op1 = peek(stack_buf, sp-1);
+          pc += 4;
+          if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
+            res = JS_VALUE_GET_INT(op1);
+          } else {
+            res = JS_ToBoolFree(ctx, op1);
+          }
+          sp--;
+          if (res != 0) {
+            pc += get_u32(code_buf, pc - 4) - 4;
+          }
+          if (js_poll_interrupts(ctx))
+            on_exception();
+        }
+        break;
+        case OP_if_false:
+        {
+          int res;
+          op1 = peek(stack_buf, sp-1);
+          pc += 4;
+          if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
+            res = JS_VALUE_GET_INT(op1);
+          } else {
+            res = JS_ToBoolFree(ctx, op1);
+          }
+          sp--;
+          if (res == 0) {
+            pc += get_u32(code_buf, pc - 4) - 4;
+          }
+          if (js_poll_interrupts(ctx))
+            on_exception();
+        }
+        break;
+        case OP_if_true8:
+        {
+          int res;
+
+          op1 = peek(stack_buf, sp-1);
+          pc += 1;
+          if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
+            res = JS_VALUE_GET_INT(op1);
+          } else {
+            res = JS_ToBoolFree(ctx, op1);
+          }
+          sp--;
+          if (res != 0) {
+            pc += get_u8(code_buf, pc-1) - 1;
+          }
+          if (js_poll_interrupts(ctx))
+            on_exception();
+        }
+        break;
+        case OP_if_false8:
+        {
+          int res;
+          op1 = peek(stack_buf, sp-1);;
+          pc += 1;
+          if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
+            res = JS_VALUE_GET_INT(op1);
+          } else {
+            res = JS_ToBoolFree(ctx, op1);
+          }
+          sp--;
+          if (res == 0) {
+            pc += get_u8(code_buf, pc-1) - 1;
+          }
+          if (js_poll_interrupts(ctx))
+            on_exception();
+        }
+        break;
       }
     }
 
     rt.current_stack_frame = sf.prev_frame;
     return ret_val;
+  }
+
+  private static void on_exception() {
+
+  }
+
+  static  boolean __js_poll_interrupts(JSContext ctx)
+  {
+    JSRuntime rt = ctx.rt;
+    ctx.interrupt_counter = JS_INTERRUPT_COUNTER_INIT;
+    if (rt.interrupt_handler(rt, rt.interrupt_opaque)) {
+      /* XXX: should set a specific flag to avoid catching */
+      JS_ThrowInternalError(ctx, "interrupted");
+      JS_SetUncatchableError(ctx, rt.current_exception, true);
+      return true;
+    }
+    return false;
+  }
+
+  static boolean js_poll_interrupts(JSContext ctx)
+  {
+    if (--ctx.interrupt_counter <= 0) {
+      return __js_poll_interrupts(ctx);
+    } else {
+      return false;
+    }
   }
 
   private static JSValue peek(JSValue[] stack_buf, int sp) {

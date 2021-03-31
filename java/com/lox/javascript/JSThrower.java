@@ -7,7 +7,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.lox.javascript.JSAtom.JS_ATOM_NULL;
+import static com.lox.javascript.JSClassID.JS_CLASS_ERROR;
 import static com.lox.javascript.JSErrorEnum.*;
+import static com.lox.javascript.JSTag.JS_TAG_OBJECT;
+import static com.lox.javascript.JSValue.JS_VALUE_GET_OBJ;
+import static com.lox.javascript.JSValue.JS_VALUE_GET_TAG;
 
 /**
  * @author benpeng.jiang
@@ -133,5 +137,15 @@ public class JSThrower {
 
     val = JS_ThrowError(ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args));
     return val;
+  }
+
+  public static void JS_SetUncatchableError(JSContext ctx, final JSValue val, boolean flag)
+  {
+    JSObject p;
+    if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
+      return;
+    p = JS_VALUE_GET_OBJ(val);
+    if (p.class_id == JS_CLASS_ERROR)
+      p.is_uncatchable_error = flag;
   }
 }

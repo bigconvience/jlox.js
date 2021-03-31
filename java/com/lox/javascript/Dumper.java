@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.lox.javascript.JSVarKindEnum.*;
+import static com.lox.javascript.JUtils.*;
 
 /**
  * @author benpeng.jiang
@@ -34,6 +35,16 @@ public class Dumper {
 
       pos_next = pos + oi.size;
       switch (oi.fmt) {
+        case label8:
+          pos++;
+          addr = Byte.toUnsignedInt(tab[pos]);
+          addr = on_has_addr(pass, addr, label_slots, pos, len, bits);
+          break;
+        case label16:
+          pos++;
+          addr = (0xFFFF)&get_u16(tab, pos);
+          addr = on_has_addr(pass, addr, label_slots, pos, len, bits);
+          break;
         case atom_label_u8:
         case atom_label_u16:
           pos += 4;
@@ -42,14 +53,7 @@ public class Dumper {
         case label_u16:
           pos++;
           addr = JUtils.get_u32(tab, pos);
-          if (pass == 1)
-            addr = label_slots[addr].pos;
-          if (pass == 2)
-            addr = label_slots[addr].pos2;
-          if (pass == 3)
-            addr += pos;
-          if (addr >= 0 && addr < len)
-            bits[addr] |= 1;
+          addr = on_has_addr(pass, addr, label_slots, pos, len, bits);
           break;
       }
     }
@@ -97,10 +101,10 @@ public class Dumper {
           break;
         case u16:
         case npop:
-          printf(" %d", JUtils.get_u16(tab, pos));
+          printf(" %d", get_u16(tab, pos));
           break;
         case npop_u16:
-          printf(" %d,%d", JUtils.get_u16(tab, pos), JUtils.get_u16(tab, pos + 2));
+          printf(" %d,%d", get_u16(tab, pos), get_u16(tab, pos + 2));
           break;
         case i16:
           printf(" %d", JUtils.get_i16(tab, pos));
@@ -111,7 +115,18 @@ public class Dumper {
         case u32:
           printf(" %d", JUtils.get_u32(tab, pos));
           break;
-
+        case label8:
+          addr = get_i8(tab, pos);
+          on_has_addr1(pass, addr, label_slots, pos);
+          break;
+        case label16:
+          addr = get_i16(tab,  pos);
+          on_has_addr1(pass, addr, label_slots, pos);
+          break;
+        case label:
+          addr = JUtils.get_u32(tab, pos);
+          on_has_addr1(pass, addr, label_slots, pos);
+          break; 
         case atom:
           printf(" ");
           ctx.print_atom(JUtils.get_u32(tab, pos));
@@ -124,7 +139,7 @@ public class Dumper {
         case atom_u16:
           printf(" ");
           ctx.print_atom(JUtils.get_u32(tab, pos));
-          printf(",%d", JUtils.get_u16(tab, pos + 4));
+          printf(",%d", get_u16(tab, pos + 4));
           break;
         case atom_label_u8:
         case atom_label_u16:
@@ -140,17 +155,7 @@ public class Dumper {
           if (oi.fmt == OPCodeFormat.atom_label_u8)
             printf(",%d", JUtils.get_u8(tab, pos + 8));
           else
-            printf(",%d", JUtils.get_u16(tab, pos + 8));
-          break;
-
-        case label:
-          addr = JUtils.get_u32(tab, pos);
-          if (pass == 1)
-            printf(" %d:%d", addr, label_slots[addr].pos);
-          if (pass == 2)
-            printf(" %d:%d", addr, label_slots[addr].pos2);
-          if (pass == 3)
-            printf(" %d", addr + pos);
+            printf(",%d", get_u16(tab, pos + 8));
           break;
 
 
@@ -163,13 +168,34 @@ public class Dumper {
           on_has_loc(idx, var_count, ctx, vars);
           break;
         case loc:
-          idx = JUtils.get_u16(tab,  pos);
+          idx = get_u16(tab,  pos);
           on_has_loc(idx, var_count, ctx, vars);
           break;
       }
       println("");
       pos += oi.size - 1;
     }
+  }
+
+  static void on_has_addr1(int pass, int addr, LabelSlot[] label_slots, int pos) {
+    if (pass == 1)
+      printf(" %d:%d", addr, label_slots[addr].pos);
+    if (pass == 2)
+      printf(" %d:%d", addr, label_slots[addr].pos2);
+    if (pass == 3)
+      printf(" %d", addr + pos);
+  }
+
+  static int on_has_addr(int pass, int addr, LabelSlot[] label_slots, int pos, int len, byte[] bits){
+    if (pass == 1)
+      addr = label_slots[addr].pos;
+    if (pass == 2)
+      addr = label_slots[addr].pos2;
+    if (pass == 3)
+      addr += pos;
+    if (addr >= 0 && addr < len)
+      bits[addr] |= 1;
+    return addr;
   }
 
   static void on_has_loc(int idx, int var_count, JSContext ctx, List<JSVarDef> vars) {

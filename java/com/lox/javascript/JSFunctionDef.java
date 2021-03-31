@@ -349,6 +349,10 @@ public class JSFunctionDef extends Stmt {
     return new_label_fd(-1);
   }
 
+  public static int update_label(JSFunctionDef s, int label, int delta) {
+    return s.update_label(label, delta);
+  }
+
   int update_label(int label, int delta) {
     LabelSlot ls = label_slots.get(label);
     ls.ref_count += delta;

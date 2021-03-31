@@ -571,6 +571,7 @@ public class JSContext {
                                            boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
     JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
 
+    fd.line_num = 1;
     fd.scope_level = 0;
     fd.scope_first = -1;
     JSVarScope varScope = new JSVarScope();

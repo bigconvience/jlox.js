@@ -11,4 +11,6 @@ public class Config {
   static final boolean dump = true;
 
   static final boolean loxTest = true;
+
+  static final boolean OPTIMIZE = true;
 }

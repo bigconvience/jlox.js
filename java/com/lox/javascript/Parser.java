@@ -7,6 +7,7 @@ import java.util.*;
 import static com.lox.javascript.JSErrorEnum.JS_SYNTAX_ERROR;
 import static com.lox.javascript.JSVarDefEnum.*;
 import static com.lox.javascript.JSVarKindEnum.*;
+import static com.lox.javascript.Token.token_is_ident;
 import static com.lox.javascript.TokenType.*;
 
 class Parser {
@@ -254,8 +255,8 @@ class Parser {
 
   private Stmt expressionStatement() {
     Expr expr = expression();
-    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
-    return new Stmt.Expression(tok.line, expr);
+//    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
+    return new Stmt.Expression(previous().line, expr);
   }
 
   private JSFunctionDef function(String kind) {
@@ -506,6 +507,25 @@ class Parser {
     if (match(TOK_DEC, TOK_INC)) {
       Token token = previous();
       return new Expr.Postfix(token, expr);
+    }
+
+    int optional_chaining_label = -1;
+    for (;;) {
+
+      if (match(TOK_DOT)) {
+        if (match(TOK_PRIVATE_NAME)) {
+
+        } else {
+          Token token = advance();
+          if (!token_is_ident(token.type)) {
+            js_parse_error("expecting field name");
+          }
+          Expr.Get get = new Expr.Get(expr, token);
+          return get;
+        }
+      } else {
+        break;
+      }
     }
     return expr;
   }

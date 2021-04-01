@@ -122,7 +122,7 @@ class Scanner {
         } else if (isDigit(peekNext())) {
           number(c);
         } else {
-          addToken(DOT);
+          addToken(TOK_DOT);
         }
         break;
       case '-':

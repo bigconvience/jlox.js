@@ -305,6 +305,9 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   @Override
   public Void visitGetExpr(Expr.Get expr) {
     resolve(expr.object);
+    Resolver s = this;
+    emit_op(s, OP_get_field);
+    emit_atom(s, expr.name.ident_atom);
     return null;
   }
 
@@ -579,6 +582,9 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     }
   }
 
+  static int emit_atom(Resolver s, JSAtom atom) {
+    return s.emit_u32(atom);
+  }
   int emit_u32(JSAtom atom) {
     return emit_u32(atom.getVal());
   }

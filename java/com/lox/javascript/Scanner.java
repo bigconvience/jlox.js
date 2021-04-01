@@ -96,16 +96,16 @@ class Scanner {
         addToken(TOK_COLON);
         break;
       case '(':
-        addToken(LEFT_PAREN);
+        addToken(TOK_LEFT_PAREN);
         break;
       case ')':
-        addToken(RIGHT_PAREN);
+        addToken(TOK_RIGHT_PAREN);
         break;
       case '{':
-        addToken(LEFT_BRACE);
+        addToken(TOK_LEFT_BRACE);
         break;
       case '}':
-        addToken(RIGHT_BRACE);
+        addToken(TOK_RIGHT_BRACE);
         break;
       case '[':
         addToken(TOK_LEFT_BRACKET);
@@ -114,7 +114,7 @@ class Scanner {
         addToken(TOK_RIGHT_BRACKET);
         break;
       case ',':
-        addToken(COMMA);
+        addToken(TOK_COMMA);
         break;
       case '.':
         if (match('.') && match('.')) {
@@ -304,7 +304,7 @@ class Scanner {
     String text = source.substring(start, current);
 
     TokenType type = keywords.get(text);
-    if (type == null) type = TOK_IDENTIFIER;
+    if (type == null) type = TOK_IDENT;
     addToken_Ident(type);
   }
 

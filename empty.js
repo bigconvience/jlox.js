@@ -1,1 +1,2 @@
-arguments.length
+function assert(actual, expected, message) {
+}

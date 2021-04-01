@@ -30,6 +30,7 @@ public class JSFunctionDef extends Stmt {
   int last_opcode_line_num = -1;
   int last_opcode_pos = -1;
   int line_num;
+  String filename;
 
   final Token name = null;
   final List<Token> params;
@@ -80,6 +81,20 @@ public class JSFunctionDef extends Stmt {
   int eval_ret_idx = -1;
   int this_var_idx = -1;;
 
+  boolean has_prototype;
+  boolean has_home_object;
+  boolean new_target_allowed;
+  boolean super_call_allowed;
+  boolean super_allowed;
+  boolean arguments_allowed;
+  boolean in_function_body;
+
+  JSFunctionKindEnum func_kind;
+  JSParseFunctionEnum func_type;
+
+  int source_len;
+  String source;
+  JSModuleDef module;
   JSFunctionDef(JSFunctionDef parent,
                 boolean is_eval, boolean isFuncExpr, String filename, int lineNum) {
     this.parent = parent;
@@ -194,6 +209,12 @@ public class JSFunctionDef extends Stmt {
       scope = scopes.get(scope).parent;
     }
     return false;
+  }
+
+  public static boolean add_hoisted_def(JSContext ctx, JSFunctionDef fd, int cpool_idx, JSAtom var_name,
+                                        int var_Idx,
+                                        boolean is_lexical) {
+    return fd.addHoistedDef(cpool_idx, var_name, var_Idx, is_lexical) == null;
   }
 
   public JSHoistedDef addHoistedDef(int cpoolIdx, JSAtom varName,

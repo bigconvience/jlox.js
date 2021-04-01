@@ -4,11 +4,24 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
-import static com.lox.javascript.JSErrorEnum.JS_SYNTAX_ERROR;
+import static com.lox.javascript.JSAtom.JS_ATOM_NULL;
+import static com.lox.javascript.JSAtomEnum.*;
+import static com.lox.javascript.JSContext.js_new_function_def;
+import static com.lox.javascript.JSErrorEnum.*;
+import static com.lox.javascript.JSExportTypeEnum.JS_EXPORT_TYPE_LOCAL;
+import static com.lox.javascript.JSFunctionDef.add_hoisted_def;
+import static com.lox.javascript.JSFunctionKindEnum.*;
+import static com.lox.javascript.JSParseExportEnum.*;
+import static com.lox.javascript.JSParseFunctionEnum.*;
+import static com.lox.javascript.JSValue.JS_NULL;
+import static com.lox.javascript.JSVarDef.add_arg;
 import static com.lox.javascript.JSVarDefEnum.*;
-import static com.lox.javascript.JSVarKindEnum.*;
+import static com.lox.javascript.LoxJS.JS_MODE_STRICT;
+import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 import static com.lox.javascript.Token.token_is_ident;
+import static com.lox.javascript.Token.token_is_pseudo_keyword;
 import static com.lox.javascript.TokenType.*;
+import static java.lang.Boolean.*;
 
 class Parser {
 
@@ -18,18 +31,18 @@ class Parser {
 
   private final List<Token> tokens;
   private int current = 0;
-  private JSFunctionDef curFunc;
+  private JSFunctionDef cur_func;
   private com.lox.javascript.Scanner scanner;
   JSContext ctx;
   String fileName;
   private JSRuntime rt;
   private boolean is_module;
 
-  Parser(Scanner scanner, JSContext ctx, JSFunctionDef curFunc, JSRuntime rt) {
+  Parser(Scanner scanner, JSContext ctx, JSFunctionDef cur_func, JSRuntime rt) {
     this.scanner = scanner;
     this.tokens = scanner.scanTokens();
     this.ctx = ctx;
-    this.curFunc = curFunc;
+    this.cur_func = cur_func;
     this.rt = rt;
   }
 
@@ -49,22 +62,22 @@ class Parser {
   }
 
   static void parse_program(Parser s) {
-    JSFunctionDef fd = s.curFunc;
+    JSFunctionDef fd = s.cur_func;
     int idx;
     fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
 
     fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL) ||
       (fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE) ||
-      (fd.js_mode & LoxJS.JS_MODE_STRICT) == 0;
+      (fd.js_mode & JS_MODE_STRICT) == 0;
 
     if (!s.is_module) {
       /* hidden variable for the return value */
       fd.eval_ret_idx = idx = JSVarDef.add_var(s.ctx, fd, JSAtomEnum.JS_ATOM__ret_.toJSAtom());
       if (idx < 0)
-         stdlib_h.abort();
+        stdlib_h.abort();
     }
 
-    
+
     List<Stmt> stmts = s.parse();
 //    Stmt.Block block = new Stmt.Block(0, stmts);
     fd.body = stmts;
@@ -76,8 +89,17 @@ class Parser {
 
   private Stmt declaration() {
     try {
+      Parser s = this;
+      if (match(TOK_FUNCTION) ||
+        (token_is_pseudo_keyword(peek(), JS_ATOM_async) &&
+          peek_token(s, true).type == TOK_FUNCTION)) {
+        PJSFunctionDef pfd = new PJSFunctionDef();
+        js_parse_function_decl(s, JS_PARSE_FUNC_STATEMENT,
+          JS_FUNC_NORMAL, JS_ATOM_NULL,
+          null, peek().line_num, pfd);
+        return pfd.fd;
+      }
       if (match(TOK_CLASS)) return classDeclaration();
-      if (match(TOK_FUNCTION)) return function("function");
       if (match(TOK_VAR, TOK_LET, TOK_CONST)) return js_parse_var(previous());
 
       return statement();
@@ -88,15 +110,15 @@ class Parser {
   }
 
   private Stmt classDeclaration() {
-    Token name = consume(TOK_IDENTIFIER, "Expect class name.");
-    consume(LEFT_BRACE, "Expect '{' before class body.");
+    Token name = consume(TOK_IDENT, "Expect class name.");
+    consume(TOK_LEFT_BRACE, "Expect '{' before class body.");
 
     List<JSFunctionDef> methods = new ArrayList<>();
-    while (!check(RIGHT_BRACE) && !isAtEnd()) {
+    while (!check(TOK_RIGHT_BRACE) && !isAtEnd()) {
       methods.add(function("method"));
     }
 
-    consume(RIGHT_BRACE, "Expect '}' after class body.");
+    consume(TOK_RIGHT_BRACE, "Expect '}' after class body.");
 
     return new Stmt.Class(name, methods);
   }
@@ -107,8 +129,8 @@ class Parser {
     if (match(PRINT)) return printStatement();
     if (match(TOK_RETURN)) return returnStatement();
     if (match(WHILE)) return whileStatement();
-    if (match(LEFT_BRACE)) {
-      int start_line = previous().line;
+    if (match(TOK_LEFT_BRACE)) {
+      int start_line = previous().line_num;
       return new Stmt.Block(start_line, block());
     }
 
@@ -116,7 +138,7 @@ class Parser {
   }
 
   private Stmt forStatement() {
-    consume(LEFT_PAREN, "Expect '(' after 'for'.");
+    consume(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
 
     Stmt initializer;
     if (match(SEMICOLON)) {
@@ -134,10 +156,10 @@ class Parser {
     consume(SEMICOLON, "Expect ';' after loop condition.");
 
     Expr increment = null;
-    if (!check(RIGHT_PAREN)) {
+    if (!check(TOK_RIGHT_PAREN)) {
       increment = expression();
     }
-    consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+    consume(TOK_RIGHT_PAREN, "Expect ')' after for clauses.");
     Stmt body = statement();
 
     if (increment != null) {
@@ -157,20 +179,20 @@ class Parser {
   }
 
   private Stmt ifStatement() {
-    int expr_line = previous().line;
+    int expr_line = previous().line_num;
     Expr condition = js_parse_expr_paren();
 
-    int then_line = previous().line;
+    int then_line = previous().line_num;
     Stmt thenBranch = statement();
     thenBranch.line_number = then_line;
     Stmt elseBranch = null;
     if (match(TOK_ELSE)) {
-      int else_line = previous().line;
+      int else_line = previous().line_num;
       elseBranch = statement();
       elseBranch.line_number = else_line;
     }
 
-    int end_line = previous().line;
+    int end_line = previous().line_num;
     Stmt.If stmt = new Stmt.If(condition, thenBranch, elseBranch);
     stmt.line_number = expr_line;
     stmt.end_line = end_line;
@@ -178,16 +200,16 @@ class Parser {
   }
 
   private Expr js_parse_expr_paren() {
-    consume(LEFT_PAREN, "Expect '('");
+    consume(TOK_LEFT_PAREN, "Expect '('");
     Expr expr = expression();
-    consume(RIGHT_PAREN, "Expect ')'"); // [parens]
+    consume(TOK_RIGHT_PAREN, "Expect ')'"); // [parens]
     return expr;
   }
 
   private Stmt printStatement() {
     Expr value = expression();
     Token tok = consume(SEMICOLON, "Expect ';' after value.");
-    return new Stmt.Print(tok.line, value);
+    return new Stmt.Print(tok.line_num, value);
   }
 
   private Stmt returnStatement() {
@@ -202,25 +224,25 @@ class Parser {
   }
 
   private Stmt js_parse_var(Token tok) {
-    JSFunctionDef fd = curFunc;
+    JSFunctionDef fd = cur_func;
 
-    Token name = consume(TOK_IDENTIFIER, "Expect variable name.");
+    Token name = consume(TOK_IDENT, "Expect variable name.");
 
-    JSVarDefEnum varDefEnum= getJsVarDefEnum(tok);
+    JSVarDefEnum varDefEnum = getJsVarDefEnum(tok);
 
     Expr initializer = null;
     if (match(TOK_ASSIGN)) {
       initializer = expression();
     }
-    TokenType type= tok.type;
+    TokenType type = tok.type;
     if (initializer == null) {
       if (type == TOK_CONST) {
-        js_parse_error("missing initializer for const variable");
+        js_parse_error(this, "missing initializer for const variable");
       }
     }
 
     consume(SEMICOLON, "Expect ';' after variable declaration.");
-    Stmt stmt = new Stmt.Var(tok.line, varDefEnum, name.ident_atom, initializer);
+    Stmt stmt = new Stmt.Var(tok.line_num, varDefEnum, name.ident_atom, initializer);
     return stmt;
   }
 
@@ -244,10 +266,11 @@ class Parser {
     }
     return varDefType;
   }
+
   private Stmt whileStatement() {
-    consume(LEFT_PAREN, "Expect '(' after 'while'.");
+    consume(TOK_LEFT_PAREN, "Expect '(' after 'while'.");
     Expr condition = expression();
-    consume(RIGHT_PAREN, "Expect ')' after condition.");
+    consume(TOK_RIGHT_PAREN, "Expect ')' after condition.");
     Stmt body = statement();
 
     return new Stmt.While(condition, body);
@@ -256,45 +279,45 @@ class Parser {
   private Stmt expressionStatement() {
     Expr expr = expression();
 //    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
-    return new Stmt.Expression(previous().line, expr);
+    return new Stmt.Expression(previous().line_num, expr);
   }
 
   private JSFunctionDef function(String kind) {
     boolean isExpr = false;
-    JSFunctionDef fd = curFunc;
-    Token name = consume(TOK_IDENTIFIER, "Expect " + kind + " name.");
-    consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+    JSFunctionDef fd = cur_func;
+    Token name = consume(TOK_IDENT, "Expect " + kind + " name.");
+    consume(TOK_LEFT_PAREN, "Expect '(' after " + kind + " name.");
     List<Token> parameters = new ArrayList<>();
-    if (!check(RIGHT_PAREN)) {
+    if (!check(TOK_RIGHT_PAREN)) {
       do {
         if (parameters.size() >= 255) {
           error(peek(), "Cannot have more than 255 parameters.");
         }
 
-        parameters.add(consume(TOK_IDENTIFIER, "Expect parameter name."));
-      } while (match(COMMA));
+        parameters.add(consume(TOK_IDENT, "Expect parameter name."));
+      } while (match(TOK_COMMA));
     }
-    consume(RIGHT_PAREN, "Expect ')' after parameters.");
+    consume(TOK_RIGHT_PAREN, "Expect ')' after parameters.");
 
-    fd = ctx.js_new_function_def(fd, false, isExpr, fileName, name.line);
+    fd = js_new_function_def(fd, false, isExpr, fileName, name.line_num);
     fd.func_name = rt.JS_NewAtomStr(name.lexeme);
-    curFunc = fd;
+    cur_func = fd;
 
-    consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+    consume(TOK_LEFT_BRACE, "Expect '{' before " + kind + " body.");
 //    fd.body = new Stmt.Block(block());
     fd.body = block();
-    curFunc = fd.parent;
+    cur_func = fd.parent;
     return fd;
   }
 
   private List<Stmt> block() {
     List<Stmt> statements = new ArrayList<>();
 
-    while (!check(RIGHT_BRACE) && !isAtEnd()) {
+    while (!check(TOK_RIGHT_BRACE) && !isAtEnd()) {
       statements.add(declaration());
     }
 
-    consume(RIGHT_BRACE, "Expect '}' after block.");
+    consume(TOK_RIGHT_BRACE, "Expect '}' after block.");
     return statements;
   }
 
@@ -510,7 +533,7 @@ class Parser {
     }
 
     int optional_chaining_label = -1;
-    for (;;) {
+    for (; ; ) {
 
       if (match(TOK_DOT)) {
         if (match(TOK_PRIVATE_NAME)) {
@@ -518,7 +541,7 @@ class Parser {
         } else {
           Token token = advance();
           if (!token_is_ident(token.type)) {
-            js_parse_error("expecting field name");
+            js_parse_error(this, "expecting field name");
           }
           Expr.Get get = new Expr.Get(expr, token);
           return get;
@@ -549,17 +572,17 @@ class Parser {
 
     if (match(TOK_THIS)) return new Expr.This(previous());
 
-    if (match(TOK_IDENTIFIER)) {
-      return new Expr.Variable(previous(), curFunc.scope_level);
+    if (match(TOK_IDENT)) {
+      return new Expr.Variable(previous(), cur_func.scope_level);
     }
 
-    if (match(LEFT_PAREN)) {
+    if (match(TOK_LEFT_PAREN)) {
       Expr expr = expression();
-      consume(RIGHT_PAREN, "Expect ')' after expression.");
+      consume(TOK_RIGHT_PAREN, "Expect ')' after expression.");
       return new Expr.Grouping(expr);
     }
 
-    if (match(LEFT_BRACE)) {
+    if (match(TOK_LEFT_BRACE)) {
       Expr.ObjectLiteral literal = parseObjectLiteral();
       return literal;
     }
@@ -572,11 +595,11 @@ class Parser {
     throw error(peek(), "Expect expression.");
   }
 
-  private  Expr.Literal emit_push_const(Token token, boolean asAtom) {
+  private Expr.Literal emit_push_const(Token token, boolean asAtom) {
     Expr.Literal literal = null;
     if (token.type == TOK_STRING && asAtom) {
       JSAtom atom = token.str_str;
-      if (atom != JSAtom.JS_ATOM_NULL && !atom.__JS_AtomIsTaggedInt()) {
+      if (atom != JS_ATOM_NULL && !atom.__JS_AtomIsTaggedInt()) {
         literal = new Expr.Literal(atom);
       }
     }
@@ -587,19 +610,19 @@ class Parser {
   private Expr.ObjectLiteral parseObjectLiteral() {
     Map<String, Expr> prop = new HashMap<>();
     Expr.ObjectLiteral literal = new Expr.ObjectLiteral(prop);
-    while (!match(RIGHT_BRACE)) {
+    while (!match(TOK_RIGHT_BRACE)) {
       String name = parsePropertyName();
       match(TOK_COLON);
       Expr expr = assignment();
       prop.put(name, expr);
-      match(COMMA);
+      match(TOK_COMMA);
     }
 
     return literal;
   }
 
   private String parsePropertyName() {
-    if (match(TOK_IDENTIFIER, TOK_STRING)) {
+    if (match(TOK_IDENT, TOK_STRING)) {
       return previous().lexeme;
     } else if (match(TOK_NUMBER)) {
       return previous().lexeme;
@@ -622,10 +645,10 @@ class Parser {
     return false;
   }
 
-  private Token consume(TokenType type, String message) {
+  Token consume(TokenType type, String message) {
     if (check(type)) return advance();
 
-    throw error(peek(), message);
+    return null;
   }
 
   private boolean check(TokenType type) {
@@ -678,18 +701,344 @@ class Parser {
   }
 
   public int push_scope() {
-    if (curFunc != null) {
-      JSFunctionDef fd = curFunc;
+    if (cur_func != null) {
+      JSFunctionDef fd = cur_func;
       int scope = fd.add_scope();
       return scope;
     }
     return 0;
   }
 
-  int  js_parse_error(String fmt, Object... args)
-  {
-    JSThrower.JS_ThrowError2(ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args), false);
+  static int js_parse_error_reserved_identifier(Parser s) {
+    return js_parse_error(s, "'%s' is a reserved identifier",
+      JSContext.JS_AtomToString(s.ctx, s.peek().ident_atom));
+  }
 
+  static int js_parse_error(Parser s, String fmt, Object... args) {
+    JSThrower.JS_ThrowError2(s.ctx, JS_SYNTAX_ERROR, fmt, Arrays.asList(args), false);
     return -1;
+  }
+
+
+  static int js_parse_function_decl(Parser s,
+                                    JSParseFunctionEnum func_type,
+                                    JSFunctionKindEnum func_kind,
+                                    JSAtom func_name,
+                                    byte[] ptr,
+                                    int function_line_num, PJSFunctionDef pfd) {
+    return js_parse_function_decl2(s, func_type, func_kind, func_name, ptr,
+      function_line_num, JS_PARSE_EXPORT_NONE,
+      pfd);
+  }
+
+  static int js_parse_function_decl2(Parser s,
+                                     JSParseFunctionEnum func_type,
+                                     JSFunctionKindEnum func_kind,
+                                     JSAtom func_name,
+                                     byte[] ptr,
+                                     int function_line_num,
+                                     JSParseExportEnum export_flag,
+                                     PJSFunctionDef pfd) {
+    JSContext ctx = s.ctx;
+    JSFunctionDef fd = s.cur_func;
+    boolean is_expr;
+    int func_idx, lexical_func_idx = -1;
+    boolean has_opt_arg;
+    boolean create_func_var = FALSE;
+    Token token;
+
+    is_expr = (func_type != JS_PARSE_FUNC_STATEMENT &&
+      func_type != JS_PARSE_FUNC_VAR);
+    if (func_type == JS_PARSE_FUNC_STATEMENT ||
+      func_type == JS_PARSE_FUNC_VAR ||
+      func_type == JS_PARSE_FUNC_EXPR) {
+      if (func_kind == JS_FUNC_NORMAL &&
+        Token.token_is_pseudo_keyword(s.peek(), JS_ATOM_async) &&
+        peek_token(s, TRUE) != null) {
+        s.advance();
+        func_kind = JS_FUNC_ASYNC;
+      }
+
+      if (s.match(TOK_SAR)) {
+        func_kind = JSFunctionKindEnum.values()[func_kind.ordinal() | JS_FUNC_GENERATOR.ordinal()];
+      }
+
+      if (s.check(TOK_IDENT)) {
+        if (s.peek().is_reserved ||
+          (s.peek().ident_atom == JS_ATOM_yield.toJSAtom() &&
+            func_type == JS_PARSE_FUNC_EXPR &&
+            (func_kind.ordinal() & JS_FUNC_GENERATOR.ordinal()) != 0) ||
+          (s.peek().ident_atom == JS_ATOM_await.toJSAtom() &&
+            func_type == JS_PARSE_FUNC_EXPR &&
+            (func_kind.ordinal() & JS_FUNC_ASYNC.ordinal()) != 0)) {
+          return js_parse_error_reserved_identifier(s);
+        }
+      }
+
+      if (s.check(TOK_IDENT) ||
+        (((s.check(TOK_YIELD) && (fd.js_mode & JS_MODE_STRICT) == 0) ||
+          (s.check(TOK_AWAIT) && !s.is_module)) &&
+          func_type == JS_PARSE_FUNC_EXPR)) {
+        func_name = s.advance().ident_atom;
+      } else {
+        if (func_type != JS_PARSE_FUNC_EXPR &&
+          export_flag != JS_PARSE_EXPORT_DEFAULT) {
+          return js_parse_error(s, "function name expected");
+        }
+      }
+    } else if (func_type != JS_PARSE_FUNC_ARROW) {
+      func_name = func_name;
+    }
+
+    fd = js_new_function_def(ctx, fd, false, is_expr, s.fileName, function_line_num);
+
+    if (pfd != null) {
+      pfd.fd = fd;
+    }
+
+    s.cur_func = fd;
+    fd.func_name = func_name;
+    fd.has_prototype = (func_type == JS_PARSE_FUNC_STATEMENT ||
+      func_type == JS_PARSE_FUNC_VAR ||
+      func_type == JS_PARSE_FUNC_EXPR) &&
+      func_kind == JS_FUNC_NORMAL;
+    fd.has_home_object = (func_type == JS_PARSE_FUNC_METHOD ||
+      func_type == JS_PARSE_FUNC_GETTER ||
+      func_type == JS_PARSE_FUNC_SETTER ||
+      func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR ||
+      func_type == JS_PARSE_FUNC_DERIVED_CLASS_CONSTRUCTOR);
+
+    fd.has_arguments_binding = (func_type != JS_PARSE_FUNC_ARROW);
+    fd.has_this_binding = fd.has_arguments_binding;
+    fd.is_derived_class_constructor = (func_type == JS_PARSE_FUNC_DERIVED_CLASS_CONSTRUCTOR);
+    if (func_type == JS_PARSE_FUNC_ARROW) {
+      fd.new_target_allowed = fd.parent.new_target_allowed;
+      fd.super_call_allowed = fd.parent.super_call_allowed;
+      fd.super_allowed = fd.parent.super_allowed;
+      fd.arguments_allowed = fd.parent.arguments_allowed;
+    } else {
+      fd.new_target_allowed = TRUE;
+      fd.super_call_allowed = fd.is_derived_class_constructor;
+      fd.super_allowed = fd.has_home_object;
+      fd.arguments_allowed = TRUE;
+    }
+
+    fd.func_kind = func_kind;
+    fd.func_type = func_type;
+
+    if (func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR ||
+      func_type == JS_PARSE_FUNC_DERIVED_CLASS_CONSTRUCTOR) {
+      /* error if not invoked as a constructor */
+
+    }
+
+    if (func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR) {
+
+    }
+
+    fd.has_simple_parameter_list = TRUE;
+    has_opt_arg = FALSE;
+    if (func_type == JS_PARSE_FUNC_ARROW && s.match(TOK_IDENT)) {
+      JSAtom name;
+      if (s.peek().is_reserved) {
+
+      }
+    } else {
+      if (js_parse_expect(s, TOK_LEFT_PAREN)) {
+        return on_faile(s, fd, pfd);
+      }
+      while (!s.match(TOK_RIGHT_PAREN)) {
+        JSAtom name;
+        boolean rest = false;
+        int idx;
+
+        if (s.peek().type == TOK_ELLIPSIS) {
+          fd.has_simple_parameter_list = false;
+          rest = true;
+          if (s.isAtEnd()) {
+            return on_faile(s, fd, pfd);
+          }
+        }
+
+        if (s.match(TOK_LEFT_BRACKET, TOK_LEFT_BRACE)) {
+
+        } else if (s.match(TOK_IDENT)) {
+          if (s.peek().is_reserved) {
+            js_parse_error_reserved_identifier(s);
+            return on_faile(s, fd, pfd);
+          }
+          name = s.peek().ident_atom;
+          if (name.getVal() == JS_ATOM_yield.ordinal() && fd.func_kind == JS_FUNC_GENERATOR) {
+            js_parse_error_reserved_identifier(s);
+            return on_faile(s, fd, pfd);
+          }
+          idx = add_arg(ctx, fd, name);
+          if (idx < 0) {
+            return on_faile(s, fd, pfd);
+          }
+          if (s.advance() == null) {
+            return on_faile(s, fd, pfd);
+          }
+          if (rest) {
+
+          } else if (s.peek().type == TOK_ASSIGN) {
+
+          } else if (!has_opt_arg) {
+            fd.defined_arg_count++;
+          }
+        } else {
+          js_parse_error(s, "missing formal parameter");
+          return on_faile(s, fd, pfd);
+        }
+
+        if (rest && !s.match(TOK_LEFT_PAREN)) {
+          js_parse_expect(s, TOK_LEFT_BRACKET);
+          return on_faile(s, fd, pfd);
+        }
+        if (s.match(TOK_LEFT_PAREN)) {
+          break;
+        }
+        if (js_parse_expect(s, TOK_COMMA)) {
+          return on_faile(s, fd, pfd);
+        }
+      }
+
+      if ((func_type == JS_PARSE_FUNC_GETTER && fd.args.size() != 0) ||
+        (func_type == JS_PARSE_FUNC_SETTER && fd.args.size() != 1)) {
+        js_parse_error(s, "invalid number of arguments for getter or setter");
+        return on_faile(s, fd, pfd);
+      }
+    }
+
+    if (s.isAtEnd()) {
+      return on_faile(s, fd, pfd);
+    }
+
+    fd.in_function_body = true;
+
+    if (s.peek().type == TOK_ARROW) {
+
+    }
+
+    if (js_parse_expect(s, TOK_LEFT_BRACE)) {
+      return on_faile(s, fd, pfd);
+    }
+
+    if (js_parse_directives(s))
+      return on_faile(s, fd, pfd);
+
+    /* in strict_mode, check function and argument names */
+    if (js_parse_function_check_names(s, fd, func_name))
+      return on_faile(s, fd, pfd);
+
+    fd.body = s.block();
+    if (fd.body  == null) {
+      return on_faile(s, fd, pfd);
+    }
+
+    if ((fd.js_mode & JS_MODE_STRIP) == 0) {
+      /* save the function source code */
+      fd.source_len = 1;
+      fd.source = "";
+      if (fd.source == null)
+        return on_faile(s, fd, pfd);
+    }
+
+    if (s.isAtEnd()) {
+      return on_faile(s, fd, pfd);
+    }
+
+    return on_done(s, fd, pfd, is_expr, export_flag);
+  }
+
+  static int on_done(Parser s, JSFunctionDef fd, PJSFunctionDef pfd, boolean is_expr, JSParseExportEnum export_flag) {
+    s.cur_func = fd.parent;
+    /* create the function object */
+    {
+      int idx;
+      JSAtom func_name = fd.func_name;
+      JSParseFunctionEnum func_type = fd.func_type;
+
+      /* the real object will be set at the end of the compilation */
+      idx = cpool_add(s, JS_NULL);
+      fd.parent_cpool_idx = idx;
+      if (is_expr) {
+
+      } else if (func_type == JS_PARSE_FUNC_VAR) {
+
+      } else {
+        if (!s.cur_func.is_global_var) {
+
+        } else {
+          JSAtom func_var_name;
+          if (func_name == JS_ATOM_NULL)
+            func_var_name = JS_ATOM__default_.toJSAtom(); /* export default */
+          else
+            func_var_name = func_name;
+
+          if (!add_hoisted_def(s.ctx, s.cur_func, idx, func_var_name, -1, FALSE))
+            return on_faile(s, fd, pfd);
+          if (export_flag != JS_PARSE_EXPORT_NONE) {
+            if (add_export_entry(s, s.cur_func.module, func_var_name,
+              export_flag == JS_PARSE_EXPORT_NAMED ? func_var_name : JS_ATOM_default.toJSAtom(), JS_EXPORT_TYPE_LOCAL) == null)
+              return on_faile(s, fd, pfd);
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+  static int on_faile(Parser s, JSFunctionDef fd, PJSFunctionDef pfd) {
+    s.cur_func = fd.parent;
+    if (pfd != null) {
+      pfd = null;
+    }
+    return -1;
+  }
+
+  static Token peek_token(Parser s, boolean no_line_terminator) {
+    return s.advance();
+  }
+
+  static boolean js_parse_expect(Parser s, TokenType tok) {
+    return s.consume(tok, "") == null;
+  }
+
+  static boolean js_parse_function_check_names(Parser s, JSFunctionDef fd,
+                                           JSAtom func_name)
+  {
+
+    return false;
+  }
+
+  static boolean js_parse_directives(Parser s)
+  {
+    return false;
+  }
+
+
+  /* return the constant pool index. 'val' is not duplicated. */
+  static int cpool_add(Parser s, JSValue val)
+  {
+    JSFunctionDef fd = s.cur_func;
+    fd.cpool.add(val);
+    return fd.cpool.size() - 1;
+  }
+
+  static JSExportEntry add_export_entry(Parser s, JSModuleDef m,
+                                         JSAtom local_name, JSAtom export_name,
+                                         JSExportTypeEnum export_type)
+  {
+    return add_export_entry2(s.ctx, s, m, local_name, export_name,
+      export_type);
+  }
+
+  static JSExportEntry add_export_entry2(JSContext ctx,
+                                         Parser s, JSModuleDef m,
+                                          JSAtom local_name, JSAtom export_name,
+                                          JSExportTypeEnum export_type)
+  {
+    return null;
   }
 }

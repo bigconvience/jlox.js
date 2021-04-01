@@ -229,6 +229,10 @@ public class JSContext {
     return __JS_AtomToValue(atom, true);
   }
 
+  static JSValue JS_AtomToString(JSContext ctx, JSAtom atom) {
+    return ctx.__JS_AtomToValue(atom, true);
+  }
+
   private JSValue __JS_AtomToValue(JSAtom atom, boolean force_string) {
     JSContext ctx = this;
     if (atom.__JS_AtomIsTaggedInt()) {
@@ -568,6 +572,11 @@ public class JSContext {
     return jsString.str;
   }
 
+  static JSFunctionDef js_new_function_def(JSContext ctx, JSFunctionDef parent,
+                                           boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
+    return js_new_function_def(parent, isEval, isFuncExpr, filename, lineNum);
+  }
+
   static JSFunctionDef js_new_function_def(JSFunctionDef parent,
                                            boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
     JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
@@ -579,6 +588,7 @@ public class JSContext {
     fd.scopes.add(varScope);
     fd.scopes.get(0).first = -1;
     fd.scopes.get(0).parent = -1;
+    fd.filename = filename;
     return fd;
   }
 

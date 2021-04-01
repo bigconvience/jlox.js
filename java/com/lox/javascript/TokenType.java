@@ -8,9 +8,9 @@ package com.lox.javascript;
  */
 enum TokenType {
     // Single-character tokens.
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
+    TOK_LEFT_PAREN, TOK_RIGHT_PAREN, TOK_LEFT_BRACE, TOK_RIGHT_BRACE,
     TOK_LEFT_BRACKET, TOK_RIGHT_BRACKET,
-    COMMA, TOK_DOT, TOK_MINUS, TOK_PLUS, SEMICOLON, TOK_SLASH, TOK_STAR, TOK_MOD,
+  TOK_COMMA, TOK_DOT, TOK_MINUS, TOK_PLUS, SEMICOLON, TOK_SLASH, TOK_STAR, TOK_MOD,
 
     // One or two character tokens.
     TOK_BANG, TOK_BITWISE_BANG,
@@ -29,7 +29,7 @@ enum TokenType {
     TOK_NUMBER,
     TOK_STRING,
     TOK_TEMPLATE,
-    TOK_IDENTIFIER,
+    TOK_IDENT,
     TOK_REGEXP,
 
     // Punctuators:: https://ecma-international.org/ecma-262/10.0/index.html#prod-Punctuator

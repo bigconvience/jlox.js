@@ -79,7 +79,6 @@ class Parser {
 
 
     List<Stmt> stmts = s.parse();
-//    Stmt.Block block = new Stmt.Block(0, stmts);
     fd.body = stmts;
   }
 
@@ -852,7 +851,7 @@ class Parser {
         boolean rest = false;
         int idx;
 
-        if (s.peek().type == TOK_ELLIPSIS) {
+        if (s.check(TOK_ELLIPSIS)) {
           fd.has_simple_parameter_list = false;
           rest = true;
           if (s.isAtEnd()) {
@@ -862,7 +861,7 @@ class Parser {
 
         if (s.match(TOK_LEFT_BRACKET, TOK_LEFT_BRACE)) {
 
-        } else if (s.match(TOK_IDENT)) {
+        } else if (s.check(TOK_IDENT)) {
           if (s.peek().is_reserved) {
             js_parse_error_reserved_identifier(s);
             return on_faile(s, fd, pfd);
@@ -881,7 +880,7 @@ class Parser {
           }
           if (rest) {
 
-          } else if (s.peek().type == TOK_ASSIGN) {
+          } else if (s.check(TOK_ASSIGN)) {
 
           } else if (!has_opt_arg) {
             fd.defined_arg_count++;
@@ -891,11 +890,11 @@ class Parser {
           return on_faile(s, fd, pfd);
         }
 
-        if (rest && !s.match(TOK_LEFT_PAREN)) {
-          js_parse_expect(s, TOK_LEFT_BRACKET);
+        if (rest && !s.match(TOK_RIGHT_PAREN)) {
+          js_parse_expect(s, TOK_RIGHT_PAREN);
           return on_faile(s, fd, pfd);
         }
-        if (s.match(TOK_LEFT_PAREN)) {
+        if (s.match(TOK_RIGHT_PAREN)) {
           break;
         }
         if (js_parse_expect(s, TOK_COMMA)) {
@@ -916,7 +915,7 @@ class Parser {
 
     fd.in_function_body = true;
 
-    if (s.peek().type == TOK_ARROW) {
+    if (s.check(TOK_ARROW)) {
 
     }
 
@@ -932,7 +931,7 @@ class Parser {
       return on_faile(s, fd, pfd);
 
     fd.body = s.block();
-    if (fd.body  == null) {
+    if (fd.body == null) {
       return on_faile(s, fd, pfd);
     }
 
@@ -1006,39 +1005,34 @@ class Parser {
   }
 
   static boolean js_parse_function_check_names(Parser s, JSFunctionDef fd,
-                                           JSAtom func_name)
-  {
+                                               JSAtom func_name) {
 
     return false;
   }
 
-  static boolean js_parse_directives(Parser s)
-  {
+  static boolean js_parse_directives(Parser s) {
     return false;
   }
 
 
   /* return the constant pool index. 'val' is not duplicated. */
-  static int cpool_add(Parser s, JSValue val)
-  {
+  static int cpool_add(Parser s, JSValue val) {
     JSFunctionDef fd = s.cur_func;
     fd.cpool.add(val);
     return fd.cpool.size() - 1;
   }
 
   static JSExportEntry add_export_entry(Parser s, JSModuleDef m,
-                                         JSAtom local_name, JSAtom export_name,
-                                         JSExportTypeEnum export_type)
-  {
+                                        JSAtom local_name, JSAtom export_name,
+                                        JSExportTypeEnum export_type) {
     return add_export_entry2(s.ctx, s, m, local_name, export_name,
       export_type);
   }
 
   static JSExportEntry add_export_entry2(JSContext ctx,
                                          Parser s, JSModuleDef m,
-                                          JSAtom local_name, JSAtom export_name,
-                                          JSExportTypeEnum export_type)
-  {
+                                         JSAtom local_name, JSAtom export_name,
+                                         JSExportTypeEnum export_type) {
     return null;
   }
 }

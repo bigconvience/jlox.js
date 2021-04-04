@@ -5,7 +5,10 @@ import com.lox.clibrary.stdlib_h;
 import java.util.*;
 
 import static com.lox.javascript.DynBuf.*;
+import static com.lox.javascript.JSAtomEnum.JS_ATOM_this;
 import static com.lox.javascript.JSFunctionDef.get_first_lexical_var;
+import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_ASYNC_GENERATOR;
+import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_NORMAL;
 import static com.lox.javascript.JSVarDefEnum.*;
 import static com.lox.javascript.LoxJS.JS_MODE_STRICT;
 import static com.lox.javascript.OPCodeEnum.*;
@@ -113,7 +116,10 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-
+    Resolver s = this;
+    if (js_is_live_code(s)) {
+      emit_return(s, false);
+    }
     return null;
   }
 
@@ -582,6 +588,10 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     }
   }
 
+  static int emit_atom(Resolver s, JSAtomEnum atom) {
+    return s.emit_u32(atom.toJSAtom());
+  }
+
   static int emit_atom(Resolver s, JSAtom atom) {
     return s.emit_u32(atom);
   }
@@ -677,4 +687,85 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     }
   }
 
+  /* execute the finally blocks before return */
+  static void emit_return(Resolver s, boolean hasval)
+  {
+    BlockEnv top;
+    int drop_count;
+
+    drop_count = 0;
+    top = s.cur_func.top_break;
+    while (top != null) {
+        /* XXX: emit the appropriate OP_leave_scope opcodes? Probably not
+           required as all local variables will be closed upon returning
+           from JS_CallInternal, but not in the same order. */
+      if (top.has_iterator != 0) {
+            /* with 'yield', the exact number of OP_drop to emit is
+               unknown, so we use a specific operation to look for
+               the catch offset */
+        if (!hasval) {
+          emit_op(s, OP_undefined);
+          hasval = TRUE;
+        }
+        emit_op(s, OP_iterator_close_return);
+        if (s.cur_func.func_kind == JS_FUNC_ASYNC_GENERATOR) {
+          int label_next;
+          emit_op(s, OP_async_iterator_close);
+          label_next = emit_goto(s, OP_if_true, -1);
+          emit_op(s, OP_await);
+          emit_label(s, label_next);
+          emit_op(s, OP_drop);
+        } else {
+          emit_op(s, OP_iterator_close);
+        }
+        drop_count = -3;
+      }
+      drop_count += top.drop_count;
+      if (top.label_finally != -1) {
+        while(drop_count > 0) {
+          /* must keep the stack top if hasval */
+          emit_op(s, hasval ? OP_nip : OP_drop);
+          drop_count--;
+        }
+        if (!hasval) {
+          /* must push return value to keep same stack size */
+          emit_op(s, OP_undefined);
+          hasval = TRUE;
+        }
+        emit_goto(s, OP_gosub, top.label_finally);
+      }
+      top = top.prev;
+    }
+    if (s.cur_func.is_derived_class_constructor) {
+      int label_return;
+
+        /* 'this' can be uninitialized, so it may be accessed only if
+           the derived class constructor does not return an object */
+      if (hasval) {
+        emit_op(s, OP_check_ctor_return);
+        label_return = emit_goto(s, OP_if_false, -1);
+        emit_op(s, OP_drop);
+      } else {
+        label_return = -1;
+      }
+
+        /* XXX: if this is not initialized, should throw the
+           ReferenceError in the caller realm */
+      emit_op(s, OP_scope_get_var);
+      emit_atom(s, JS_ATOM_this);
+      emit_u16(s, 0);
+
+      emit_label(s, label_return);
+      emit_op(s, OP_return);
+    } else if (s.cur_func.func_kind != JS_FUNC_NORMAL) {
+      if (!hasval) {
+        emit_op(s, OP_undefined);
+      } else if (s.cur_func.func_kind == JS_FUNC_ASYNC_GENERATOR) {
+        emit_op(s, OP_await);
+      }
+      emit_op(s, OP_return_async);
+    } else {
+      emit_op(s, hasval ? OP_return : OP_return_undef);
+    }
+  }
 }

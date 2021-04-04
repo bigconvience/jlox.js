@@ -8,6 +8,7 @@ import java.util.Map;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
+import static com.lox.javascript.JSAtomEnum.JS_ATOM__eval_;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
@@ -255,29 +256,33 @@ public class JSContext {
   }
 
 
-  JSValue __JS_evalInternal(JSValue this_obj, String input, String filename, int flags, int scope_idx) {
+  static JSValue __JS_evalInternal(JSContext ctx, JSValue this_obj, String input, String filename, int flags, int scope_idx) {
     JSValue fun_obj, retVal;
     JSStackFrame sf = new JSStackFrame();
     JSVarRefWrapper var_refs = new JSVarRefWrapper();
     int err;
     int evalType = flags & LoxJS.JS_EVAL_TYPE_MASK;
-    Scanner scanner = new Scanner(input, this);
+    Scanner scanner = new Scanner(input, ctx);
 
     JSFunctionDef fd = js_new_function_def(null, true, false, filename, 1);
-    fd.ctx = this;
+    fd.ctx = ctx;
     fd.eval_type = evalType;
-    fd.func_name = rt.JS_NewAtomStr("<eval>");
+    fd.func_name = JS_ATOM__eval_.toJSAtom();
 
-    Parser parser = new Parser(scanner, this, fd, rt);
+    Parser parser = new Parser(scanner, ctx, fd);
     parser.fileName = filename;
     parser.parse_program();
 
-    fun_obj = js_create_function(this, fd);
-    retVal = VM.JS_EvalFunctionInternal(this, fun_obj, this_obj, var_refs, sf);
+    Resolver s = new Resolver(ctx, fd);
+    Resolver.push_scope(s);
+    ast_2_opcode(s, fd);
+
+    fun_obj = js_create_function(ctx, fd);
+    retVal = VM.JS_EvalFunctionInternal(ctx, fun_obj, this_obj, var_refs, sf);
     return retVal;
   }
 
-  JSValue js_create_function(JSContext ctx, JSFunctionDef fd) {
+  static JSValue js_create_function(JSContext ctx, JSFunctionDef fd) {
     JSValue func_obj;
     JSFunctionBytecode b;
     int stack_size, scope, idx;
@@ -316,33 +321,31 @@ public class JSContext {
       fd.cpool.set(cpool_idx, func_obj);
     }
 
-    Resolver s = new Resolver(ctx, fd);
-    Resolver.push_scope(s);
-    ast_2_opcode(s, fd);
-    printf("pass 1\n");
-    Dumper.dump_byte_code(this, 1,
-      fd.byte_code.buf, fd.byte_code.size,
-      fd.args, fd.args.size(),
-      fd.vars, fd.vars.size(),
-      fd.closure_var, fd.closure_var.size(),
-      fd.cpool, fd.cpool.size(),
-      "", fd.line_number,
-      fd.label_slots.toArray(new LabelSlot[0]), null);
-    printf("\n");
-    IRResolver.resolve_variables(this, fd);
-    printf("pass 2\n");
-    Dumper.dump_byte_code(this, 2,
-      fd.byte_code.buf, fd.byte_code.size,
-      fd.args, fd.args.size(),
-      fd.vars, fd.vars.size(),
-      fd.closure_var, fd.closure_var.size(),
-      fd.cpool, fd.cpool.size(),
-      "", fd.line_number,
-      fd.label_slots.toArray(new LabelSlot[0]), null);
-    printf("\n");
-    LabelSlot.resolve_labels(this, fd);
 
-    stack_size = compute_stack_size(fd);
+    printf("pass 1\n");
+    Dumper.dump_byte_code(ctx, 1,
+      fd.byte_code.buf, fd.byte_code.size,
+      fd.args, fd.args.size(),
+      fd.vars, fd.vars.size(),
+      fd.closure_var, fd.closure_var.size(),
+      fd.cpool, fd.cpool.size(),
+      "", fd.line_number,
+      fd.label_slots.toArray(new LabelSlot[0]), null);
+    printf("\n");
+    IRResolver.resolve_variables(ctx, fd);
+    printf("pass 2\n");
+    Dumper.dump_byte_code(ctx, 2,
+      fd.byte_code.buf, fd.byte_code.size,
+      fd.args, fd.args.size(),
+      fd.vars, fd.vars.size(),
+      fd.closure_var, fd.closure_var.size(),
+      fd.cpool, fd.cpool.size(),
+      "", fd.line_number,
+      fd.label_slots.toArray(new LabelSlot[0]), null);
+    printf("\n");
+    LabelSlot.resolve_labels(ctx, fd);
+
+    stack_size = compute_stack_size(ctx, fd);
 
     b = new JSFunctionBytecode();
     b.byte_code_buf = Arrays.copyOf(fd.byte_code.buf, fd.byte_code.size);
@@ -371,10 +374,10 @@ public class JSContext {
     b.defined_arg_count = fd.defined_arg_count;
 
 
-    b.realm = this;
+    b.realm = ctx;
 
     if ((fd.js_mode & JS_MODE_STRIP) == 0) {
-      Dumper.js_dump_function_bytecode(this, b);
+      Dumper.js_dump_function_bytecode(ctx, b);
     }
     if (fd.parent != null) {
       fd.parent = null;
@@ -382,7 +385,7 @@ public class JSContext {
     return new JSValue(JSTag.JS_TAG_FUNCTION_BYTECODE, b);
   }
 
-  int compute_stack_size(JSFunctionDef fd) {
+  static int compute_stack_size(JSContext ctx, JSFunctionDef fd) {
     int stack_size;
     StackSizeState s = new StackSizeState();
     int bc_len = fd.byte_code.size;
@@ -392,12 +395,12 @@ public class JSContext {
       s.stack_level_tab[i] = (short) 0xffff;
     }
     s.stack_len_max = 0;
-    compute_stack_size_rec(fd, s, 0, OPCodeEnum.OP_invalid.ordinal(), 0);
+    compute_stack_size_rec(ctx, fd, s, 0, OPCodeEnum.OP_invalid.ordinal(), 0);
     stack_size = s.stack_len_max;
     return stack_size;
   }
 
-  int compute_stack_size_rec(JSFunctionDef fd, StackSizeState s, int pos, int op, int stack_len) {
+  static int compute_stack_size_rec(JSContext ctx, JSFunctionDef fd, StackSizeState s, int pos, int op, int stack_len) {
     int bc_len, diff, n_pop, pos_next;
     JSOpCode oi;
     byte[] bc_buf;
@@ -408,21 +411,21 @@ public class JSContext {
     while (pos < bc_len) {
       op = Byte.toUnsignedInt(bc_buf[pos]);
       if (op == 0 || op >= OPCodeEnum.OP_COUNT.ordinal()) {
-        JSThrower.JS_ThrowInternalError(this, "invalid opcode (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(ctx, "invalid opcode (op=" + op + ", pc=" + pos + ")");
         return -1;
       }
 
       oi = OPCodeInfo.opcode_info.get(op);
       pos_next = pos + oi.size;
       if (pos_next > bc_len) {
-        JSThrower.JS_ThrowInternalError(this, "bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(ctx, "bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
         return -1;
       }
 
       n_pop = oi.n_pop;
 
       if (stack_len < n_pop) {
-        JSThrower.JS_ThrowInternalError(this, "bytecode underflow (op=" + op + ", pc=" + pos + ")");
+        JSThrower.JS_ThrowInternalError(ctx, "bytecode underflow (op=" + op + ", pc=" + pos + ")");
       }
 
       stack_len += oi.n_push - n_pop;
@@ -438,7 +441,7 @@ public class JSContext {
     return 0;
   }
 
-  void ast_2_opcode(Resolver s, JSFunctionDef fd) {
+  static void ast_2_opcode(Resolver s, JSFunctionDef fd) {
     s.resolve();
   }
 

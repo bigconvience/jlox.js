@@ -13,6 +13,7 @@ import static com.lox.javascript.JSFunctionDef.add_hoisted_def;
 import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSParseExportEnum.*;
 import static com.lox.javascript.JSParseFunctionEnum.*;
+import static com.lox.javascript.JSRuntime.JS_NewAtomStr;
 import static com.lox.javascript.JSValue.JS_NULL;
 import static com.lox.javascript.JSVarDef.add_arg;
 import static com.lox.javascript.JSVarDefEnum.*;
@@ -38,7 +39,7 @@ class Parser {
   private JSRuntime rt;
   private boolean is_module;
 
-  Parser(Scanner scanner, JSContext ctx, JSFunctionDef cur_func, JSRuntime rt) {
+  Parser(Scanner scanner, JSContext ctx, JSFunctionDef cur_func) {
     this.scanner = scanner;
     this.tokens = scanner.scanTokens();
     this.ctx = ctx;
@@ -299,7 +300,7 @@ class Parser {
     consume(TOK_RIGHT_PAREN, "Expect ')' after parameters.");
 
     fd = js_new_function_def(fd, false, isExpr, fileName, name.line_num);
-    fd.func_name = rt.JS_NewAtomStr(name.lexeme);
+    fd.func_name = JS_NewAtomStr(ctx, name.lexeme);
     cur_func = fd;
 
     consume(TOK_LEFT_BRACE, "Expect '{' before " + kind + " body.");
@@ -943,9 +944,6 @@ class Parser {
         return on_faile(s, fd, pfd);
     }
 
-    if (s.isAtEnd()) {
-      return on_faile(s, fd, pfd);
-    }
 
     return on_done(s, fd, pfd, is_expr, export_flag);
   }

@@ -95,9 +95,17 @@ public class JSFunctionDef extends Stmt {
   int source_len;
   String source;
   JSModuleDef module;
+  BlockEnv top_break;
+
   JSFunctionDef(JSFunctionDef parent,
                 boolean is_eval, boolean isFuncExpr, String filename, int lineNum) {
     this.parent = parent;
+    this.parent_cpool_idx = -1;
+    if (parent != null) {
+      parent.child_list.add(this);
+      js_mode = parent.js_mode;
+      parent_scope_level = parent.scope_level;;
+    }
     this.is_eval = is_eval;
 
     params = new ArrayList<>();
@@ -214,7 +222,7 @@ public class JSFunctionDef extends Stmt {
   public static boolean add_hoisted_def(JSContext ctx, JSFunctionDef fd, int cpool_idx, JSAtom var_name,
                                         int var_Idx,
                                         boolean is_lexical) {
-    return fd.addHoistedDef(cpool_idx, var_name, var_Idx, is_lexical) == null;
+    return fd.addHoistedDef(cpool_idx, var_name, var_Idx, is_lexical) != null;
   }
 
   public JSHoistedDef addHoistedDef(int cpoolIdx, JSAtom varName,

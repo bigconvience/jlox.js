@@ -62,8 +62,18 @@ public class JSRuntime {
     return ctx;
   }
 
+
+  static public JSAtom JS_NewAtomStr(JSContext ctx, String str) {
+    JSRuntime rt = ctx.rt;
+    return __JS_NewAtom(rt, str, JS_ATOM_TYPE_STRING);
+  }
+
   public JSAtom JS_NewAtomStr(String str) {
     return __JS_NewAtom(str, JS_ATOM_TYPE_STRING);
+  }
+
+  static private JSAtom __JS_NewAtom(JSRuntime rt, String str, int atom_type) {
+    return rt.__JS_NewAtom(str, atom_type);
   }
 
   private JSAtom __JS_NewAtom(String str, int atom_type) {

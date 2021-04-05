@@ -4,21 +4,19 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
-import static com.lox.javascript.JSAtom.JS_ATOM_NULL;
+import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.JSAtomEnum.*;
-import static com.lox.javascript.JSContext.js_new_function_def;
+import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSErrorEnum.*;
-import static com.lox.javascript.JSExportTypeEnum.JS_EXPORT_TYPE_LOCAL;
+import static com.lox.javascript.JSExportTypeEnum.*;
 import static com.lox.javascript.JSFunctionDef.add_hoisted_def;
 import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSParseExportEnum.*;
 import static com.lox.javascript.JSParseFunctionEnum.*;
-import static com.lox.javascript.JSRuntime.JS_NewAtomStr;
-import static com.lox.javascript.JSValue.JS_NULL;
+import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JSVarDef.add_arg;
 import static com.lox.javascript.JSVarDefEnum.*;
-import static com.lox.javascript.LoxJS.JS_MODE_STRICT;
-import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
+import static com.lox.javascript.LoxJS.*;
 import static com.lox.javascript.Token.token_is_ident;
 import static com.lox.javascript.Token.token_is_pseudo_keyword;
 import static com.lox.javascript.TokenType.*;
@@ -56,13 +54,7 @@ class Parser {
     return statements; // [parse-error-handling]
   }
 
-  boolean parse_program() {
-    boolean success = true;
-    parse_program(this);
-    return success;
-  }
-
-  static void parse_program(Parser s) {
+  public static void js_parse_program(Parser s) {
     JSFunctionDef fd = s.cur_func;
     int idx;
     fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
@@ -115,7 +107,7 @@ class Parser {
 
     List<JSFunctionDef> methods = new ArrayList<>();
     while (!check(TOK_RIGHT_BRACE) && !isAtEnd()) {
-      methods.add(function("method"));
+
     }
 
     consume(TOK_RIGHT_BRACE, "Expect '}' after class body.");
@@ -280,34 +272,6 @@ class Parser {
     Expr expr = expression();
 //    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
     return new Stmt.Expression(previous().line_num, expr);
-  }
-
-  private JSFunctionDef function(String kind) {
-    boolean isExpr = false;
-    JSFunctionDef fd = cur_func;
-    Token name = consume(TOK_IDENT, "Expect " + kind + " name.");
-    consume(TOK_LEFT_PAREN, "Expect '(' after " + kind + " name.");
-    List<Token> parameters = new ArrayList<>();
-    if (!check(TOK_RIGHT_PAREN)) {
-      do {
-        if (parameters.size() >= 255) {
-          error(peek(), "Cannot have more than 255 parameters.");
-        }
-
-        parameters.add(consume(TOK_IDENT, "Expect parameter name."));
-      } while (match(TOK_COMMA));
-    }
-    consume(TOK_RIGHT_PAREN, "Expect ')' after parameters.");
-
-    fd = js_new_function_def(fd, false, isExpr, fileName, name.line_num);
-    fd.func_name = JS_NewAtomStr(ctx, name.lexeme);
-    cur_func = fd;
-
-    consume(TOK_LEFT_BRACE, "Expect '{' before " + kind + " body.");
-//    fd.body = new Stmt.Block(block());
-    fd.body = block();
-    cur_func = fd.parent;
-    return fd;
   }
 
   private List<Stmt> block() {

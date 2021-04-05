@@ -12,6 +12,9 @@ import static com.lox.javascript.JSAtomEnum.JS_ATOM__eval_;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
+import static com.lox.javascript.Parser.js_parse_program;
+import static com.lox.javascript.Resolver.js_resolve_program;
+import static com.lox.javascript.Resolver.push_scope;
 
 /**
  * @author benpeng.jiang
@@ -271,11 +274,14 @@ public class JSContext {
 
     Parser parser = new Parser(scanner, ctx, fd);
     parser.fileName = filename;
-    parser.parse_program();
+    js_parse_program(parser);
 
     Resolver s = new Resolver(ctx, fd);
-    Resolver.push_scope(s);
-    ast_2_opcode(s, fd);
+    push_scope(s);
+    err = js_resolve_program(s);
+    if (err != 0) {
+
+    }
 
     fun_obj = js_create_function(ctx, fd);
     retVal = VM.JS_EvalFunctionInternal(ctx, fun_obj, this_obj, var_refs, sf);
@@ -439,10 +445,6 @@ public class JSContext {
       pos = pos_next;
     }
     return 0;
-  }
-
-  static void ast_2_opcode(Resolver s, JSFunctionDef fd) {
-    s.resolve();
   }
 
 

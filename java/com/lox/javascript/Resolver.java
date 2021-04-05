@@ -116,7 +116,10 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitFunctionStmt(JSFunctionDef stmt) {
-    Resolver s = this;
+    JSFunctionDef fd = stmt;
+    Resolver s = new Resolver(ctx, fd);
+    push_scope(s);
+    s.resolve(stmt.body);
     if (js_is_live_code(s)) {
       emit_return(s, false);
     }
@@ -437,10 +440,9 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     return null;
   }
 
-  public void resolve() {
-    resolve(cur_func.body);
-    Resolver s = this;
-    JSFunctionDef fd = cur_func;
+  public static int js_resolve_program(Resolver s) {
+    JSFunctionDef fd = s.cur_func;
+    s.resolve(fd.body);
     if (!s.is_module) {
       /* return the value of the hidden variable eval_ret_idx  */
       emit_op(s, OPCodeEnum.OP_get_loc);
@@ -450,6 +452,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     } else {
       emit_op(s, OPCodeEnum.OP_return_undef);
     }
+    return 0;
   }
 
   private void update_line(Stmt stmt) {

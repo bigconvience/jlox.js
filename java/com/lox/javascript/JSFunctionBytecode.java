@@ -41,11 +41,17 @@ public class JSFunctionBytecode {
   Debug debug = new Debug();
 
   class Debug {
-    JSAtom filename;
+    String filename;
     int line_num;
     int source_len;
     int pc2line_len;
-    int[] pc2line_buf;
-    char[] source = {1};
+    byte[] pc2line_buf;
+    String source;
+
+    static final int PC2LINE_BASE = (-1);
+    static final int PC2LINE_RANGE = 5;
+    static final int PC2LINE_OP_FIRST = 1;
+    static final int PC2LINE_DIFF_PC_MAX = ((255 - PC2LINE_OP_FIRST) / PC2LINE_RANGE);
+
   }
 }

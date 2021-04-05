@@ -36,9 +36,11 @@ class Parser {
   String fileName;
   private JSRuntime rt;
   private boolean is_module;
+  private String source;
 
   Parser(Scanner scanner, JSContext ctx, JSFunctionDef cur_func) {
     this.scanner = scanner;
+    this.source = scanner.source;
     this.tokens = scanner.scanTokens();
     this.ctx = ctx;
     this.cur_func = cur_func;
@@ -88,7 +90,7 @@ class Parser {
         PJSFunctionDef pfd = new PJSFunctionDef();
         js_parse_function_decl(s, JS_PARSE_FUNC_STATEMENT,
           JS_FUNC_NORMAL, JS_ATOM_NULL,
-          null, peek().line_num, pfd);
+          null, previous().start, peek().line_num, pfd);
         return pfd.fd;
       }
       if (match(TOK_CLASS)) return classDeclaration();
@@ -689,8 +691,10 @@ class Parser {
                                     JSFunctionKindEnum func_kind,
                                     JSAtom func_name,
                                     byte[] ptr,
+                                    int ptr_idx,
                                     int function_line_num, PJSFunctionDef pfd) {
     return js_parse_function_decl2(s, func_type, func_kind, func_name, ptr,
+      ptr_idx,
       function_line_num, JS_PARSE_EXPORT_NONE,
       pfd);
   }
@@ -700,6 +704,7 @@ class Parser {
                                      JSFunctionKindEnum func_kind,
                                      JSAtom func_name,
                                      byte[] ptr,
+                                     int ptr_idx,
                                      int function_line_num,
                                      JSParseExportEnum export_flag,
                                      PJSFunctionDef pfd) {
@@ -756,6 +761,7 @@ class Parser {
 
     fd = js_new_function_def(ctx, fd, false, is_expr, s.fileName, function_line_num);
 
+    fd.decl_line_number = s.previous().line_num;
     if (pfd != null) {
       pfd.fd = fd;
     }
@@ -899,11 +905,13 @@ class Parser {
     if (fd.body == null) {
       return on_faile(s, fd, pfd);
     }
+    int end_idx = s.previous().end;
+    fd.leave_line_number = s.previous().line_num;
 
     if ((fd.js_mode & JS_MODE_STRIP) == 0) {
       /* save the function source code */
-      fd.source_len = 1;
-      fd.source = "";
+      fd.source_len = end_idx - ptr_idx;
+      fd.source = s.source.substring(ptr_idx, end_idx);
       if (fd.source == null)
         return on_faile(s, fd, pfd);
     }

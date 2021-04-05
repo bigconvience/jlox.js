@@ -3,8 +3,11 @@ package com.lox.javascript;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.lox.javascript.JSFunctionBytecode.Debug.*;
+import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_GENERATOR;
 import static com.lox.javascript.JSVarKindEnum.*;
 import static com.lox.javascript.JUtils.*;
+import static com.lox.javascript.OPCodeEnum.*;
 
 /**
  * @author benpeng.jiang
@@ -27,7 +30,8 @@ public class Dumper {
       return;
     }
     JSOpCode oi;
-    int pos, pos_next = 0, op, size, idx, addr, line, line1, in_source;
+    int pos, pos_next = 0, op, size, idx, addr, line, line1;
+    boolean in_source;
     byte[] bits = new byte[len];
     for (pos = 0; pos < len; pos = pos_next) {
       op = Byte.toUnsignedInt(tab[pos]);
@@ -57,16 +61,34 @@ public class Dumper {
           break;
       }
     }
-
+    in_source = false;
+    if (source != null) {
+      /* Always print first line: needed if single line */
+      print_lines(source, 0, 1);
+      in_source = true;
+    }
     line1 = line = 1;
     pos = 0;
     while (pos < len) {
       op = Byte.toUnsignedInt(tab[pos]);
       if (source != null) {
-        if (op == OPCodeEnum.OP_line_num.ordinal()) {
-          line1 = JUtils.get_u32(tab, pos + 1) - line_num + 1;
+        if (b != null) {
+          line1 = find_line_num(ctx, b, pos) - line_num + 1;
+        } else if (op == OP_line_num.ordinal()) {
+          line1 = get_u32(tab, pos + 1) - line_num + 1;
+        }
+        if (line1 > line) {
+          if (!in_source)
+            printf("\n");
+          in_source = true;
+          print_lines(source, line, line1);
+          line = line1;
+          //bits[pos] |= 2;
         }
       }
+      if (in_source)
+        printf("\n");
+      in_source = false;
       if (op >= OPCodeEnum.OP_COUNT.ordinal()) {
         println("invalid opcode " + op);
         pos++;
@@ -177,6 +199,30 @@ public class Dumper {
     }
   }
 
+  static int skip_lines(char[] source, int p, int n) {
+    while (n-- > 0 && p < source.length) {
+      while (p < source.length  && source[p++] != '\n')
+      continue;
+    }
+    return p;
+  }
+
+  static void print_lines(String source, int line, int line1) {
+    int s = 0;
+    int p = skip_lines(source.toCharArray(), s, line);
+    if (p < source.length()) {
+      while (line++ < line1) {
+        p = skip_lines(source.toCharArray(), s = p, 1);
+        printf(";; %s", source.substring(s, p));
+        if (p < source.length()) {
+          if (source.charAt(p - 1) != '\n')
+            printf("\n");
+          break;
+        }
+      }
+    }
+  }
+
   static void on_has_addr1(int pass, int addr, LabelSlot[] label_slots, int pos) {
     if (pass == 1)
       printf(" %d:%d", addr, label_slots[addr].pos);
@@ -214,12 +260,10 @@ public class Dumper {
     byte[] str;
 
     if (b.has_debug && b.debug.filename != null) {
-      str = ctx.JS_AtomGetStr(b.debug.filename).getBytes();
-      printf("%s:%d: ", str, b.debug.line_num);
+      printf("%s:%d: ", b.debug.filename, b.debug.line_num);
     }
 
-    str = ctx.JS_AtomGetStr(b.func_name).getBytes();
-    printf("function: %s%s\n", b.func_kind, str);
+    printf("function: %s%s\n", b.func_kind != JS_FUNC_GENERATOR.ordinal() ? "":"*", ctx.JS_AtomGetStr(b.func_name));
     if (b.js_mode != 0) {
       printf("  mode:");
       if ((b.js_mode & (1 << 0)) != 0)
@@ -274,7 +318,7 @@ public class Dumper {
       b.vardefs != null ? Arrays.asList(b.vardefs) : null, b.var_count,
       Arrays.asList(b.closure_var), b.closure_var_count,
       Arrays.asList(b.cpool), b.cpool_count,
-      b.has_debug ? new String(b.debug.source) : null,
+      b.has_debug ? b.debug.source : null,
       b.has_debug ? b.debug.line_num : -1,
       null, b);
 
@@ -293,4 +337,89 @@ public class Dumper {
     System.out.printf(fmt, args);
   }
 
+
+  static int find_line_num(JSContext ctx, JSFunctionBytecode b,
+                           int pc_value)
+  {
+    byte[] pc2line_buf;
+    int p, p_end;
+    int new_line_num, line_num, pc, v, ret;
+    int op;
+
+    if (!b.has_debug || b.debug.pc2line_buf == null) {
+      /* function was stripped */
+      return -1;
+    }
+
+    pc2line_buf = b.debug.pc2line_buf;
+    p = 0;
+    p_end = b.debug.pc2line_len;
+    pc = 0;
+    line_num = b.debug.line_num;
+    while (p < p_end) {
+      op = op = Byte.toUnsignedInt(pc2line_buf[p]);;
+      if (op == 0) {
+        PInteger pVal = new PInteger();
+        ret = get_leb128(pVal, pc2line_buf, p, p_end);
+        if (ret < 0)
+          return b.debug.line_num;
+        pc += pVal.value;
+        p += ret;
+        ret = get_sleb128(pVal, pc2line_buf, p, p_end);
+        v = pVal.value;
+        if (ret < 0) {
+          /* should never happen */
+          return b.debug.line_num;
+        }
+        p += ret;
+        new_line_num = line_num + v;
+      } else {
+        op -= PC2LINE_OP_FIRST;
+        pc += (op / PC2LINE_RANGE);
+        new_line_num = line_num + (op % PC2LINE_RANGE) + PC2LINE_BASE;
+      }
+      if (pc_value < pc)
+        return line_num;
+      line_num = new_line_num;
+    }
+    return line_num;
+  }
+
+
+  static int get_sleb128(PInteger pval, byte[] buf,
+                         int buf_start, int buf_end)
+  {
+    int ret;
+    PInteger p = new PInteger();
+    ret = get_leb128(p, buf, buf_start, buf_end);
+    if (ret < 0) {
+      pval.value = 0;
+      return -1;
+    }
+
+    Integer val = p.value;
+    pval.value = (val >> 1) ^ -(val & 1);
+    return ret;
+  }
+
+
+  static int get_leb128(PInteger pval, byte[] buf,
+                      int buf_start, int buf_end)
+  {
+    int v, a, i;
+    int ptr = buf_start;
+    v = 0;
+    for(i = 0; i < 5; i++) {
+      if (ptr >= buf_end)
+        break;
+      a = Byte.toUnsignedInt(buf[ptr++]);
+      v |= (a & 0x7f) << (i * 7);
+      if ((a & 0x80) == 0) {
+            pval.value = v;
+        return ptr - buf_start;
+      }
+    }
+    pval.value = 0;
+    return -1;
+  }
 }

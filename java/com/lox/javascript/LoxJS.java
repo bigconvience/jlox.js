@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
+import static com.lox.javascript.JSContext.__JS_evalInternal;
 import static com.lox.javascript.JSStdClassDef.js_std_class_def;
 
 /**
@@ -35,27 +36,23 @@ public class LoxJS {
     } else {
       evalFlags = JS_EVAL_TYPE_GLOBAL;
     }
-    ret = evalBuf(ctx, bytes, filename, evalFlags);
+    ret = eval_buf(ctx, bytes, filename, evalFlags);
     return ret;
   }
 
-  public static int evalBuf(JSContext ctx, byte[] bytes, String filename, int evalFlags) {
+  public static int eval_buf(JSContext ctx, byte[] bytes, String filename, int evalFlags) {
     JSValue val;
     int ret;
     String buf = new String(bytes, Charset.defaultCharset());
-    val = JSEval(ctx, buf, filename, evalFlags);
+    val = JS_Eval(ctx, buf, filename, evalFlags);
     ret = 0;
     return ret;
   }
 
-  public static JSValue JSEval(JSContext ctx, String input, String filename, int evalFlags) {
+  public static JSValue JS_Eval(JSContext ctx, String input, String filename, int evalFlags) {
     JSValue ret;
-    ret = JSEvalInternal(ctx, ctx.global_obj, input, filename, evalFlags, -1);
+    ret = __JS_evalInternal(ctx, ctx.global_obj, input, filename, evalFlags, -1);
     return ret;
-  }
-
-  public static JSValue JSEvalInternal(JSContext ctx, JSValue thisObject, String input, String filename, int flags, int scope_idx) {
-    return JSContext.__JS_evalInternal(ctx, thisObject, input, filename, flags, scope_idx);
   }
 
   public JSRuntime JS_NewRuntime() {

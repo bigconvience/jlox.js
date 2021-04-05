@@ -31,7 +31,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   private DynBuf bc;
   final JSContext ctx;
   private final JSRuntime rt;
-  int last_line_num;
+  int last_line_num = -1;
   boolean is_module;
 
   Resolver(JSContext jsContext, JSFunctionDef fd) {
@@ -40,7 +40,6 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     bc = new DynBuf();
     cur_func.byte_code = bc;
     rt = ctx.rt;
-    last_line_num = 0;
   }
 
   private enum FunctionType {
@@ -118,9 +117,11 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   public Void visitFunctionStmt(JSFunctionDef stmt) {
     JSFunctionDef fd = stmt;
     Resolver s = new Resolver(ctx, fd);
-    push_scope(s);
+    s.update_line(fd.decl_line_number);
+    s.push_scope(s);
     s.resolve(stmt.body);
     if (js_is_live_code(s)) {
+      s.update_line(fd.leave_line_number);
       emit_return(s, false);
     }
     return null;
@@ -455,11 +456,11 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     return 0;
   }
 
-  private void update_line(Stmt stmt) {
+  public void update_line(Stmt stmt) {
     update_line(stmt.line_number);
   }
 
- private void update_line(int line_number) {
+ public void update_line(int line_number) {
    last_line_num = line_number;
  }
 

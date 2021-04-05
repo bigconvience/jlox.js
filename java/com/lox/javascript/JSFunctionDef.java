@@ -46,6 +46,8 @@ public class JSFunctionDef extends Stmt {
   final List<JSClosureVar> closure_var;
   final Map<String, JSHoistedDef> hoistDef;
   List<Stmt> body;
+  int decl_line_number;
+  int leave_line_number;
   int eval_type;
   boolean is_eval;
   boolean is_global_var;
@@ -92,6 +94,7 @@ public class JSFunctionDef extends Stmt {
   JSFunctionKindEnum func_kind;
   JSParseFunctionEnum func_type;
 
+  DynBuf pc2line;
   int source_len;
   String source;
   JSModuleDef module;

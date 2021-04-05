@@ -277,6 +277,7 @@ public class JSContext {
     js_parse_program(parser);
 
     Resolver s = new Resolver(ctx, fd);
+    s.update_line(1);
     push_scope(s);
     err = js_resolve_program(s);
     if (err != 0) {
@@ -335,7 +336,7 @@ public class JSContext {
       fd.vars, fd.vars.size(),
       fd.closure_var, fd.closure_var.size(),
       fd.cpool, fd.cpool.size(),
-      "", fd.line_number,
+      fd.source, fd.line_num,
       fd.label_slots.toArray(new LabelSlot[0]), null);
     printf("\n");
     IRResolver.resolve_variables(ctx, fd);
@@ -346,7 +347,7 @@ public class JSContext {
       fd.vars, fd.vars.size(),
       fd.closure_var, fd.closure_var.size(),
       fd.cpool, fd.cpool.size(),
-      "", fd.line_number,
+      fd.source, fd.line_num,
       fd.label_slots.toArray(new LabelSlot[0]), null);
     printf("\n");
     LabelSlot.resolve_labels(ctx, fd);
@@ -361,6 +362,19 @@ public class JSContext {
     b.closure_var = new JSClosureVar[0];
     b.stack_size = (short) stack_size;
 
+    if ((fd.js_mode & JS_MODE_STRIP) != 0) {
+      fd.filename = null;
+      fd.pc2line = null;
+    } else {
+      b.has_debug = true;
+      b.debug.filename = fd.filename;
+      b.debug.line_num = fd.line_num;
+
+      b.debug.pc2line_buf = fd.pc2line.buf;
+      b.debug.pc2line_len = fd.pc2line.size;
+      b.debug.source = fd.source;
+      b.debug.source_len = fd.source_len;
+    }
     b.func_name = fd.func_name;
 
     int arg_count = fd.args.size();
@@ -578,13 +592,13 @@ public class JSContext {
   }
 
   static JSFunctionDef js_new_function_def(JSContext ctx, JSFunctionDef parent,
-                                           boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
-    return js_new_function_def(parent, isEval, isFuncExpr, filename, lineNum);
+                                           boolean isEval, boolean isFuncExpr, String filename, int line_num) {
+    return js_new_function_def(parent, isEval, isFuncExpr, filename, line_num);
   }
 
   static JSFunctionDef js_new_function_def(JSFunctionDef parent,
-                                           boolean isEval, boolean isFuncExpr, String filename, int lineNum) {
-    JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, lineNum);
+                                           boolean isEval, boolean isFuncExpr, String filename, int line_num) {
+    JSFunctionDef fd = new JSFunctionDef(parent, isEval, isFuncExpr, filename, line_num);
 
     fd.line_num = 1;
     fd.scope_level = 0;
@@ -594,6 +608,8 @@ public class JSContext {
     fd.scopes.get(0).first = -1;
     fd.scopes.get(0).parent = -1;
     fd.filename = filename;
+    fd.pc2line = new DynBuf();
+    fd.last_opcode_line_num = line_num;
     return fd;
   }
 

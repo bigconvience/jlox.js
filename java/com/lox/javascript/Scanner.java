@@ -66,7 +66,7 @@ class Scanner {
     keywords.put("await", TOK_AWAIT);
   }
 
-  private final String source;
+  public final String source;
   private final List<Token> tokens = new ArrayList<>();
   private int start = 0;
   private int current = 0;
@@ -468,7 +468,10 @@ class Scanner {
 
   private void addToken(TokenType type, Object literal) {
     String text = source.substring(start, current);
-    tokens.add(new Token(type, text, literal, line));
+    Token token = new Token(type, text, literal, line);
+    token.start = start;
+    token.end = current;
+    tokens.add(token);
   }
 
   private void addToken_String(TokenType type, String literal) {
@@ -484,6 +487,8 @@ class Scanner {
     JSAtom ident = ctx.rt.JS_NewAtomStr(text);
     Token token = new Token(type, text, null, line);
     token.ident_atom = ident;
+    token.start = start;
+    token.end = current;
     tokens.add(token);
   }
 

@@ -1,6 +1,7 @@
 package com.lox.javascript;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
@@ -22,8 +23,10 @@ public class Lox {
     }
   }
   private static void runFile(String path) throws IOException {
-    byte[] bytes = Files.readAllBytes(Paths.get(path));
-    run(new String(bytes, Charset.defaultCharset()), path);
+    File file = new File(path);
+    String filename = file.getAbsolutePath();
+    byte[] bytes = Files.readAllBytes(Paths.get(filename));
+    run(new String(bytes, Charset.defaultCharset()), filename);
 
     // Indicate an error in the exit code.
     if (hadError) System.exit(65);
@@ -50,7 +53,7 @@ public class Lox {
     JSRuntime rt = new JSRuntime();
 
     JSContext ctx = rt.JS_NewCustomContext();
-    LoxJS.JSEval(ctx, source, filename, LoxJS.JS_EVAL_TYPE_GLOBAL);
+    LoxJS.JS_Eval(ctx, source, filename, LoxJS.JS_EVAL_TYPE_GLOBAL);
 
     // Stop if there was a syntax error.
     if (hadError) return;

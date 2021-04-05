@@ -12,6 +12,8 @@ class Token {
   boolean ident_has_escape;
   JSAtom str_str;
   boolean is_reserved;
+  int start;
+  int end;
 
   Token(TokenType type, String lexeme, Object literal, int line_num) {
     this.type = type;

@@ -31,7 +31,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   private DynBuf bc;
   final JSContext ctx;
   private final JSRuntime rt;
-  int last_line_num = -1;
+  int last_line_num;
   boolean is_module;
 
   Resolver(JSContext jsContext, JSFunctionDef fd) {
@@ -40,6 +40,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     bc = new DynBuf();
     cur_func.byte_code = bc;
     rt = ctx.rt;
+    last_line_num = 0;
   }
 
   private enum FunctionType {
@@ -444,6 +445,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   public static int js_resolve_program(Resolver s) {
     JSFunctionDef fd = s.cur_func;
     s.resolve(fd.body);
+    s.update_line(fd.leave_line_number);
     if (!s.is_module) {
       /* return the value of the hidden variable eval_ret_idx  */
       emit_op(s, OPCodeEnum.OP_get_loc);

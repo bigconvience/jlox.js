@@ -275,9 +275,9 @@ public class JSContext {
     Parser parser = new Parser(scanner, ctx, fd);
     parser.fileName = filename;
     js_parse_program(parser);
+    fd.leave_line_number = parser.previous().line_num;
 
     Resolver s = new Resolver(ctx, fd);
-    s.update_line(1);
     push_scope(s);
     err = js_resolve_program(s);
     if (err != 0) {

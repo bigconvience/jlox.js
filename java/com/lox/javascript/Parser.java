@@ -635,7 +635,7 @@ class Parser {
     return tokens.get(current);
   }
 
-  private Token previous() {
+  public Token previous() {
     return tokens.get(current - 1);
   }
 

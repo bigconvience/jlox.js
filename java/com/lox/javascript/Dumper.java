@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.lox.javascript.JSFunctionBytecode.Debug.*;
-import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_GENERATOR;
+import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSVarKindEnum.*;
 import static com.lox.javascript.JUtils.*;
+import static com.lox.javascript.LabelSlot.*;
 import static com.lox.javascript.OPCodeEnum.*;
 
 /**
@@ -357,7 +358,7 @@ public class Dumper {
     pc = 0;
     line_num = b.debug.line_num;
     while (p < p_end) {
-      op = op = Byte.toUnsignedInt(pc2line_buf[p]);;
+      op = Byte.toUnsignedInt(pc2line_buf[p++]);;
       if (op == 0) {
         PInteger pVal = new PInteger();
         ret = get_leb128(pVal, pc2line_buf, p, p_end);
@@ -385,41 +386,4 @@ public class Dumper {
     return line_num;
   }
 
-
-  static int get_sleb128(PInteger pval, byte[] buf,
-                         int buf_start, int buf_end)
-  {
-    int ret;
-    PInteger p = new PInteger();
-    ret = get_leb128(p, buf, buf_start, buf_end);
-    if (ret < 0) {
-      pval.value = 0;
-      return -1;
-    }
-
-    Integer val = p.value;
-    pval.value = (val >> 1) ^ -(val & 1);
-    return ret;
-  }
-
-
-  static int get_leb128(PInteger pval, byte[] buf,
-                      int buf_start, int buf_end)
-  {
-    int v, a, i;
-    int ptr = buf_start;
-    v = 0;
-    for(i = 0; i < 5; i++) {
-      if (ptr >= buf_end)
-        break;
-      a = Byte.toUnsignedInt(buf[ptr++]);
-      v |= (a & 0x7f) << (i * 7);
-      if ((a & 0x80) == 0) {
-            pval.value = v;
-        return ptr - buf_start;
-      }
-    }
-    pval.value = 0;
-    return -1;
-  }
 }

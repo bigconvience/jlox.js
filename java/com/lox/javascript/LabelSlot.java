@@ -2,8 +2,10 @@ package com.lox.javascript;
 
 import static com.lox.javascript.Config.OPTIMIZE;
 import static com.lox.javascript.DynBuf.*;
+import static com.lox.javascript.JSFunctionBytecode.Debug.*;
 import static com.lox.javascript.JSFunctionDef.*;
 import static com.lox.javascript.JUtils.*;
+import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 import static com.lox.javascript.OPCodeEnum.*;
 import static com.lox.javascript.OPSpecialObjectEnum.*;
 import static com.lox.javascript.OPCodeInfo.*;
@@ -235,9 +237,49 @@ public class LabelSlot {
       }
     }
 
+    s.label_slots.clear();
+    compute_pc2line_info(s);
+    s.line_number_slots = null;
     s.byte_code = bc_out;
     return -1;
 
+  }
+
+  static void compute_pc2line_info(JSFunctionDef s) {
+    if ((s.js_mode & JS_MODE_STRIP) == 0 && s.line_number_slots != null) {
+      int last_line_num = s.line_num;
+      int last_pc = 0;
+      int i;
+
+      s.pc2line.size = 0;
+      for (i = 0; i < s.line_number_count; i++) {
+        int pc = s.line_number_slots[i].pc;
+        int line_num = s.line_number_slots[i].line_num;
+        int diff_pc, diff_line;
+
+        if (line_num < 0)
+          continue;
+
+        diff_pc = pc - last_pc;
+        diff_line = line_num - last_line_num;
+        if (diff_line == 0 || diff_pc < 0)
+          continue;
+
+        if (diff_line >= PC2LINE_BASE &&
+          diff_line < PC2LINE_BASE + PC2LINE_RANGE &&
+          diff_pc <= PC2LINE_DIFF_PC_MAX) {
+          dbuf_putc(s.pc2line, (diff_line - PC2LINE_BASE) +
+            diff_pc * PC2LINE_RANGE + PC2LINE_OP_FIRST);
+        } else {
+          /* longer encoding */
+          dbuf_putc(s.pc2line, 0);
+          dbuf_put_leb128(s.pc2line, diff_pc);
+          dbuf_put_sleb128(s.pc2line, diff_line);
+        }
+        last_pc = pc;
+        last_line_num = line_num;
+      }
+    }
   }
 
   private static void on_no_change(JSFunctionDef s,
@@ -473,5 +515,63 @@ public class LabelSlot {
       break;
     }
     return false;
+  }
+
+  static void dbuf_put_leb128(DynBuf s, int v)
+  {
+    int a;
+    for(;;) {
+      a = v & 0x7f;
+      v >>= 7;
+      if (v != 0) {
+        dbuf_putc(s, a | 0x80);
+      } else {
+        dbuf_putc(s, a);
+        break;
+      }
+    }
+  }
+
+  static void dbuf_put_sleb128(DynBuf s, int v1)
+  {
+    int v = v1;
+    dbuf_put_leb128(s, (2 * v) ^ -(v >> 31));
+  }
+
+  static int get_sleb128(PInteger pval, byte[] buf,
+                         int buf_start, int buf_end)
+  {
+    int ret;
+    PInteger p = new PInteger();
+    ret = get_leb128(p, buf, buf_start, buf_end);
+    if (ret < 0) {
+      pval.value = 0;
+      return -1;
+    }
+
+    Integer val = p.value;
+    pval.value = (val >> 1) ^ -(val & 1);
+    return ret;
+  }
+
+
+  static int get_leb128(PInteger pval, byte[] buf,
+                        int buf_start, int buf_end)
+  {
+    int v, a, i;
+    int ptr = buf_start;
+    v = 0;
+    for(i = 0; i < 5; i++) {
+      if (ptr >= buf_end)
+        break;
+      a = Byte.toUnsignedInt(buf[ptr++]);
+      v |= (a & 0x7f) << (i * 7);
+      if ((a & 0x80) == 0) {
+        pval.value = v;
+        return ptr - buf_start;
+      }
+    }
+    pval.value = 0;
+    return -1;
   }
 }

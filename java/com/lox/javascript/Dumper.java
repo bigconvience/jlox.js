@@ -9,6 +9,7 @@ import static com.lox.javascript.JSVarKindEnum.*;
 import static com.lox.javascript.JUtils.*;
 import static com.lox.javascript.LabelSlot.*;
 import static com.lox.javascript.OPCodeEnum.*;
+import static com.lox.javascript.lib.cutils_h.unicode_from_utf8;
 
 /**
  * @author benpeng.jiang
@@ -323,10 +324,58 @@ public class Dumper {
       b.has_debug ? b.debug.line_num : -1,
       null, b);
 
-//    if (b.has_debug)
-//      dump_pc2line(ctx, b.debug.pc2line_buf, b.debug.pc2line_len, b.debug.line_num);
+    if (b.has_debug)
+      dump_pc2line(ctx, b.debug.pc2line_buf, b.debug.pc2line_len, b.debug.line_num);
 
       printf("\n");
+  }
+
+  static void dump_pc2line(JSContext ctx, byte[] buf, int len,
+                                          int line_num)
+  {
+    int p_start = 0;
+    int p_end, p;
+    int pc, v;
+    int op;
+    PInteger p_next = new PInteger();
+
+    if (len <= 0)
+      return;
+
+    printf("%5s %5s\n", "PC", "LINE");
+
+    p = p_start;
+    p_end = len;
+    pc = 0;
+    while (p < p_end) {
+      op = Byte.toUnsignedInt(buf[p++]);
+      if (op == 0) {
+        v = unicode_from_utf8(buf, p_end - p, p_next);
+        if (v < 0) {
+          printf("invalid pc2line encode pos=%d\n", (int)(p - p_start));
+          return;
+        }
+        pc += v;
+        p = p_next.value;
+        v = unicode_from_utf8(buf, p_end - p, p_next);
+        if (v < 0) {
+          printf("invalid pc2line encode pos=%d\n", (int)(p - p_start));
+          return;
+        }
+        if ((v & 1) == 0) {
+          v = v >> 1;
+        } else {
+          v = -(v >> 1) - 1;
+        }
+        line_num += v;
+        p = p_next.value;
+      } else {
+        op -= PC2LINE_OP_FIRST;
+        pc += (op / PC2LINE_RANGE);
+        line_num += (op % PC2LINE_RANGE) + PC2LINE_BASE;
+      }
+      printf("%5d %5d\n", pc, line_num);
+    }
   }
 
   private static void println(String fmt, Object... args) {

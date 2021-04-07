@@ -3,8 +3,11 @@ package com.lox.javascript;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSFunctionBytecode.Debug.*;
 import static com.lox.javascript.JSFunctionKindEnum.*;
+import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JSVarKindEnum.*;
 import static com.lox.javascript.JUtils.*;
 import static com.lox.javascript.LabelSlot.*;
@@ -48,7 +51,7 @@ public class Dumper {
           break;
         case label16:
           pos++;
-          addr = (0xFFFF)&get_u16(tab, pos);
+          addr = (0xFFFF) & get_u16(tab, pos);
           addr = on_has_addr(pass, addr, label_slots, pos, len, bits);
           break;
         case atom_label_u8:
@@ -144,13 +147,13 @@ public class Dumper {
           on_has_addr1(pass, addr, label_slots, pos);
           break;
         case label16:
-          addr = get_i16(tab,  pos);
+          addr = get_i16(tab, pos);
           on_has_addr1(pass, addr, label_slots, pos);
           break;
         case label:
           addr = JUtils.get_u32(tab, pos);
           on_has_addr1(pass, addr, label_slots, pos);
-          break; 
+          break;
         case atom:
           printf(" ");
           ctx.print_atom(JUtils.get_u32(tab, pos));
@@ -181,18 +184,24 @@ public class Dumper {
           else
             printf(",%d", get_u16(tab, pos + 8));
           break;
-
-
+        case const8:
+          idx = get_u8(tab, pos);
+          has_pool_idx(ctx, idx, cpool, cpool_count);
+          break;
+        case Const:
+          idx = get_u32(tab, pos);
+          has_pool_idx(ctx, idx, cpool, cpool_count);
+          break;
         case none_loc:
           idx = (op - OPCodeEnum.OP_get_loc0.ordinal()) % 4;
           on_has_loc(idx, var_count, ctx, vars);
           break;
         case loc8:
-          idx = JUtils.get_u8(tab,  pos);
+          idx = JUtils.get_u8(tab, pos);
           on_has_loc(idx, var_count, ctx, vars);
           break;
         case loc:
-          idx = get_u16(tab,  pos);
+          idx = get_u16(tab, pos);
           on_has_loc(idx, var_count, ctx, vars);
           break;
       }
@@ -201,10 +210,17 @@ public class Dumper {
     }
   }
 
+  static void has_pool_idx(JSContext ctx, int idx, List<JSValue> cpool, int cpool_count) {
+    printf(" %d: ", idx);
+    if (idx < cpool_count) {
+      JS_DumpValue(ctx, cpool.get(cpool_count));
+    }
+  }
+
   static int skip_lines(char[] source, int p, int n) {
     while (n-- > 0 && p < source.length) {
-      while (p < source.length  && source[p++] != '\n')
-      continue;
+      while (p < source.length && source[p++] != '\n')
+        continue;
     }
     return p;
   }
@@ -234,7 +250,7 @@ public class Dumper {
       printf(" %d", addr + pos);
   }
 
-  static int on_has_addr(int pass, int addr, LabelSlot[] label_slots, int pos, int len, byte[] bits){
+  static int on_has_addr(int pass, int addr, LabelSlot[] label_slots, int pos, int len, byte[] bits) {
     if (pass == 1)
       addr = label_slots[addr].pos;
     if (pass == 2)
@@ -265,7 +281,7 @@ public class Dumper {
       printf("%s:%d: ", b.debug.filename, b.debug.line_num);
     }
 
-    printf("function: %s%s\n", b.func_kind != JS_FUNC_GENERATOR.ordinal() ? "":"*", ctx.JS_AtomGetStr(b.func_name));
+    printf("function: %s%s\n", b.func_kind != JS_FUNC_GENERATOR.ordinal() ? "" : "*", ctx.JS_AtomGetStr(b.func_name));
     if (b.js_mode != 0) {
       printf("  mode:");
       if ((b.js_mode & (1 << 0)) != 0)
@@ -327,12 +343,11 @@ public class Dumper {
     if (b.has_debug)
       dump_pc2line(ctx, b.debug.pc2line_buf, b.debug.pc2line_len, b.debug.line_num);
 
-      printf("\n");
+    printf("\n");
   }
 
   static void dump_pc2line(JSContext ctx, byte[] buf, int len,
-                                          int line_num)
-  {
+                           int line_num) {
     int p_start = 0;
     int p_end, p;
     int pc, v;
@@ -352,14 +367,14 @@ public class Dumper {
       if (op == 0) {
         v = unicode_from_utf8(buf, p_end - p, p_next);
         if (v < 0) {
-          printf("invalid pc2line encode pos=%d\n", (int)(p - p_start));
+          printf("invalid pc2line encode pos=%d\n", (int) (p - p_start));
           return;
         }
         pc += v;
         p = p_next.value;
         v = unicode_from_utf8(buf, p_end - p, p_next);
         if (v < 0) {
-          printf("invalid pc2line encode pos=%d\n", (int)(p - p_start));
+          printf("invalid pc2line encode pos=%d\n", (int) (p - p_start));
           return;
         }
         if ((v & 1) == 0) {
@@ -389,8 +404,7 @@ public class Dumper {
 
 
   static int find_line_num(JSContext ctx, JSFunctionBytecode b,
-                           int pc_value)
-  {
+                           int pc_value) {
     byte[] pc2line_buf;
     int p, p_end;
     int new_line_num, line_num, pc, v, ret;
@@ -407,7 +421,8 @@ public class Dumper {
     pc = 0;
     line_num = b.debug.line_num;
     while (p < p_end) {
-      op = Byte.toUnsignedInt(pc2line_buf[p++]);;
+      op = Byte.toUnsignedInt(pc2line_buf[p++]);
+      ;
       if (op == 0) {
         PInteger pVal = new PInteger();
         ret = get_leb128(pVal, pc2line_buf, p, p_end);
@@ -435,4 +450,127 @@ public class Dumper {
     return line_num;
   }
 
+  static void JS_DumpString(JSRuntime rt,
+                            final JSString p) {
+
+    if (p == null) {
+      printf("<null>");
+      return;
+    }
+    printf(p.toString());
+  }
+
+  static void JS_DumpAtoms(JSRuntime rt) {
+    JSString p;
+    int h, i;
+    /* This only dumps hashed atoms, not JS_ATOM_TYPE_SYMBOL atoms */
+    printf("JSAtom count=%d size=%d hash_size=%d:\n",
+      rt.atom_hash.size(), rt.atom_hash.size(), rt.atom_hash.size());
+    printf("JSAtom hash table: {\n");
+    for (JSString key : rt.atom_hash.keySet()) {
+      h = rt.atom_hash.get(key);
+      printf("  %d:", h);
+      p = rt.atom_array.get(h);
+      printf(" ");
+      JS_DumpString(rt, p);
+      printf("\n");
+    }
+    printf("}\n");
+
+    printf("JSAtom table: {\n");
+
+    for (i = 0; i < rt.atom_array.size(); i++) {
+      p = rt.atom_array.get(i);
+      printf("  %d: { %d %08x ", i, p.atom_type, p.hashCode());
+      JS_DumpString(rt, p);
+      printf(" %d }\n");
+    }
+
+    printf("}\n");
+
+  }
+
+  static void JS_DumpValueShort(JSRuntime rt,
+                                final JSValue val) {
+    JSTag tag = JS_VALUE_GET_NORM_TAG(val);
+    String str;
+
+    switch (tag) {
+      case JS_TAG_INT:
+        printf("%d", JS_VALUE_GET_INT(val));
+        break;
+      case JS_TAG_BOOL:
+        if (JS_VALUE_GET_BOOL(val) != 0)
+          str = "true";
+        else
+          str = "false";
+        printf("%s", str);
+        break;
+      case JS_TAG_NULL:
+        str = "null";
+        printf("%s", str);
+        break;
+      case JS_TAG_EXCEPTION:
+        str = "exception";
+        printf("%s", str);
+        break;
+      case JS_TAG_UNINITIALIZED:
+        str = "uninitialized";
+        printf("%s", str);
+        break;
+      case JS_TAG_UNDEFINED:
+        str = "undefined";
+        printf("%s", str);
+        break;
+      case JS_TAG_FLOAT64:
+        printf("%.14g", JS_VALUE_GET_FLOAT64(val));
+        break;
+      case JS_TAG_STRING: {
+        JSString p;
+        p = JS_VALUE_GET_STRING(val);
+        JS_DumpString(rt, p);
+      }
+      break;
+      case JS_TAG_FUNCTION_BYTECODE: {
+        JSFunctionBytecode b = JS_VALUE_GET_PTR(val);
+        char buf[ ATOM_GET_STR_BUF_SIZE];
+        printf("[bytecode %s]", JS_AtomGetStrRT(rt, buf, sizeof(buf), b -> func_name));
+      }
+      break;
+      case JS_TAG_OBJECT: {
+        JSObject p = JS_VALUE_GET_OBJ(val);
+        JSAtom atom = rt.class_array[p -> class_id].class_name;
+        char atom_buf[ ATOM_GET_STR_BUF_SIZE];
+        printf("[%s %p]",
+          JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), atom), ( void *)p);
+      }
+      break;
+      case JS_TAG_SYMBOL: {
+        JSAtomStruct p = JS_VALUE_GET_PTR(val);
+        char atom_buf[ ATOM_GET_STR_BUF_SIZE];
+        printf("Symbol(%s)",
+          JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), js_get_atom_index(rt, p)));
+      }
+      break;
+      case JS_TAG_MODULE:
+        printf("[module]");
+        break;
+      default:
+        printf("[unknown tag %d]", tag);
+        break;
+    }
+  }
+
+  static void JS_DumpValue(JSContext ctx,
+                           final JSValue val) {
+    JS_DumpValueShort(ctx.rt, val);
+  }
+
+  static void JS_PrintValue(JSContext ctx,
+                            String str,
+                            final JSValue val) {
+    printf("%s=", str);
+    JS_DumpValueShort(ctx.rt, val);
+    printf("\n");
+  }
 }

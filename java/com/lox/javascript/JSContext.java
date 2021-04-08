@@ -401,7 +401,7 @@ public class JSContext {
     b.realm = ctx;
 
     if ((fd.js_mode & JS_MODE_STRIP) == 0) {
-//      Dumper.js_dump_function_bytecode(ctx, b);
+      Dumper.js_dump_function_bytecode(ctx, b);
     }
     if (fd.parent != null) {
       fd.parent = null;

@@ -145,7 +145,7 @@ public class IRResolver {
           on_on_change(pos, len, bc_buf, bc_out);
           break;
         case OP_drop:
-
+          on_on_change(pos, len, bc_buf, bc_out);
           break;
         case OP_insert3:
 

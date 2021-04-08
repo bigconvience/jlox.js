@@ -205,9 +205,22 @@ public class Dumper {
           idx = get_u16(tab, pos);
           on_has_loc(idx, var_count, ctx, vars);
           break;
+        case none_arg:
+          idx = (op - OP_get_arg0.ordinal()) % 4;
+          on_has_arg(idx, arg_count, ctx, args);
+          break;
+        case arg:
+          idx = get_u16(tab, pos);
+          on_has_arg(idx, arg_count, ctx, args);
+          break;
       }
       println("");
       pos += oi.size - 1;
+    }
+    if (source != null) {
+      if (!in_source)
+        printf("\n");
+      print_lines(source, line, Integer.MAX_VALUE);
     }
   }
 
@@ -267,6 +280,13 @@ public class Dumper {
     printf(" %d: ", idx);
     if (idx < var_count) {
       JUtils.print_atom(ctx, vars.get(idx).var_name);
+    }
+  }
+
+  static void on_has_arg(int idx, int arg_count, JSContext ctx, List<JSVarDef> args) {
+    printf(" %d: ", idx);
+    if (idx < arg_count) {
+      print_atom(ctx, args.get(idx).var_name);
     }
   }
 

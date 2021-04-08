@@ -45,7 +45,7 @@ public class JSVarDef {
   {
     int i;
     for(i = fd.args.size(); i-- > 0;) {
-      if (fd.args.get(i).var_name == name)
+      if (fd.args.get(i).var_name.equals(name))
         return i | ARGUMENT_VAR_OFFSET;
     }
     return -1;

@@ -89,7 +89,7 @@ public class ScopeVarResolver {
       if (var_idx < 0 && is_pseudo_var)
         var_idx = resolve_pseudo_var(ctx, s, var_name);
 
-      if (var_idx < 0 && var_name == JSAtomEnum.JS_ATOM_arguments.toJSAtom() &&
+      if (var_idx < 0 && var_name.equals(JSAtomEnum.JS_ATOM_arguments.toJSAtom()) &&
         s.has_arguments_binding) {
         /* 'arguments' pseudo variable */
         var_idx = add_arguments_var(ctx, s, var_name);

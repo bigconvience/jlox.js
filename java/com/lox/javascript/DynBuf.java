@@ -2,7 +2,7 @@ package com.lox.javascript;
 
 import java.util.Arrays;
 
-import static com.lox.javascript.OPCodeEnum.OP_invalid;
+import static com.lox.javascript.OPCodeEnum.*;
 
 /**
  * @author benpeng.jiang
@@ -83,6 +83,57 @@ public class DynBuf {
 
   static void put_short_code(DynBuf bc_out, int op, int idx)
   {
+    OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
+    if (idx < 4) {
+      switch (opCodeEnum) {
+        case OP_get_loc:
+          dbuf_putc(bc_out, OP_get_loc0.ordinal() + idx);
+          return;
+        case OP_put_loc:
+          dbuf_putc(bc_out, OP_put_loc0.ordinal() + idx);
+          return;
+        case OP_set_loc:
+          dbuf_putc(bc_out, OP_set_loc0.ordinal() + idx);
+          return;
+        case OP_get_arg:
+          dbuf_putc(bc_out, OP_get_arg0.ordinal() + idx);
+          return;
+        case OP_put_arg:
+          dbuf_putc(bc_out, OP_put_arg0.ordinal() + idx);
+          return;
+        case OP_set_arg:
+          dbuf_putc(bc_out, OP_set_arg0.ordinal() + idx);
+          return;
+        case OP_get_var_ref:
+          dbuf_putc(bc_out, OP_get_var_ref0.ordinal() + idx);
+          return;
+        case OP_put_var_ref:
+          dbuf_putc(bc_out, OP_put_var_ref0.ordinal() + idx);
+          return;
+        case OP_set_var_ref:
+          dbuf_putc(bc_out, OP_set_var_ref0.ordinal() + idx);
+          return;
+        case OP_call:
+          dbuf_putc(bc_out, OP_call0.ordinal() + idx);
+          return;
+      }
+    }
+    if (idx < 256) {
+      switch (opCodeEnum) {
+        case OP_get_loc:
+          dbuf_putc(bc_out, OP_get_loc8);
+          dbuf_putc(bc_out, idx);
+          return;
+        case OP_put_loc:
+          dbuf_putc(bc_out, OP_put_loc8);
+          dbuf_putc(bc_out, idx);
+          return;
+        case OP_set_loc:
+          dbuf_putc(bc_out, OP_set_loc8);
+          dbuf_putc(bc_out, idx);
+          return;
+      }
+    }
     dbuf_putc(bc_out, op);
     dbuf_put_u16(bc_out, idx);
   }

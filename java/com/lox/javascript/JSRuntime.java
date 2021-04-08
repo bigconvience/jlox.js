@@ -18,7 +18,7 @@ import static com.lox.clibrary.stdio_h.printf;
 public class JSRuntime {
   final List<JSString> atom_array;
   final Map<JSString, Integer> atom_hash;
-  final Map<JSString, JSClass> class_array;
+  final List<JSClass> class_array;
 
   int stack_size;
   int stack_top;
@@ -36,7 +36,7 @@ public class JSRuntime {
   public JSRuntime() {
     this.atom_array = new ArrayList<>();
     this.atom_hash = new HashMap<>();
-    this.class_array = new HashMap<>();
+    this.class_array = new ArrayList<>();
 
     JS_InitAtoms();
   }

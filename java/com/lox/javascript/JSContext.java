@@ -358,7 +358,11 @@ public class JSContext {
     b.byte_code_buf = Arrays.copyOf(fd.byte_code.buf, fd.byte_code.size);
     b.byte_code_len = fd.byte_code.size;
 
-    b.cpool = new JSValue[0];
+    b.cpool = new JSValue[fd.cpool.size()];
+    b.cpool_count = fd.cpool.size();
+    for (i = 0; i < b.cpool_count; i++) {
+      b.cpool[i] = fd.cpool.get(i);
+    }
     b.closure_var = new JSClosureVar[0];
     b.stack_size = (short) stack_size;
 
@@ -583,12 +587,22 @@ public class JSContext {
   }
 
   String JS_AtomGetStr(JSAtom atom) {
-    return JS_AtomGetStr(atom.getVal());
+    return JS_AtomGetStr(rt, atom.getVal());
   }
 
-  String JS_AtomGetStr(int atom) {
+  static String JS_AtomGetStr(JSRuntime rt, JSAtom atom) {
+    return JS_AtomGetStr(rt, atom.getVal());
+  }
+
+  static String JS_AtomGetStr(JSRuntime rt, int atom) {
     JSString jsString = rt.atom_array.get(atom);
     return jsString.str;
+  }
+
+  static String JS_AtomGetStrRT(JSRuntime rt,
+                                     JSAtom atom)
+  {
+    return JS_AtomGetStr(rt, atom);
   }
 
   static JSFunctionDef js_new_function_def(JSContext ctx, JSFunctionDef parent,

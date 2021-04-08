@@ -5,6 +5,7 @@ import java.util.List;
 
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.clibrary.stdio_h.putchar;
+import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSFunctionBytecode.Debug.*;
 import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSValue.*;
@@ -213,7 +214,7 @@ public class Dumper {
   static void has_pool_idx(JSContext ctx, int idx, List<JSValue> cpool, int cpool_count) {
     printf(" %d: ", idx);
     if (idx < cpool_count) {
-      JS_DumpValue(ctx, cpool.get(cpool_count));
+      JS_DumpValue(ctx, cpool.get(idx));
     }
   }
 
@@ -281,7 +282,7 @@ public class Dumper {
       printf("%s:%d: ", b.debug.filename, b.debug.line_num);
     }
 
-    printf("function: %s%s\n", b.func_kind != JS_FUNC_GENERATOR.ordinal() ? "" : "*", ctx.JS_AtomGetStr(b.func_name));
+    printf("function: %s%s\n", b.func_kind != JS_FUNC_GENERATOR.ordinal() ? "" : "*", JS_AtomGetStr(ctx.rt, b.func_name));
     if (b.js_mode != 0) {
       printf("  mode:");
       if ((b.js_mode & (1 << 0)) != 0)
@@ -295,7 +296,7 @@ public class Dumper {
     if (b.arg_count != 0 && b.vardefs != null) {
       printf("  args:");
       for (i = 0; i < b.arg_count; i++) {
-        printf(" %s", ctx.JS_AtomGetStr(b.vardefs[i].var_name));
+        printf(" %s", JS_AtomGetStr(ctx.rt, b.vardefs[i].var_name));
       }
       printf("\n");
     }
@@ -309,7 +310,7 @@ public class Dumper {
               vd.var_kind == JS_VAR_NEW_FUNCTION_DECL) ? "function" :
               vd.is_const ? "const" :
                 vd.is_lexical ? "let" : "var",
-          ctx.JS_AtomGetStr(vd.var_name));
+          JS_AtomGetStr(ctx.rt, vd.var_name));
         if (vd.scope_level != 0)
           printf(" [level:%d next:%d]", vd.scope_level, vd.scope_next);
         printf("\n");
@@ -320,7 +321,7 @@ public class Dumper {
       for (i = 0; i < b.closure_var_count; i++) {
         JSClosureVar cv = b.closure_var[i];
         printf("%5d: %s %s:%s%d %s\n", i,
-          ctx.JS_AtomGetStr(cv.var_name),
+          JS_AtomGetStr(ctx.rt, cv.var_name),
           cv.is_local ? "local" : "parent",
           cv.is_arg ? "arg" : "loc", cv.var_idx,
           cv.is_const ? "const" :
@@ -532,24 +533,21 @@ public class Dumper {
       }
       break;
       case JS_TAG_FUNCTION_BYTECODE: {
-        JSFunctionBytecode b = JS_VALUE_GET_PTR(val);
-        char buf[ ATOM_GET_STR_BUF_SIZE];
-        printf("[bytecode %s]", JS_AtomGetStrRT(rt, buf, sizeof(buf), b -> func_name));
+        JSFunctionBytecode b = (JSFunctionBytecode) JS_VALUE_GET_PTR(val);
+        printf("[bytecode %s]", JS_AtomGetStrRT(rt, b.func_name));
       }
       break;
       case JS_TAG_OBJECT: {
         JSObject p = JS_VALUE_GET_OBJ(val);
-        JSAtom atom = rt.class_array[p -> class_id].class_name;
-        char atom_buf[ ATOM_GET_STR_BUF_SIZE];
-        printf("[%s %p]",
-          JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), atom), ( void *)p);
+        JSAtom atom = rt.class_array.get(p.class_id.ordinal()).class_name;
+        printf("[%s %s]",
+          JS_AtomGetStrRT(rt, atom), p.toString());
       }
       break;
       case JS_TAG_SYMBOL: {
-        JSAtomStruct p = JS_VALUE_GET_PTR(val);
-        char atom_buf[ ATOM_GET_STR_BUF_SIZE];
+        JSString p = (JSString) JS_VALUE_GET_PTR(val);
         printf("Symbol(%s)",
-          JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), js_get_atom_index(rt, p)));
+          p.toString());
       }
       break;
       case JS_TAG_MODULE:

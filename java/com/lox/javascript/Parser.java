@@ -176,9 +176,7 @@ class Parser {
     int expr_line = previous().line_num;
     Expr condition = js_parse_expr_paren();
 
-    int then_line = previous().line_num;
     Stmt thenBranch = statement();
-    thenBranch.line_number = then_line;
     Stmt elseBranch = null;
     if (match(TOK_ELSE)) {
       int else_line = previous().line_num;
@@ -272,7 +270,7 @@ class Parser {
 
   private Stmt expressionStatement() {
     Expr expr = expression();
-//    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
+    Token tok = consume(SEMICOLON, "Expect ';' after expression.");
     return new Stmt.Expression(previous().line_num, expr);
   }
 

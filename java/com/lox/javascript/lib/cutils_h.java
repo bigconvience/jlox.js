@@ -25,10 +25,9 @@ public class cutils_h {
 
   /* return -1 if error. *pp is not updated in this case. max_len must
    be >= 1. The maximum length for a UTF8 byte sequence is 6 bytes. */
-  public static int unicode_from_utf8(final byte[] p, int max_len, final PInteger pp)
+  public static int unicode_from_utf8(final byte[] p, int ptr, int max_len, final PInteger pp)
   {
     int l, c, b, i;
-    int ptr = 0;
     c = p[ptr++];
     if (c < 0x80) {
         pp.value = ptr;

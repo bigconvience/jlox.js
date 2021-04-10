@@ -386,14 +386,14 @@ public class Dumper {
     while (p < p_end) {
       op = Byte.toUnsignedInt(buf[p++]);
       if (op == 0) {
-        v = unicode_from_utf8(buf, p_end - p, p_next);
+        v = unicode_from_utf8(buf, p, p_end - p, p_next);
         if (v < 0) {
           printf("invalid pc2line encode pos=%d\n", (int) (p - p_start));
           return;
         }
         pc += v;
         p = p_next.value;
-        v = unicode_from_utf8(buf, p_end - p, p_next);
+        v = unicode_from_utf8(buf, p, p_end - p, p_next);
         if (v < 0) {
           printf("invalid pc2line encode pos=%d\n", (int) (p - p_start));
           return;

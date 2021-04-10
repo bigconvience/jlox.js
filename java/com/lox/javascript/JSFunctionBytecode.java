@@ -28,6 +28,8 @@ public class JSFunctionBytecode {
   int byte_code_len;
   JSAtom func_name;
   JSVarDef[] vardefs; /* arguments + local variables (arg_count + var_count) (self pointer) */
+  JSVarDef[] args;
+  JSVarDef[] local_vars;
   JSClosureVar[] closure_var; /* list of variables in the closure (self pointer) */
   int arg_count;
   int var_count;

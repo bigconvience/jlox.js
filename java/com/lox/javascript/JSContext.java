@@ -386,11 +386,15 @@ public class JSContext {
     int total_count = arg_count + var_count;
     if (total_count > 0) {
       b.vardefs = new JSVarDef[total_count];
+      b.args = new JSVarDef[arg_count];
+      b.local_vars = new JSVarDef[var_count];
       for (i = 0; i < fd.args.size(); i++) {
         b.vardefs[i] = fd.args.get(i);
+        b.args[i] = fd.args.get(i);
       }
       for (i = 0; i < fd.vars.size(); i++) {
         b.vardefs[arg_count + i] = fd.vars.get(i);
+        b.local_vars[ i] = fd.vars.get(i);
       }
     }
     b.var_count = fd.vars.size();

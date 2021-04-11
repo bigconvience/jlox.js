@@ -339,6 +339,8 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
       emit_u32((Integer) val);
     } else if (val instanceof Boolean) {
       emit_op((Boolean) val ? OPCodeEnum.OP_push_true : OPCodeEnum.OP_push_false);
+    } {
+      emit_op(OP_null);
     }
     return null;
   }

@@ -168,11 +168,11 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitReturnStmt(Stmt.Return stmt) {
-
-
     if (stmt.value != null) {
-
       resolve(stmt.value);
+      emit_return(this, true);
+    } else {
+      emit_return(this, false);
     }
 
     return null;

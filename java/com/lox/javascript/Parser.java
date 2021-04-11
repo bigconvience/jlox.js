@@ -206,13 +206,20 @@ class Parser {
 
   private Stmt returnStatement() {
     Token keyword = previous();
+    int line_num = keyword.line_num;
+    if (cur_func.is_eval) {
+      js_parse_error(this, "return not in a function");
+    }
+
     Expr value = null;
-    if (!check(SEMICOLON)) {
+    if (!check(SEMICOLON) && !check(TOK_RIGHT_BRACE)) {
       value = expression();
     }
 
     consume(SEMICOLON, "Expect ';' after return value.");
-    return new Stmt.Return(keyword, value);
+    Stmt stmt = new Stmt.Return(keyword, value);
+    stmt.line_number = line_num;
+    return stmt;
   }
 
   private Stmt js_parse_var(Token tok) {

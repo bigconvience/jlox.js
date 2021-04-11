@@ -352,8 +352,17 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitLogicalExpr(Expr.Logical expr) {
+    Resolver s = this;
+    TokenType op = expr.operator.type;
     resolve(expr.left);
+
+    int label1 = new_label(s);
+    emit_op(s, OP_dup);
+    emit_goto(s, op == TOK_LAND ? OP_if_false : OP_if_true, label1);
+    emit_op(s, OP_drop);
     resolve(expr.right);
+    emit_label(s, label1);
+
     return null;
   }
 

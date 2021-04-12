@@ -5,12 +5,12 @@ import com.lox.clibrary.stdlib_h;
 import java.util.*;
 
 import static com.lox.javascript.DynBuf.*;
-import static com.lox.javascript.JSAtomEnum.JS_ATOM_this;
-import static com.lox.javascript.JSFunctionDef.get_first_lexical_var;
-import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_ASYNC_GENERATOR;
-import static com.lox.javascript.JSFunctionKindEnum.JS_FUNC_NORMAL;
+import static com.lox.javascript.FuncCallType.*;
+import static com.lox.javascript.JSAtomEnum.*;
+import static com.lox.javascript.JSFunctionDef.*;
+import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSVarDefEnum.*;
-import static com.lox.javascript.LoxJS.JS_MODE_STRICT;
+import static com.lox.javascript.LoxJS.*;
 import static com.lox.javascript.OPCodeEnum.*;
 import static com.lox.javascript.PutLValueEnum.*;
 import static com.lox.clibrary.stdlib_h.abort;
@@ -304,13 +304,87 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitCallExpr(Expr.Call expr) {
+    Resolver s = this;
+    OPCodeEnum opcode;
+    int arg_count, drop_count;
     resolve(expr.callee);
-
-    for (Expr argument : expr.arguments) {
-      resolve(argument);
+    JSFunctionDef fd = cur_func;
+    switch (opcode = get_prev_opcode(fd)) {
+      case OP_get_field:
+        fd.byte_code.buf[fd.last_opcode_pos] = (byte) OP_get_field2.ordinal();
+        drop_count = 2;
+        break;
     }
+    emit_func_call(opcode, s, expr.arguments.size(), fd, expr.call_type);
 
     return null;
+  }
+
+  private static void emit_func_call(OPCodeEnum opcode, Resolver s, int arg_count,
+                              JSFunctionDef fd, FuncCallType call_type) {
+    switch(opcode) {
+      case OP_get_field:
+      case OP_scope_get_private_field:
+      case OP_get_array_el:
+      case OP_scope_get_ref:
+        emit_op(s, OP_call_method);
+        emit_u16(s, arg_count);
+        break;
+      case OP_eval:
+        emit_op(s, OP_eval);
+        emit_u16(s, arg_count);
+        emit_u16(s, fd.scope_level);
+        fd.has_eval_call = TRUE;
+        break;
+      default:
+        if (call_type == FUNC_CALL_SUPER_CTOR) {
+          emit_op(s, OP_call_constructor);
+          emit_u16(s, arg_count);
+
+          /* set the 'this' value */
+          emit_op(s, OP_dup);
+          emit_op(s, OP_scope_put_var_init);
+          emit_atom(s, JS_ATOM_this);
+          emit_u16(s, 0);
+
+          emit_class_field_init(s);
+        } else if (call_type == FUNC_CALL_NEW) {
+          emit_op(s, OP_call_constructor);
+          emit_u16(s, arg_count);
+        } else {
+          emit_op(s, OP_call);
+          emit_u16(s, arg_count);
+        }
+        break;
+    }
+  }
+
+  /* initialize the class fields, called by the constructor. Note:
+   super() can be called in an arrow function, so <this> and
+   <class_fields_init> can be variable references */
+  static void emit_class_field_init(Resolver s)
+  {
+    int label_next;
+
+    emit_op(s, OP_scope_get_var);
+    emit_atom(s, JS_ATOM_class_fields_init);
+    emit_u16(s, s.cur_func.scope_level);
+
+    /* no need to call the class field initializer if not defined */
+    emit_op(s, OP_dup);
+    label_next = emit_goto(s, OP_if_false, -1);
+
+    emit_op(s, OP_scope_get_var);
+    emit_atom(s, JS_ATOM_this);
+    emit_u16(s, 0);
+
+    emit_op(s, OP_swap);
+
+    emit_op(s, OP_call_method);
+    emit_u16(s, 0);
+
+    emit_label(s, label_next);
+    emit_op(s, OP_drop);
   }
 
   @Override
@@ -339,7 +413,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
       emit_u32((Integer) val);
     } else if (val instanceof Boolean) {
       emit_op((Boolean) val ? OPCodeEnum.OP_push_true : OPCodeEnum.OP_push_false);
-    } {
+    } else {
       emit_op(OP_null);
     }
     return null;

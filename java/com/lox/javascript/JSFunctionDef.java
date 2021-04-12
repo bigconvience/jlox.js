@@ -99,6 +99,7 @@ public class JSFunctionDef extends Stmt {
   String source;
   JSModuleDef module;
   BlockEnv top_break;
+  boolean has_eval_call;
 
   JSFunctionDef(JSFunctionDef parent,
                 boolean is_eval, boolean isFuncExpr, String filename, int lineNum) {

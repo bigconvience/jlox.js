@@ -106,10 +106,11 @@ abstract class Expr {
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitCallExpr(this);
     }
-
+    FuncCallType call_type;
     final Expr callee;
     final Token paren;
-    final List<Expr> arguments;
+     List<Expr> arguments;
+
   }
   //< expr-call
 //> expr-get

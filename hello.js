@@ -1,4 +1,2 @@
-function assert(actual, expected, message) {
-    if (actual !== null && expected !== null)
-        return;
-}
+var actual = "abc";
+actual.toString();

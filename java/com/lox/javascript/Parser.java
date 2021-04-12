@@ -4,12 +4,13 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
+import static com.lox.javascript.FuncCallType.*;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.JSAtomEnum.*;
 import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSErrorEnum.*;
 import static com.lox.javascript.JSExportTypeEnum.*;
-import static com.lox.javascript.JSFunctionDef.add_hoisted_def;
+import static com.lox.javascript.JSFunctionDef.*;
 import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSParseExportEnum.*;
 import static com.lox.javascript.JSParseFunctionEnum.*;
@@ -493,20 +494,54 @@ class Parser {
       Expr right = unary();
       return new Expr.Unary(operator, right);
     }
-    return postfix();
+    return postfix(true);
   }
 
-  private Expr postfix() {
+  private Expr postfix(boolean accept_lparen) {
+    FuncCallType call_type;
+    int optional_chaining_label;
+    Parser s = this;
+
+    call_type = FUNC_CALL_NORMAL;
     Expr expr = primary();
     if (match(TOK_DEC, TOK_INC)) {
       Token token = previous();
       return new Expr.Postfix(token, expr);
     }
 
-    int optional_chaining_label = -1;
+    optional_chaining_label = -1;
     for (; ; ) {
 
-      if (match(TOK_DOT)) {
+      if (match(TOK_LEFT_PAREN) && accept_lparen) {
+        int opcode, arg_count, drop_count;
+        Expr.Call call = null;
+        if (call_type == FUNC_CALL_NORMAL) {
+          call = new Expr.Call(expr, null, null);
+          call.call_type = call_type;
+        }
+
+        /* parse arguments */
+        List<Expr> args = new ArrayList<>();
+        arg_count = 0;
+        while (!match(TOK_RIGHT_PAREN)) {
+          if (arg_count >= 65535) {
+            js_parse_error(s, "Too many call arguments");
+          }
+          if (match(TOK_ELLIPSIS))
+            break;
+          args.add(assignment());
+          arg_count++;
+          if (match(TOK_RIGHT_PAREN))
+            break;
+          /* accept a trailing comma before the ')' */
+          if (js_parse_expect(s, TOK_COMMA))
+            js_parse_error(s, "expect ','");
+        }
+        if (call != null) {
+          call.arguments = args;
+        }
+        expr = call;
+      } else if (match(TOK_DOT)) {
         if (match(TOK_PRIVATE_NAME)) {
 
         } else {
@@ -514,8 +549,7 @@ class Parser {
           if (!token_is_ident(token.type)) {
             js_parse_error(this, "expecting field name");
           }
-          Expr.Get get = new Expr.Get(expr, token);
-          return get;
+          expr = new Expr.Get(expr, token);
         }
       } else {
         break;
@@ -618,7 +652,7 @@ class Parser {
 
   Token consume(TokenType type, String message) {
     if (check(type)) return advance();
-
+    js_parse_error(this, message);
     return null;
   }
 

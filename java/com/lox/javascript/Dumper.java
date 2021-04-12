@@ -246,7 +246,7 @@ public class Dumper {
       while (line++ < line1) {
         p = skip_lines(source.toCharArray(), s = p, 1);
         printf(";; %s", source.substring(s, p));
-        if (p < source.length()) {
+        if (p >= source.length()) {
           if (source.charAt(p - 1) != '\n')
             printf("\n");
           break;

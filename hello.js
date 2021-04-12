@@ -1,2 +1,2 @@
 var actual = "abc";
-actual.toString();
+typeof actual == 'object';

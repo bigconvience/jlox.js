@@ -469,6 +469,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   @Override
   public Void visitUnaryExpr(Expr.Unary expr) {
     Resolver s = this;
+    JSFunctionDef fd = s.cur_func;
     TokenType op = expr.operator.type;
     switch (op) {
       case TOK_PLUS:
@@ -476,6 +477,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
       case TOK_BANG:
       case TOK_BITWISE_BANG:
       case TOK_VOID:
+      case TOK_TYPEOF:
         resolve(expr.right);
         switch (op) {
           case TOK_MINUS:
@@ -493,6 +495,12 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
           case TOK_VOID:
             emit_op(s, OPCodeEnum.OP_drop);
             emit_op(s, OP_undefined);
+            break;
+          case TOK_TYPEOF:
+            if (get_prev_opcode(fd) == OP_scope_get_var) {
+              fd.byte_code.buf[fd.last_opcode_pos] = (byte)OP_scope_get_var_undef.ordinal();
+            }
+            emit_op(s, OP_typeof);
             break;
           default:
             abort();

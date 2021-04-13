@@ -163,7 +163,7 @@ class Parser {
         new Stmt.Expression(increment)));
     }
 
-    if (condition == null) condition = new Expr.Literal(true);
+    if (condition == null) condition = new Expr.Literal(true, getPreviousLineNum());
     body = new Stmt.While(condition, body);
 
     if (initializer != null) {
@@ -561,24 +561,25 @@ class Parser {
 
   private Expr primary() {
     Object val;
-    if (match(TOK_FALSE)) return new Expr.Literal(false);
-    if (match(TOK_TRUE)) return new Expr.Literal(true);
-    if (match(TOK_NULL)) return new Expr.Literal(null);
+    int line_num = getPreviousLineNum();
+    if (match(TOK_FALSE)) return new Expr.Literal(false, getPreviousLineNum());
+    if (match(TOK_TRUE)) return new Expr.Literal(true, getPreviousLineNum());
+    if (match(TOK_NULL)) return new Expr.Literal(null, getPreviousLineNum());
 
     if (match(TOK_NUMBER)) {
-      return new Expr.Literal(previous().literal);
+      return new Expr.Literal(previous().literal, getPreviousLineNum());
     }
     if (match(TOK_TEMPLATE)) {
-      return new Expr.Literal(previous().literal);
+      return new Expr.Literal(previous().literal, getPreviousLineNum());
     }
     if (match(TOK_STRING)) {
-      return emit_push_const(previous(), true);
+      return emit_push_const(previous(), true, getPreviousLineNum());
     }
 
     if (match(TOK_THIS)) return new Expr.This(previous());
 
     if (match(TOK_IDENT)) {
-      return new Expr.Variable(previous(), cur_func.scope_level);
+      return new Expr.Variable(previous(), cur_func.scope_level, getPreviousLineNum());
     }
 
     if (match(TOK_LEFT_PAREN)) {
@@ -600,12 +601,12 @@ class Parser {
     throw error(peek(), "Expect expression.");
   }
 
-  private Expr.Literal emit_push_const(Token token, boolean asAtom) {
+  private Expr.Literal emit_push_const(Token token, boolean asAtom, int line_num) {
     Expr.Literal literal = null;
     if (token.type == TOK_STRING && asAtom) {
       JSAtom atom = token.str_str;
       if (atom != JS_ATOM_NULL && !atom.__JS_AtomIsTaggedInt()) {
-        literal = new Expr.Literal(atom);
+        literal = new Expr.Literal(atom, line_num);
       }
     }
 
@@ -636,7 +637,7 @@ class Parser {
   }
 
   private Expr.Literal parseArrayLiteral() {
-    return new Expr.Literal(null);
+    return new Expr.Literal(null, getPreviousLineNum());
   }
 
   private boolean match(TokenType... types) {
@@ -1043,5 +1044,12 @@ class Parser {
                                          JSAtom local_name, JSAtom export_name,
                                          JSExportTypeEnum export_type) {
     return null;
+  }
+
+  int getPreviousLineNum() {
+    return previous().line_num;
+  }
+  int getCurrentLinenum() {
+    return peek().line_num;
   }
 }

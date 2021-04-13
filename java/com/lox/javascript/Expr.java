@@ -145,8 +145,9 @@ abstract class Expr {
   //< expr-grouping
 //> expr-literal
   static class Literal extends Expr {
-    Literal(Object value) {
+    Literal(Object value, int line_num) {
       this.value = value;
+      this.line_number = line_num;
     }
 
     @Override
@@ -175,6 +176,7 @@ abstract class Expr {
       this.left = left;
       this.operator = operator;
       this.right = right;
+      this.cut_label = -1;
     }
 
     @Override
@@ -185,6 +187,7 @@ abstract class Expr {
     final Expr left;
     final Token operator;
     final Expr right;
+    int cut_label;
   }
 
   static class Bitwise extends Expr {
@@ -269,9 +272,10 @@ abstract class Expr {
   }
 //> expr-variable
   static class Variable extends Expr {
-    Variable(Token name, int scope_level) {
+    Variable(Token name, int scope_level, int line_num) {
       this.name = name;
       this.scope_level = scope_level;
+      this.line_number = line_num;
     }
 
     @Override
@@ -286,5 +290,6 @@ abstract class Expr {
 //< expr-variable
 
   abstract <R> R accept(Visitor<R> visitor);
+  int line_number;
 }
 //< Appendix II expr

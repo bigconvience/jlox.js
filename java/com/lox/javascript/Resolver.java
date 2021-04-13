@@ -135,7 +135,6 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     push_scope(s);
     set_eval_ret_undefined(s);
     resolve(stmt.condition);
-    update_line(stmt.line_number);
     label1 = emit_goto(s, OP_if_false, -1);
     if ((cur_func.js_mode & JS_MODE_STRICT) != 0) {
       mask = 0;
@@ -315,6 +314,9 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
         drop_count = 2;
         break;
     }
+    for (Expr exp_ele: expr.arguments) {
+      resolve(exp_ele);
+    }
     emit_func_call(opcode, s, expr.arguments.size(), fd, expr.call_type);
 
     return null;
@@ -416,6 +418,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     } else {
       emit_op(OP_null);
     }
+    update_line(expr.line_number);
     return null;
   }
 
@@ -428,15 +431,29 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   public Void visitLogicalExpr(Expr.Logical expr) {
     Resolver s = this;
     TokenType op = expr.operator.type;
+    int label = expr.cut_label;
+    boolean emit_label = false;
+    if (label == -1) {
+      label = new_label(s);
+      emit_label = true;
+    }
+    if (expr.left instanceof Expr.Logical) {
+      ((Expr.Logical) expr.left).cut_label = label;
+    }
     resolve(expr.left);
 
-    int label1 = new_label(s);
+    update_line(expr.operator.line_num);
     emit_op(s, OP_dup);
-    emit_goto(s, op == TOK_LAND ? OP_if_false : OP_if_true, label1);
+    emit_goto(s, op == TOK_LAND ? OP_if_false : OP_if_true, label);
     emit_op(s, OP_drop);
-    resolve(expr.right);
-    emit_label(s, label1);
 
+    if (expr.right instanceof Expr.Logical) {
+      ((Expr.Logical) expr.right).cut_label = label;
+    }
+    resolve(expr.right);
+    if (emit_label) {
+      emit_label(s, label);
+    }
     return null;
   }
 
@@ -518,6 +535,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitVariableExpr(Expr.Variable expr) {
+    update_line(expr.line_number);
     JSAtom name = expr.name.ident_atom;
     int scope = cur_func.scope_level;
     emit_op(OPCodeEnum.OP_scope_get_var);

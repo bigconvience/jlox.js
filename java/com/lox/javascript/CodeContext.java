@@ -19,7 +19,7 @@ public class CodeContext {
   JSAtom atom;
 
 
-  boolean code_match(int pos, Object... args) {
-    return true;
+  static boolean code_match(CodeContext s, int pos, Object... args) {
+    return false;
   }
 }

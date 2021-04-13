@@ -1,5 +1,6 @@
 package com.lox.javascript;
 
+import static com.lox.javascript.CodeContext.code_match;
 import static com.lox.javascript.Config.OPTIMIZE;
 import static com.lox.javascript.DynBuf.*;
 import static com.lox.javascript.JSFunctionBytecode.Debug.*;
@@ -26,11 +27,10 @@ public class LabelSlot {
   RelocEntry first_reloc;
 
   /* peephole optimizations and resolve goto/labels */
-  static  int resolve_labels(JSContext ctx, JSFunctionDef s)
-  {
+  static int resolve_labels(JSContext ctx, JSFunctionDef s) {
     int pos, pos_next, bc_len, op, op1 = -1, len, i, line_num;
     PInteger pPosNext = new PInteger();
-    PInteger pOp1= new PInteger();
+    PInteger pOp1 = new PInteger();
     PInteger pLine = new PInteger();
     OPCodeEnum op1CodeEnum;
     byte[] bc_buf;
@@ -132,38 +132,53 @@ public class LabelSlot {
       pos_next = pos + len;
 
       OPCodeEnum opCodeEnum = OPCodeEnum.values()[op];
-      switch(opCodeEnum) {
+      switch (opCodeEnum) {
         case OP_line_num:
-          line_num = get_u32(bc_buf,  pos + 1);
+          line_num = get_u32(bc_buf, pos + 1);
           break;
 
-        case OP_label:
-          {
-            label = get_u32(bc_buf, pos + 1);
-            assert(label >= 0 && label < s.label_slots.size());
-            ls = label_slots[label];
-            assert(ls.addr == -1);
-            ls.addr = bc_out.size;
-            /* resolve the relocation entries */
-            for(re = ls.first_reloc; re != null; re = re_next) {
-              int diff = ls.addr - re.addr;
-              re_next = re.next;
-              switch (re.size) {
-                case 4:
-                  put_u32(bc_out.buf,  re.addr, diff);
-                  break;
-                case 2:
-                  assert(diff <= ((0x7FFF)&diff));
-                  put_u16(bc_out.buf, re.addr, diff);
-                  break;
-                case 1:
-                  assert(diff == ((0x7F)&diff));
-                  put_u8(bc_out.buf, re.addr, diff);
-                  break;
-              }
+        case OP_label: {
+          label = get_u32(bc_buf, pos + 1);
+          assert (label >= 0 && label < s.label_slots.size());
+          ls = label_slots[label];
+          assert (ls.addr == -1);
+          ls.addr = bc_out.size;
+          /* resolve the relocation entries */
+          for (re = ls.first_reloc; re != null; re = re_next) {
+            int diff = ls.addr - re.addr;
+            re_next = re.next;
+            switch (re.size) {
+              case 4:
+                put_u32(bc_out.buf, re.addr, diff);
+                break;
+              case 2:
+                assert (diff <= ((0x7FFF) & diff));
+                put_u16(bc_out.buf, re.addr, diff);
+                break;
+              case 1:
+                assert (diff == ((0x7F) & diff));
+                put_u8(bc_out.buf, re.addr, diff);
+                break;
             }
-            ls.first_reloc = null;
           }
+          ls.first_reloc = null;
+        }
+        break;
+        case OP_call:
+        case OP_call_method:
+          /* detect and transform tail calls */
+//          int argc;
+//          argc = get_u16(bc_buf, pos + 1);
+//          if (code_match(cc, pos_next, OP_return, -1)) {
+//            if (cc.line_num >= 0) line_num = cc.line_num;
+//            add_pc2line_info(s, bc_out.size, line_num);
+//            put_short_code(bc_out, op + 1, argc);
+//            pos_next = skip_dead_code(s, bc_buf, bc_len, cc.pos, pLine);
+//            line_num = pLine.value;
+//            break;
+//          }
+//          add_pc2line_info(s, bc_out.size, line_num);
+//          put_short_code(bc_out, op, argc);
           break;
 
         case OP_return:
@@ -223,7 +238,7 @@ public class LabelSlot {
           pPosNext.value = pos_next;
           goto_has_label(ctx, s, op, bc_out, label, bc_buf, bc_len, pos, pPosNext, line_num, label_slots);
           pos_next = pPosNext.value;
-            break;
+          break;
         case OP_if_true:
         case OP_if_false:
           label = get_u32(bc_buf, pos + 1);
@@ -287,7 +302,7 @@ public class LabelSlot {
                                    byte[] bc_buf,
                                    int pos, int len, int line_num) {
     add_pc2line_info(s, bc_out.size, line_num);
-    dbuf_put(bc_out, bc_buf,  pos, len);
+    dbuf_put(bc_out, bc_buf, pos, len);
   }
 
   private static void goto_has_label(JSContext ctx, JSFunctionDef s,
@@ -327,7 +342,7 @@ public class LabelSlot {
         dbuf_putc(bc_out, OPCodeEnum.values()[jp.op]);
         dbuf_putc(bc_out, 0);
         if (add_reloc(ctx, ls, bc_out.size - 1, 1) == null)
-                        goto_fail();
+          goto_fail();
 
         return;
       }
@@ -371,12 +386,11 @@ public class LabelSlot {
   }
 
   /* the pc2line table gives a line number for each PC value */
-  static void add_pc2line_info(JSFunctionDef s, int pc, int line_num)
-  {
-    if (s.line_number_slots != null 
-      &&  s.line_number_count < s.line_number_size
-      &&  pc >= s.line_number_last_pc
-      &&  line_num != s.line_number_last) {
+  static void add_pc2line_info(JSFunctionDef s, int pc, int line_num) {
+    if (s.line_number_slots != null
+      && s.line_number_count < s.line_number_size
+      && pc >= s.line_number_last_pc
+      && line_num != s.line_number_last) {
       s.line_number_slots[s.line_number_count].pc = pc;
       s.line_number_slots[s.line_number_count].line_num = line_num;
       s.line_number_count++;
@@ -388,21 +402,20 @@ public class LabelSlot {
   /* return the target label, following the OP_goto jumps
    the first opcode at destination is stored in *pop
  */
-  static int find_jump_target(JSFunctionDef s, int label, PInteger pop, PInteger pline)
-  {
+  static int find_jump_target(JSFunctionDef s, int label, PInteger pop, PInteger pline) {
     int i, pos, op = -1;
     OPCodeEnum opCodeEnum;
     update_label(s, label, -1);
     for (i = 0; i < 10; i++) {
-      assert(label >= 0 && label < s.label_slots.size());
+      assert (label >= 0 && label < s.label_slots.size());
       pos = s.label_slots.get(label).pos2;
-      for (;;) {
+      for (; ; ) {
         op = Byte.toUnsignedInt(s.byte_code.buf[pos]);
         opCodeEnum = OPCodeEnum.values()[op];
-        switch(opCodeEnum) {
+        switch (opCodeEnum) {
           case OP_line_num:
             if (pline != null)
-                    pline.value = get_u32(s.byte_code.buf, pos + 1);
+              pline.value = get_u32(s.byte_code.buf, pos + 1);
             /* fall thru */
           case OP_label:
             pos += opcode_info.get(op).size;
@@ -418,8 +431,8 @@ public class LabelSlot {
               op = OP_return_undef.ordinal();
             /* fall thru */
           default:
-                on_done(s, label, pop, op);
-                return label;
+            on_done(s, label, pop, op);
+            return label;
         }
         break;
       }
@@ -430,13 +443,12 @@ public class LabelSlot {
   }
 
   private static void on_done(JSFunctionDef s, int label, PInteger pop, int op) {
-       pop.value = op;
-      update_label(s, label, +1);
+    pop.value = op;
+    update_label(s, label, +1);
   }
 
   static int skip_dead_code(JSFunctionDef s, final byte[] bc_buf, int bc_len,
-                            int pos, PInteger linep)
-  {
+                            int pos, PInteger linep) {
     int op, len, label;
     OPCodeEnum opCodeEnum;
 
@@ -453,7 +465,7 @@ public class LabelSlot {
       } else {
         /* XXX: output a warning for unreachable code? */
         JSAtom atom;
-        switch(opcode_info.get(op).fmt) {
+        switch (opcode_info.get(op).fmt) {
           case label:
           case label_u16:
             label = get_u32(bc_buf, pos + 1);
@@ -478,8 +490,7 @@ public class LabelSlot {
   }
 
 
-  static RelocEntry add_reloc(JSContext ctx, LabelSlot ls, int addr, int size)
-  {
+  static RelocEntry add_reloc(JSContext ctx, LabelSlot ls, int addr, int size) {
     RelocEntry re = new RelocEntry();
     if (re == null)
       return null;
@@ -490,8 +501,7 @@ public class LabelSlot {
     return re;
   }
 
-  static boolean code_has_label(CodeContext s, int pos, int label)
-  {
+  static boolean code_has_label(CodeContext s, int pos, int label) {
     OPCodeEnum opCodeEnum;
     while (pos < s.bc_len) {
       int op = Byte.toUnsignedInt(s.bc_buf[pos]);
@@ -517,10 +527,9 @@ public class LabelSlot {
     return false;
   }
 
-  static void dbuf_put_leb128(DynBuf s, int v)
-  {
+  static void dbuf_put_leb128(DynBuf s, int v) {
     int a;
-    for(;;) {
+    for (; ; ) {
       a = v & 0x7f;
       v >>= 7;
       if (v != 0) {
@@ -532,15 +541,13 @@ public class LabelSlot {
     }
   }
 
-  static void dbuf_put_sleb128(DynBuf s, int v1)
-  {
+  static void dbuf_put_sleb128(DynBuf s, int v1) {
     int v = v1;
     dbuf_put_leb128(s, (2 * v) ^ -(v >> 31));
   }
 
   static int get_sleb128(PInteger pval, byte[] buf,
-                         int buf_start, int buf_end)
-  {
+                         int buf_start, int buf_end) {
     int ret;
     PInteger p = new PInteger();
     ret = get_leb128(p, buf, buf_start, buf_end);
@@ -556,12 +563,11 @@ public class LabelSlot {
 
 
   static int get_leb128(PInteger pval, byte[] buf,
-                        int buf_start, int buf_end)
-  {
+                        int buf_start, int buf_end) {
     int v, a, i;
     int ptr = buf_start;
     v = 0;
-    for(i = 0; i < 5; i++) {
+    for (i = 0; i < 5; i++) {
       if (ptr >= buf_end)
         break;
       a = Byte.toUnsignedInt(buf[ptr++]);

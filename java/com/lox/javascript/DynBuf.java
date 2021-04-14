@@ -3,6 +3,7 @@ package com.lox.javascript;
 import java.util.Arrays;
 
 import static com.lox.javascript.OPCodeEnum.*;
+import static com.lox.javascript.ShortOPCodeEnum.*;
 
 /**
  * @author benpeng.jiang
@@ -69,6 +70,10 @@ public class DynBuf {
   }
 
   static int dbuf_putc(DynBuf bc, OPCodeEnum val) {
+    return dbuf_putc(bc, val.ordinal());
+  }
+
+  static int dbuf_putc(DynBuf bc, ShortOPCodeEnum val) {
     return dbuf_putc(bc, val.ordinal());
   }
 
@@ -206,6 +211,9 @@ public class DynBuf {
     return dbuf_putc(opCodeEnum.ordinal());
   }
 
+  int dbuf_putc(ShortOPCodeEnum opCodeEnum) {
+    return dbuf_putc(opCodeEnum.ordinal());
+  }
 
   public static byte[] shortToByteArray(short i) {
     byte[] result = new byte[2];
@@ -214,13 +222,12 @@ public class DynBuf {
     return result;
   }
 
-  public static OPCodeEnum getOPCode(byte[] buf, int pc) {
+  public static int getOPCode(byte[] buf, int pc) {
     if ( pc < 0)
-      return OP_invalid;
+      return OPCodeEnum.OP_invalid.ordinal();
     else {
       int op = Byte.toUnsignedInt(buf[pc]);
-      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(op);
-      return opcode;
+      return op;
     }
   }
 }

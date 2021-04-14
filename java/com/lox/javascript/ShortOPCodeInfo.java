@@ -3,15 +3,15 @@ package com.lox.javascript;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.lox.javascript.OPCodeEnum.*;
+import static com.lox.javascript.ShortOPCodeEnum.*;
 import static com.lox.javascript.OPCodeFormat.*;
-public class OPCodeInfo {
+public class ShortOPCodeInfo {
   public static Map<Integer, JSOpCode> opcode_info;
-  public static Map<Integer, OPCodeEnum> opcode_enum;
+  public static Map<Integer, ShortOPCodeEnum> opcode_enum;
 
   static {
     opcode_enum = new HashMap<>();
-    for (OPCodeEnum codeEnum: OPCodeEnum.values()) {
+    for (ShortOPCodeEnum codeEnum: ShortOPCodeEnum.values()) {
       opcode_enum.put(codeEnum.ordinal(), codeEnum);
     }
     
@@ -562,56 +562,206 @@ public class OPCodeInfo {
     opcode_info.put(
       OP_nop.ordinal(),
       new JSOpCode("nop",1,0,0,none));
+                                                                        opcode_info.put(
+      OP_push_minus1.ordinal(),
+      new JSOpCode("push_minus1",1,0,1,none_int));
     opcode_info.put(
-      OP_set_arg_valid_upto.ordinal(),
-      new JSOpCode("set_arg_valid_upto",3,0,0,arg));
+      OP_push_0.ordinal(),
+      new JSOpCode("push_0",1,0,1,none_int));
     opcode_info.put(
-      OP_enter_scope.ordinal(),
-      new JSOpCode("enter_scope",3,0,0,u16));
+      OP_push_1.ordinal(),
+      new JSOpCode("push_1",1,0,1,none_int));
     opcode_info.put(
-      OP_leave_scope.ordinal(),
-      new JSOpCode("leave_scope",3,0,0,u16));
+      OP_push_2.ordinal(),
+      new JSOpCode("push_2",1,0,1,none_int));
     opcode_info.put(
-      OP_label.ordinal(),
-      new JSOpCode("label",5,0,0,label));
+      OP_push_3.ordinal(),
+      new JSOpCode("push_3",1,0,1,none_int));
     opcode_info.put(
-      OP_scope_get_var_undef.ordinal(),
-      new JSOpCode("scope_get_var_undef",7,0,1,atom_u16));
+      OP_push_4.ordinal(),
+      new JSOpCode("push_4",1,0,1,none_int));
     opcode_info.put(
-      OP_scope_get_var.ordinal(),
-      new JSOpCode("scope_get_var",7,0,1,atom_u16));
+      OP_push_5.ordinal(),
+      new JSOpCode("push_5",1,0,1,none_int));
     opcode_info.put(
-      OP_scope_put_var.ordinal(),
-      new JSOpCode("scope_put_var",7,1,0,atom_u16));
+      OP_push_6.ordinal(),
+      new JSOpCode("push_6",1,0,1,none_int));
     opcode_info.put(
-      OP_scope_delete_var.ordinal(),
-      new JSOpCode("scope_delete_var",7,0,1,atom_u16));
+      OP_push_7.ordinal(),
+      new JSOpCode("push_7",1,0,1,none_int));
     opcode_info.put(
-      OP_scope_make_ref.ordinal(),
-      new JSOpCode("scope_make_ref",11,0,2,atom_label_u16));
+      OP_push_i8.ordinal(),
+      new JSOpCode("push_i8",2,0,1,i8));
     opcode_info.put(
-      OP_scope_get_ref.ordinal(),
-      new JSOpCode("scope_get_ref",7,0,2,atom_u16));
+      OP_push_i16.ordinal(),
+      new JSOpCode("push_i16",3,0,1,i16));
     opcode_info.put(
-      OP_scope_put_var_init.ordinal(),
-      new JSOpCode("scope_put_var_init",7,0,2,atom_u16));
+      OP_push_const8.ordinal(),
+      new JSOpCode("push_const8",2,0,1,const8));
     opcode_info.put(
-      OP_scope_get_private_field.ordinal(),
-      new JSOpCode("scope_get_private_field",7,1,1,atom_u16));
+      OP_fclosure8.ordinal(),
+      new JSOpCode("fclosure8",2,0,1,const8));
     opcode_info.put(
-      OP_scope_get_private_field2.ordinal(),
-      new JSOpCode("scope_get_private_field2",7,1,2,atom_u16));
+      OP_push_empty_string.ordinal(),
+      new JSOpCode("push_empty_string",1,0,1,none));
     opcode_info.put(
-      OP_scope_put_private_field.ordinal(),
-      new JSOpCode("scope_put_private_field",7,1,1,atom_u16));
+      OP_get_loc8.ordinal(),
+      new JSOpCode("get_loc8",2,0,1,loc8));
     opcode_info.put(
-      OP_set_class_name.ordinal(),
-      new JSOpCode("set_class_name",5,1,1,u32));
+      OP_put_loc8.ordinal(),
+      new JSOpCode("put_loc8",2,1,0,loc8));
     opcode_info.put(
-      OP_line_num.ordinal(),
-      new JSOpCode("line_num",5,0,0,u32));
+      OP_set_loc8.ordinal(),
+      new JSOpCode("set_loc8",2,1,1,loc8));
     opcode_info.put(
-      OP_TEMP_END.ordinal(),
-      new JSOpCode("TEMP_END",1,1,0,atom));
-                                                                                                                                                                                                                                                                             }
+      OP_get_loc0.ordinal(),
+      new JSOpCode("get_loc0",1,0,1,none_loc));
+    opcode_info.put(
+      OP_get_loc1.ordinal(),
+      new JSOpCode("get_loc1",1,0,1,none_loc));
+    opcode_info.put(
+      OP_get_loc2.ordinal(),
+      new JSOpCode("get_loc2",1,0,1,none_loc));
+    opcode_info.put(
+      OP_get_loc3.ordinal(),
+      new JSOpCode("get_loc3",1,0,1,none_loc));
+    opcode_info.put(
+      OP_put_loc0.ordinal(),
+      new JSOpCode("put_loc0",1,1,0,none_loc));
+    opcode_info.put(
+      OP_put_loc1.ordinal(),
+      new JSOpCode("put_loc1",1,1,0,none_loc));
+    opcode_info.put(
+      OP_put_loc2.ordinal(),
+      new JSOpCode("put_loc2",1,1,0,none_loc));
+    opcode_info.put(
+      OP_put_loc3.ordinal(),
+      new JSOpCode("put_loc3",1,1,0,none_loc));
+    opcode_info.put(
+      OP_set_loc0.ordinal(),
+      new JSOpCode("set_loc0",1,1,1,none_loc));
+    opcode_info.put(
+      OP_set_loc1.ordinal(),
+      new JSOpCode("set_loc1",1,1,1,none_loc));
+    opcode_info.put(
+      OP_set_loc2.ordinal(),
+      new JSOpCode("set_loc2",1,1,1,none_loc));
+    opcode_info.put(
+      OP_set_loc3.ordinal(),
+      new JSOpCode("set_loc3",1,1,1,none_loc));
+    opcode_info.put(
+      OP_get_arg0.ordinal(),
+      new JSOpCode("get_arg0",1,0,1,none_arg));
+    opcode_info.put(
+      OP_get_arg1.ordinal(),
+      new JSOpCode("get_arg1",1,0,1,none_arg));
+    opcode_info.put(
+      OP_get_arg2.ordinal(),
+      new JSOpCode("get_arg2",1,0,1,none_arg));
+    opcode_info.put(
+      OP_get_arg3.ordinal(),
+      new JSOpCode("get_arg3",1,0,1,none_arg));
+    opcode_info.put(
+      OP_put_arg0.ordinal(),
+      new JSOpCode("put_arg0",1,1,0,none_arg));
+    opcode_info.put(
+      OP_put_arg1.ordinal(),
+      new JSOpCode("put_arg1",1,1,0,none_arg));
+    opcode_info.put(
+      OP_put_arg2.ordinal(),
+      new JSOpCode("put_arg2",1,1,0,none_arg));
+    opcode_info.put(
+      OP_put_arg3.ordinal(),
+      new JSOpCode("put_arg3",1,1,0,none_arg));
+    opcode_info.put(
+      OP_set_arg0.ordinal(),
+      new JSOpCode("set_arg0",1,1,1,none_arg));
+    opcode_info.put(
+      OP_set_arg1.ordinal(),
+      new JSOpCode("set_arg1",1,1,1,none_arg));
+    opcode_info.put(
+      OP_set_arg2.ordinal(),
+      new JSOpCode("set_arg2",1,1,1,none_arg));
+    opcode_info.put(
+      OP_set_arg3.ordinal(),
+      new JSOpCode("set_arg3",1,1,1,none_arg));
+    opcode_info.put(
+      OP_get_var_ref0.ordinal(),
+      new JSOpCode("get_var_ref0",1,0,1,none_var_ref));
+    opcode_info.put(
+      OP_get_var_ref1.ordinal(),
+      new JSOpCode("get_var_ref1",1,0,1,none_var_ref));
+    opcode_info.put(
+      OP_get_var_ref2.ordinal(),
+      new JSOpCode("get_var_ref2",1,0,1,none_var_ref));
+    opcode_info.put(
+      OP_get_var_ref3.ordinal(),
+      new JSOpCode("get_var_ref3",1,0,1,none_var_ref));
+    opcode_info.put(
+      OP_put_var_ref0.ordinal(),
+      new JSOpCode("put_var_ref0",1,1,0,none_var_ref));
+    opcode_info.put(
+      OP_put_var_ref1.ordinal(),
+      new JSOpCode("put_var_ref1",1,1,0,none_var_ref));
+    opcode_info.put(
+      OP_put_var_ref2.ordinal(),
+      new JSOpCode("put_var_ref2",1,1,0,none_var_ref));
+    opcode_info.put(
+      OP_put_var_ref3.ordinal(),
+      new JSOpCode("put_var_ref3",1,1,0,none_var_ref));
+    opcode_info.put(
+      OP_set_var_ref0.ordinal(),
+      new JSOpCode("set_var_ref0",1,1,1,none_var_ref));
+    opcode_info.put(
+      OP_set_var_ref1.ordinal(),
+      new JSOpCode("set_var_ref1",1,1,1,none_var_ref));
+    opcode_info.put(
+      OP_set_var_ref2.ordinal(),
+      new JSOpCode("set_var_ref2",1,1,1,none_var_ref));
+    opcode_info.put(
+      OP_set_var_ref3.ordinal(),
+      new JSOpCode("set_var_ref3",1,1,1,none_var_ref));
+    opcode_info.put(
+      OP_get_length.ordinal(),
+      new JSOpCode("get_length",1,1,1,none));
+    opcode_info.put(
+      OP_if_false8.ordinal(),
+      new JSOpCode("if_false8",2,1,0,label8));
+    opcode_info.put(
+      OP_if_true8.ordinal(),
+      new JSOpCode("if_true8",2,1,0,label8));
+    opcode_info.put(
+      OP_goto8.ordinal(),
+      new JSOpCode("goto8",2,0,0,label8));
+    opcode_info.put(
+      OP_goto16.ordinal(),
+      new JSOpCode("goto16",3,0,0,label16));
+    opcode_info.put(
+      OP_call0.ordinal(),
+      new JSOpCode("call0",1,1,1,npopx));
+    opcode_info.put(
+      OP_call1.ordinal(),
+      new JSOpCode("call1",1,1,1,npopx));
+    opcode_info.put(
+      OP_call2.ordinal(),
+      new JSOpCode("call2",1,1,1,npopx));
+    opcode_info.put(
+      OP_call3.ordinal(),
+      new JSOpCode("call3",1,1,1,npopx));
+    opcode_info.put(
+      OP_is_undefined.ordinal(),
+      new JSOpCode("is_undefined",1,1,1,none));
+    opcode_info.put(
+      OP_is_null.ordinal(),
+      new JSOpCode("is_null",1,1,1,none));
+    opcode_info.put(
+      OP_typeof_is_undefined.ordinal(),
+      new JSOpCode("typeof_is_undefined",1,1,1,none));
+    opcode_info.put(
+      OP_typeof_is_function.ordinal(),
+      new JSOpCode("typeof_is_function",1,1,1,none));
+    opcode_info.put(
+      OP_COUNT.ordinal(),
+      new JSOpCode("COUNT",1,1,0,atom));
+ }
 }

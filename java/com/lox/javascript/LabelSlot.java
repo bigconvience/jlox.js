@@ -10,6 +10,8 @@ import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 import static com.lox.javascript.OPCodeEnum.*;
 import static com.lox.javascript.OPSpecialObjectEnum.*;
 import static com.lox.javascript.OPCodeInfo.*;
+import static com.lox.javascript.ShortOPCodeEnum.OP_goto16;
+import static com.lox.javascript.ShortOPCodeEnum.OP_if_false8;
 
 
 /**
@@ -167,18 +169,18 @@ public class LabelSlot {
         case OP_call:
         case OP_call_method:
           /* detect and transform tail calls */
-//          int argc;
-//          argc = get_u16(bc_buf, pos + 1);
-//          if (code_match(cc, pos_next, OP_return, -1)) {
-//            if (cc.line_num >= 0) line_num = cc.line_num;
-//            add_pc2line_info(s, bc_out.size, line_num);
-//            put_short_code(bc_out, op + 1, argc);
-//            pos_next = skip_dead_code(s, bc_buf, bc_len, cc.pos, pLine);
-//            line_num = pLine.value;
-//            break;
-//          }
-//          add_pc2line_info(s, bc_out.size, line_num);
-//          put_short_code(bc_out, op, argc);
+          int argc;
+          argc = get_u16(bc_buf, pos + 1);
+          if (code_match(cc, pos_next, OP_return, -1)) {
+            if (cc.line_num >= 0) line_num = cc.line_num;
+            add_pc2line_info(s, bc_out.size, line_num);
+            put_short_code(bc_out, op + 1, argc);
+            pos_next = skip_dead_code(s, bc_buf, bc_len, cc.pos, pLine);
+            line_num = pLine.value;
+            break;
+          }
+          add_pc2line_info(s, bc_out.size, line_num);
+          put_short_code(bc_out, op, argc);
           break;
 
         case OP_return:
@@ -245,6 +247,16 @@ public class LabelSlot {
           pPosNext.value = pos_next;
           goto_has_label(ctx, s, op, bc_out, label, bc_buf, bc_len, pos, pPosNext, line_num, label_slots);
           pos_next = pPosNext.value;
+          break;
+        case OP_drop:
+          if (OPTIMIZE) {
+            /* remove useless drops before return */
+            if (code_match(cc, pos_next, OP_return_undef, -1)) {
+              if (cc.line_num >= 0) line_num = cc.line_num;
+              break;
+            }
+          }
+          on_no_change(s, bc_out, bc_buf, pos, len, line_num);
           break;
         default:
           on_no_change(s, bc_out, bc_buf, pos, len, line_num);
@@ -425,9 +437,9 @@ public class LabelSlot {
             break;
           case OP_drop:
             /* ignore drop opcodes if followed by OP_return_undef */
-            while (Byte.toUnsignedInt(s.byte_code.buf[++pos]) == OP_drop.ordinal())
+            while (get_u8(s.byte_code.buf, ++pos) == OP_drop.ordinal())
               continue;
-            if (Byte.toUnsignedInt(s.byte_code.buf[pos]) == OP_return_undef.ordinal())
+            if (get_u8(s.byte_code.buf, pos) == OP_return_undef.ordinal())
               op = OP_return_undef.ordinal();
             /* fall thru */
           default:

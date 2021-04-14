@@ -11,7 +11,7 @@ import static com.lox.javascript.JSFunctionDef.*;
 import static com.lox.javascript.JSFunctionKindEnum.*;
 import static com.lox.javascript.JSVarDefEnum.*;
 import static com.lox.javascript.LoxJS.*;
-import static com.lox.javascript.OPCodeEnum.*;
+import static com.lox.javascript.ShortOPCodeEnum.*;
 import static com.lox.javascript.PutLValueEnum.*;
 import static com.lox.clibrary.stdlib_h.abort;
 import static com.lox.javascript.TokenType.*;
@@ -206,7 +206,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
       }
     } else {
       if (varDef == JS_VAR_DEF_LET) {
-        emit_op(OP_undefined);
+        emit_op(OPCodeEnum.OP_undefined);
         emit_op(OPCodeEnum.OP_scope_put_var_init);
         emit_u32(name);
         emit_u16(scope);
@@ -308,7 +308,8 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     int arg_count, drop_count;
     resolve(expr.callee);
     JSFunctionDef fd = cur_func;
-    switch (opcode = get_prev_opcode(fd)) {
+    int op = get_prev_opcode(fd);
+    switch (opcode = OPCodeEnum.values()[op]) {
       case OP_get_field:
         fd.byte_code.buf[fd.last_opcode_pos] = (byte) OP_get_field2.ordinal();
         drop_count = 2;
@@ -345,7 +346,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
           /* set the 'this' value */
           emit_op(s, OP_dup);
-          emit_op(s, OP_scope_put_var_init);
+          emit_op(s, OPCodeEnum.OP_scope_put_var_init);
           emit_atom(s, JS_ATOM_this);
           emit_u16(s, 0);
 
@@ -368,7 +369,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   {
     int label_next;
 
-    emit_op(s, OP_scope_get_var);
+    emit_op(s, OPCodeEnum.OP_scope_get_var);
     emit_atom(s, JS_ATOM_class_fields_init);
     emit_u16(s, s.cur_func.scope_level);
 
@@ -376,7 +377,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     emit_op(s, OP_dup);
     label_next = emit_goto(s, OP_if_false, -1);
 
-    emit_op(s, OP_scope_get_var);
+    emit_op(s, OPCodeEnum.OP_scope_get_var);
     emit_atom(s, JS_ATOM_this);
     emit_u16(s, 0);
 
@@ -416,7 +417,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     } else if (val instanceof Boolean) {
       emit_op((Boolean) val ? OPCodeEnum.OP_push_true : OPCodeEnum.OP_push_false);
     } else {
-      emit_op(OP_null);
+      emit_op(OPCodeEnum.OP_null);
     }
     update_line(expr.line_number);
     return null;
@@ -514,8 +515,8 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
             emit_op(s, OP_undefined);
             break;
           case TOK_TYPEOF:
-            if (get_prev_opcode(fd) == OP_scope_get_var) {
-              fd.byte_code.buf[fd.last_opcode_pos] = (byte)OP_scope_get_var_undef.ordinal();
+            if (get_prev_opcode(fd) == OPCodeEnum.OP_scope_get_var.ordinal()) {
+              fd.byte_code.buf[fd.last_opcode_pos] = (byte) OPCodeEnum.OP_scope_get_var_undef.ordinal();
             }
             emit_op(s, OP_typeof);
             break;
@@ -666,6 +667,10 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     return s.emit_op(opCodeEnum);
   }
 
+  static int emit_op(Resolver s, ShortOPCodeEnum opCodeEnum) {
+    return emit_op(s, opCodeEnum.ordinal());
+  }
+
   static int emit_op(Resolver s, byte val) {
     return s.emit_op(val);
   }
@@ -749,12 +754,27 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     return -1;
   }
 
-  static OPCodeEnum get_prev_opcode(JSFunctionDef fd) {
+
+  static int emit_goto(Resolver s, ShortOPCodeEnum opcode, int label) {
+    if (js_is_live_code(s)) {
+      if (label < 0)
+        label = new_label(s);
+      emit_op(s, opcode);
+      emit_u32(s, label);
+      s.cur_func.label_slots.get(label).ref_count++;
+      return label;
+    }
+    return -1;
+  }
+
+  static int get_prev_opcode(JSFunctionDef fd) {
       return DynBuf.getOPCode(fd.byte_code.buf, fd.last_opcode_pos);
   }
 
   static boolean js_is_live_code(Resolver s) {
-    switch (get_prev_opcode(s.cur_func)) {
+    int op = get_prev_opcode(s.cur_func);
+    ShortOPCodeEnum opCodeEnum = ShortOPCodeEnum.values()[op];
+    switch (opCodeEnum) {
       case OP_tail_call:
       case OP_tail_call_method:
       case OP_return:
@@ -785,7 +805,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     if (s.cur_func != null) {
       JSFunctionDef fd = s.cur_func;
       int scope = fd.add_scope();
-      emit_op(s, OP_enter_scope);
+      emit_op(s, OPCodeEnum.OP_enter_scope);
       emit_u16(s, scope);
       return scope;
     }
@@ -797,7 +817,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
       /* disable scoped variables */
       JSFunctionDef fd = s.cur_func;
       int scope = fd.scope_level;
-      emit_op(s, OP_leave_scope);
+      emit_op(s, OPCodeEnum.OP_leave_scope);
       emit_u16(s, scope);
       fd.scope_level = fd.scopes.get(scope).parent;
       fd.scope_first = get_first_lexical_var(fd, fd.scope_level);
@@ -868,7 +888,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
         /* XXX: if this is not initialized, should throw the
            ReferenceError in the caller realm */
-      emit_op(s, OP_scope_get_var);
+      emit_op(s, OPCodeEnum.OP_scope_get_var);
       emit_atom(s, JS_ATOM_this);
       emit_u16(s, 0);
 

@@ -105,6 +105,10 @@ public class JUtils {
     return byteArrToShort(tab, cp);
   }
 
+  static int get_u16(final short[] tab, int cp) {
+    return Short.toUnsignedInt(tab[cp]);
+  }
+
   static int get_i16(final byte[] tab, int cp) {
     return 0XFFFF & tab[cp];
   }

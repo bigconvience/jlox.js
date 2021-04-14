@@ -262,8 +262,8 @@ DEF(      mul_pow10, 1, 2, 1, none)
 DEF(       math_mod, 1, 2, 1, none)
 #endif
 /* must be the last non short and non temporary opcode */
-DEF(            nop, 1, 0, 0, none)
 DEF(            print, 1, 1, 0, none)
+DEF(            nop, 1, 0, 0, none)
 
 /* temporary opcodes: never emitted in the final bytecode */
 
@@ -288,7 +288,7 @@ def(scope_put_private_field, 7, 1, 1, atom_u16) /* obj value ->, emitted in phas
 def( set_class_name, 5, 1, 1, u32) /* emitted in phase 1, removed in phase 2 */
 
 def(       line_num, 5, 0, 0, u32) /* emitted in phase 1, removed in phase 3 */
-
+def(            TEMP_END, 1, 1, 0, atom)
 #if SHORT_OPCODES
 DEF(    push_minus1, 1, 0, 1, none_int)
 DEF(         push_0, 1, 0, 1, none_int)
@@ -364,9 +364,6 @@ DEF(typeof_is_undefined, 1, 1, 1, none)
 DEF( typeof_is_function, 1, 1, 1, none)
 #endif
 DEF(            COUNT, 1, 1, 0, atom)
-DEF(            temp_start, 1, 1, 0, atom)
-DEF(            __dummy, 1, 1, 0, atom)
-DEF(            TEMP_END, 1, 1, 0, atom)
 #undef DEF
 #undef def
 #endif  /* DEF */

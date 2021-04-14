@@ -10,11 +10,13 @@ import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.lox.javascript.JSAtomEnum.JS_ATOM__eval_;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
+import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 import static com.lox.javascript.Parser.js_parse_program;
 import static com.lox.javascript.Resolver.js_resolve_program;
 import static com.lox.javascript.Resolver.push_scope;
+import static com.lox.javascript.StackSizeState.compute_stack_size_rec;
 
 /**
  * @author benpeng.jiang
@@ -427,49 +429,6 @@ public class JSContext {
     stack_size = s.stack_len_max;
     return stack_size;
   }
-
-  static int compute_stack_size_rec(JSContext ctx, JSFunctionDef fd, StackSizeState s, int pos, int op, int stack_len) {
-    int bc_len, diff, n_pop, pos_next;
-    JSOpCode oi;
-    byte[] bc_buf;
-
-    bc_buf = fd.byte_code.buf;
-    bc_len = fd.byte_code.size;
-
-    while (pos < bc_len) {
-      op = Byte.toUnsignedInt(bc_buf[pos]);
-      if (op == 0 || op >= OPCodeEnum.OP_COUNT.ordinal()) {
-        JSThrower.JS_ThrowInternalError(ctx, "invalid opcode (op=" + op + ", pc=" + pos + ")");
-        return -1;
-      }
-
-      oi = OPCodeInfo.opcode_info.get(op);
-      pos_next = pos + oi.size;
-      if (pos_next > bc_len) {
-        JSThrower.JS_ThrowInternalError(ctx, "bytecode buffer overflow (op=" + op + ", pc=" + pos + ")");
-        return -1;
-      }
-
-      n_pop = oi.n_pop;
-
-      if (stack_len < n_pop) {
-        JSThrower.JS_ThrowInternalError(ctx, "bytecode underflow (op=" + op + ", pc=" + pos + ")");
-      }
-
-      stack_len += oi.n_push - n_pop;
-      if (stack_len > s.stack_len_max) {
-        s.stack_len_max = stack_len;
-        if (s.stack_len_max > JS_STACK_SIZE_MAX) {
-
-        }
-      }
-
-      pos = pos_next;
-    }
-    return 0;
-  }
-
-
   JSValue JS_NewObjectFromShape(JSShape sh, JSClassID classID) {
     JSObject p = new JSObject();
     p.shape = sh;

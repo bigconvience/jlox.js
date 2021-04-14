@@ -103,7 +103,7 @@ public class VM {
       int u32;
       JSValue[] call_argv;
       int op = Byte.toUnsignedInt(code_buf[pc++]);
-      OPCodeEnum opcode = OPCodeInfo.opcode_enum.get(op);
+      ShortOPCodeEnum opcode = ShortOPCodeInfo.opcode_enum.get(op);
       JSValue op1, op2;
       switch (opcode) {
         case OP_print:

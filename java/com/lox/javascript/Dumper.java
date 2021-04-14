@@ -95,7 +95,7 @@ public class Dumper {
       if (in_source)
         printf("\n");
       in_source = false;
-      if (op >= OPCodeEnum.OP_COUNT.ordinal()) {
+      if (op >= ShortOPCodeEnum.OP_COUNT.ordinal()) {
         println("invalid opcode " + op);
         pos++;
         continue;
@@ -116,10 +116,10 @@ public class Dumper {
       pos++;
       switch (oi.fmt) {
         case none_int:
-          printf(" %d", op - OPCodeEnum.OP_push_0.ordinal());
+          printf(" %d", op - ShortOPCodeEnum.OP_push_0.ordinal());
           break;
         case npopx:
-          printf(" %d", op - OPCodeEnum.OP_call0.ordinal());
+          printf(" %d", op - ShortOPCodeEnum.OP_call0.ordinal());
           break;
         case u8:
           printf(" %d", JUtils.get_u8(tab, pos));
@@ -194,7 +194,7 @@ public class Dumper {
           has_pool_idx(ctx, idx, cpool, cpool_count);
           break;
         case none_loc:
-          idx = (op - OPCodeEnum.OP_get_loc0.ordinal()) % 4;
+          idx = (op - ShortOPCodeEnum.OP_get_loc0.ordinal()) % 4;
           on_has_loc(idx, var_count, ctx, vars);
           break;
         case loc8:
@@ -206,7 +206,7 @@ public class Dumper {
           on_has_loc(idx, var_count, ctx, vars);
           break;
         case none_arg:
-          idx = (op - OP_get_arg0.ordinal()) % 4;
+          idx = (op - ShortOPCodeEnum.OP_get_arg0.ordinal()) % 4;
           on_has_arg(idx, arg_count, ctx, args);
           break;
         case arg:

@@ -56,7 +56,7 @@ public class StackSizeState {
         JS_ThrowInternalError(ctx, "invalid opcode (op=%d, pc=%d)", op, pos);
         return -1;
       }
-      oi = OPCodeInfo.opcode_info.get(op);
+      oi = ShortOPCodeInfo.opcode_info.get(op);
       pos_next = pos + oi.size;
       if (pos_next > bc_len) {
         buf_overflow:

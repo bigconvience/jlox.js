@@ -39,9 +39,14 @@ public class Dumper {
     int pos, pos_next = 0, op, size, idx, addr, line, line1;
     boolean in_source;
     byte[] bits = new byte[len];
+    boolean use_short_opcodes = b != null;
     for (pos = 0; pos < len; pos = pos_next) {
       op = Byte.toUnsignedInt(tab[pos]);
-      oi = OPCodeInfo.opcode_info.get(op);
+      if (use_short_opcodes) {
+        oi = ShortOPCodeInfo.opcode_info.get(op);
+      } else {
+        oi = OPCodeInfo.opcode_info.get(op);
+      }
 
       pos_next = pos + oi.size;
       switch (oi.fmt) {
@@ -100,7 +105,12 @@ public class Dumper {
         pos++;
         continue;
       }
-      oi = OPCodeInfo.opcode_info.get(op);
+
+      if (use_short_opcodes) {
+        oi = ShortOPCodeInfo.opcode_info.get(op);
+      } else {
+        oi = OPCodeInfo.opcode_info.get(op);
+      }
       size = oi.size;
       if (pos + size > len) {
         println("truncated opcode " + op);

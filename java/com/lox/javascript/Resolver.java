@@ -245,9 +245,15 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
 
   @Override
   public Void visitConditionExpr(Expr.Condition expr) {
+    Resolver s = this;
+    int label1, label2;
     resolve(expr.first);
+    label1 = emit_goto(s, OP_if_false, -1);
     resolve(expr.middle);
+    label2 = emit_goto(s, OP_goto, -1);
+    emit_label(s, label1);
     resolve(expr.last);
+    emit_label(s, label2);
     return null;
   }
 

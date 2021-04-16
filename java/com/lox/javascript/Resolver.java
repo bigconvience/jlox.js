@@ -178,6 +178,14 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
   }
 
   @Override
+  public Void visitThrowStmt(Stmt.Throw stmt) {
+    Resolver s = this;
+    resolve(stmt.value);
+    emit_op(s, OP_throw);
+    return null;
+  }
+
+  @Override
   public Void visitVarStmt(Stmt.Var stmt) {
     Resolver s = this;
     JSFunctionDef fd = cur_func;

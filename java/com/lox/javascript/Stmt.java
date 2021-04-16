@@ -19,6 +19,8 @@ abstract class Stmt {
 
     R visitReturnStmt(Return stmt);
 
+    R visitThrowStmt(Throw stmt);
+
     R visitVarStmt(Var stmt);
 
     R visitWhileStmt(While stmt);
@@ -128,6 +130,21 @@ abstract class Stmt {
     @Override
     <R> R accept(Visitor<R> visitor) {
       return visitor.visitReturnStmt(this);
+    }
+
+    final Token keyword;
+    final Expr value;
+  }
+
+  static class Throw extends Stmt {
+    Throw(Token keyword, Expr value) {
+      this.keyword = keyword;
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitThrowStmt(this);
     }
 
     final Token keyword;

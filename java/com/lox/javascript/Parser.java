@@ -123,6 +123,7 @@ class Parser {
     if (match(TOK_IF)) return ifStatement();
     if (match(PRINT)) return printStatement();
     if (match(TOK_RETURN)) return returnStatement();
+    if (match(TOK_THROW)) return throwStatement();
     if (match(WHILE)) return whileStatement();
     if (match(TOK_LEFT_BRACE)) {
       int start_line = previous().line_num;
@@ -131,6 +132,7 @@ class Parser {
 
     return expressionStatement();
   }
+
 
   private Stmt forStatement() {
     consume(TOK_LEFT_PAREN, "Expect '(' after 'for'.");
@@ -220,6 +222,14 @@ class Parser {
     consume(SEMICOLON, "Expect ';' after return value.");
     Stmt stmt = new Stmt.Return(keyword, value);
     stmt.line_number = line_num;
+    return stmt;
+  }
+
+  private Stmt throwStatement() {
+    Token keyword = previous();
+    Expr value = expression();
+    consume(SEMICOLON, "Expect ';' after throw expression.");
+    Stmt stmt = new Stmt.Throw(keyword, value);
     return stmt;
   }
 

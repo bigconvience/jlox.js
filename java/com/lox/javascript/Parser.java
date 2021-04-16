@@ -236,24 +236,32 @@ class Parser {
   private Stmt js_parse_var(Token tok) {
     JSFunctionDef fd = cur_func;
 
-    Token name = consume(TOK_IDENT, "Expect variable name.");
+    List<Var> vars = new ArrayList<>();
+    for (;;) {
+      Token name = consume(TOK_IDENT, "Expect variable name.");
 
-    JSVarDefEnum varDefEnum = getJsVarDefEnum(tok);
+      JSVarDefEnum varDefEnum = getJsVarDefEnum(tok);
 
-    Expr initializer = null;
-    if (match(TOK_ASSIGN)) {
-      initializer = expression();
-    }
-    TokenType type = tok.type;
-    if (initializer == null) {
-      if (type == TOK_CONST) {
-        js_parse_error(this, "missing initializer for const variable");
+      Expr initializer = null;
+      if (match(TOK_ASSIGN)) {
+        initializer = expression();
+      }
+      TokenType type = tok.type;
+      if (initializer == null) {
+        if (type == TOK_CONST) {
+          js_parse_error(this, "missing initializer for const variable");
+        }
+      }
+
+      Stmt.Var stmt = new Stmt.Var(tok.line_num, varDefEnum, name.ident_atom, initializer);
+      vars.add(stmt);
+      if (!match(TOK_COMMA)) {
+        break;
       }
     }
-
-    consume(SEMICOLON, "Expect ';' after variable declaration.");
-    Stmt stmt = new Stmt.Var(tok.line_num, varDefEnum, name.ident_atom, initializer);
-    return stmt;
+    match(SEMICOLON);
+    VarDecl varDecl = new VarDecl(vars);
+    return varDecl;
   }
 
   private JSVarDefEnum getJsVarDefEnum(Token tok) {

@@ -23,6 +23,8 @@ abstract class Stmt {
 
     R visitVarStmt(Var stmt);
 
+    R visitVarDeclStmt(VarDecl stmt);
+
     R visitWhileStmt(While stmt);
   }
 
@@ -169,6 +171,19 @@ abstract class Stmt {
     final JSAtom name;
     final JSVarDefEnum varDef;
     final Expr initializer;
+  }
+
+  static class VarDecl extends Stmt {
+    public VarDecl(List<Var> vars) {
+      this.vars = vars;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return null;
+    }
+
+    final List<Var> vars;
   }
 
   //< stmt-var

@@ -351,7 +351,7 @@ public class LabelSlot {
       if (diff < 128 && (opCodeEnum == OP_if_false || opCodeEnum == OP_if_true || opCodeEnum == OP_goto)) {
         jp.size = 1;
         jp.op = OP_if_false8.ordinal() + (op - OP_if_false.ordinal());
-        dbuf_putc(bc_out, OPCodeEnum.values()[jp.op]);
+        dbuf_putc(bc_out, ShortOPCodeEnum.values()[jp.op]);
         dbuf_putc(bc_out, 0);
         if (add_reloc(ctx, ls, bc_out.size - 1, 1) == null)
           goto_fail();

@@ -2,6 +2,15 @@ package com.lox.javascript;
 
 import java.util.Objects;
 
+import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.clibrary.string_h.strlen;
+import static com.lox.javascript.JSAtomEnum.JS_ATOM_END;
+import static com.lox.javascript.JSRuntime.__JS_NewAtom;
+import static com.lox.javascript.JSRuntime.js_free_string;
+import static com.lox.javascript.JSValue.*;
+import static com.lox.javascript.LoxJS.is_digit;
+import static com.lox.javascript.LoxJS.is_num_string;
+
 public class JSAtom {
   static final int JS_ATOM_TYPE_STRING = 0;
   static final int JS_ATOM_TYPE_GLOBAL_SYMBOL = 1;
@@ -53,4 +62,75 @@ public class JSAtom {
       '}';
   }
 
+  static JSAtom JS_NewAtom(JSContext ctx, final char[] str)
+  {
+    return JS_NewAtomLen(ctx, str, strlen(str));
+  }
+
+  static JSAtom JS_NewAtomLen(JSContext ctx, final char[] str, int len)
+  {
+    JSValue val;
+
+    if (len == 0 || !is_digit(str[0])) {
+      JSAtom atom = __JS_FindAtom(ctx.rt, str, len, JS_ATOM_TYPE_STRING);
+      if (atom != null)
+        return atom;
+    }
+    val = JS_NewStringLen(ctx, str, len);
+    if (JS_IsException(val))
+      return JS_ATOM_NULL;
+    return JS_NewAtomStr(ctx, JS_VALUE_GET_STRING(val));
+  }
+
+  public static JSAtom __JS_FindAtom(JSRuntime rt, char[] str, int len, int atom_type) {
+    JSString p = new JSString(str, atom_type);
+    if (rt.atom_hash.containsKey(p)) {
+      Integer atom = rt.atom_hash.get(p);
+      return new JSAtom(atom);
+    }
+
+    return JS_ATOM_NULL;
+  }
+
+  static JSAtom JS_NewAtomStr(JSContext ctx, JSString p)
+  {
+    JSRuntime rt = ctx.rt;
+    PInteger n = new PInteger();
+    if (is_num_string(n, p)) {
+    if (n.value <= JS_ATOM_MAX_INT) {
+      js_free_string(rt, p);
+      return __JS_AtomFromUInt32(n.value);
+    }
+  }
+    /* XXX: should generate an exception */
+    return __JS_NewAtom(rt, p, JS_ATOM_TYPE_STRING);
+  }
+
+  static  JSAtom __JS_AtomFromUInt32(int v)
+  {
+    return new JSAtom(v | JS_ATOM_TAG_INT);
+  }
+
+  static void JS_FreeAtom(JSContext ctx, JSAtom v)
+  {
+
+  }
+
+  static JSAtom JS_DupAtom(JSContext ctx, JSAtom v)
+  {
+    JSRuntime rt;
+    JSString p;
+
+    if (!__JS_AtomIsConst(v)) {
+      rt = ctx.rt;
+      p = rt.atom_array.get(v.val);
+      p.header.ref_count++;
+    }
+    return v;
+  }
+
+  static boolean __JS_AtomIsConst(JSAtom v)
+  {
+    return v.val < JS_ATOM_END.ordinal();
+  }
 }

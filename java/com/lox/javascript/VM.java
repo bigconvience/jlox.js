@@ -4,8 +4,9 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
-import static com.lox.javascript.Config.JS_INTERRUPT_COUNTER_INIT;
+import static com.lox.javascript.Config.*;
 import static com.lox.javascript.JSCompare.*;
+import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
@@ -25,7 +26,7 @@ public class VM {
     JSValue ret_val = null;
     JSTag tag = func_obj.tag;
     if (tag == JSTag.JS_TAG_FUNCTION_BYTECODE) {
-      func_obj = ctx.js_closure(func_obj, var_refs, sf);
+      func_obj = js_closure(ctx, func_obj, var_refs, sf);
       ret_val = JS_CallFree(ctx, func_obj, this_obj, 0, null);
     }
 
@@ -132,7 +133,7 @@ public class VM {
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           flags = code_buf[pc + 4];
           pc += 5;
-          if (ctx.JS_DefineGlobalVar(atom, flags) != 0) {
+          if (ctx.JS_DefineGlobalVar(ctx, atom, flags) != 0) {
 
           }
           break;
@@ -141,7 +142,7 @@ public class VM {
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           pc += 4;
           top = peek(stack_buf, --sp);
-          ret = ctx.JS_SetGlobalVar(atom, top, opcode.ordinal() - OPCodeEnum.OP_put_var.ordinal());
+          ret = JS_SetGlobalVar(ctx, atom, top, opcode.ordinal() - OPCodeEnum.OP_put_var.ordinal());
           if (ret < 0) {
 
           }
@@ -152,8 +153,8 @@ public class VM {
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           pc += 4;
 
-          val = ctx.JS_GetGlobalVar(atom, op - OPCodeEnum.OP_get_var_undef.ordinal());
-          if (val.JS_IsException()) {
+          val = JS_GetGlobalVar(ctx, atom, op - OPCodeEnum.OP_get_var_undef.ordinal());
+          if (JS_IsException(val)) {
             return JSThrower.JS_Throw(ctx, val);
           }
           push(stack_buf, sp++, val);

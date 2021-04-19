@@ -9,8 +9,15 @@ import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.clibrary.stdio_h.putchar;
 import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
 import static com.lox.javascript.JSAtomEnum.JS_ATOM__eval_;
+import static com.lox.javascript.JSCFunction.JS_NewCFunction3;
+import static com.lox.javascript.JSCFunction.js_function_proto;
+import static com.lox.javascript.JSCFunctionEnum.JS_CFUNC_generic;
+import static com.lox.javascript.JSClassID.JS_CLASS_ARRAY;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
+import static com.lox.javascript.JSObject.find_own_property;
+import static com.lox.javascript.JSShape.js_dup_shape;
 import static com.lox.javascript.JSThrower.*;
+import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
 import static com.lox.javascript.Parser.js_parse_program;
@@ -36,50 +43,63 @@ public class JSContext {
   static final int JS_STRING_LEN_MAX = ((1 << 30) - 1);
 
   final Map<JSClassID, JSValue> class_proto;
-
+  JSRefCountHeader header = new JSRefCountHeader();
   public JSValue global_obj;
   public JSValue global_var_obj;
   final JSRuntime rt;
   public int interrupt_counter;
+  JSShape array_shape;
+  JSValue function_proto;
 
   public JSContext(JSRuntime rt) {
     this.rt = rt;
     class_proto = new HashMap<>();
   }
 
-  void JS_AddIntrinsicBasicObjects() {
+  static void JS_AddIntrinsicBasicObjects(JSContext ctx) {
+    JSValue proto;
+    int i;
 
+    ctx.class_proto.put(JS_CLASS_OBJECT, JS_NewObjectProto(ctx, JS_NULL));
+    ctx.function_proto = JS_NewCFunction3(ctx, js_function_proto, "", 0,
+      JS_CFUNC_generic, 0,
+      ctx.class_proto.get(JS_CLASS_OBJECT));
+
+    ctx.array_shape = js_new_shape2(ctx, JSValue.get_proto_obj(ctx.class_proto.get(JS_CLASS_ARRAY)),
+      JS_PROP_INITIAL_HASH_SIZE, 1);
   }
 
-  void JS_AddIntrinsicBaseObjects() {
-    global_obj = JS_NewObject();
-    global_var_obj = JS_NewObjectProto(JSValue.JS_NULL);
+  static void JS_AddIntrinsicBaseObjects(JSContext ctx) {
+    ctx.global_obj = JS_NewObject(ctx);
+    ctx.global_var_obj = JS_NewObjectProto(ctx, JS_NULL);
   }
 
-  int JS_SetGlobalVar(JSAtom prop, JSValue val, int flag) {
-    JSObject p = global_var_obj.JS_VALUE_GET_OBJ();
-    JSProperty.Ptr pr = new JSProperty.Ptr();
-    JSShapeProperty prs = p.find_own_property(pr, prop);
+  static int JS_SetGlobalVar(JSContext ctx, JSAtom prop, JSValue val, int flag) {
+    JSObject p = ctx.global_var_obj.JS_VALUE_GET_OBJ();
+    JSProperty pr;
+    PJSProperty ppr = new PJSProperty();
+    JSShapeProperty prs = find_own_property(ppr, p, prop);
+    pr = ppr.val;
     int flags;
 
     if (prs != null) {
       if (flag != 1) {
-        if (pr.value().JS_IsUninitialized()) {
-          JSThrower.JS_ThrowReferenceErrorUninitialized(this, prs.atom);
+        if (pr.value.JS_IsUninitialized()) {
+          JSThrower.JS_ThrowReferenceErrorUninitialized(ctx, prs.atom);
           return -1;
         }
         if ((prs.flags & JS_PROP_WRITABLE) == 0) {
-          return JSThrower.JS_ThrowTypeErrorReadOnly(this, JS_PROP_THROW, prop);
+          return JSThrower.JS_ThrowTypeErrorReadOnly(ctx, JS_PROP_THROW, prop);
         }
       }
-      set_value(pr.value(), val);
+      set_value(ctx, pr.value, val);
       return 0;
     }
 
     flags = JS_PROP_THROW_STRICT;
-    if (flag != 2 && is_strict_mode())
+    if (flag != 2 && is_strict_mode(ctx))
       flags |= JS_PROP_NO_ADD;
-    return global_obj.JS_SetPropertyInternal(this,  prop, val, flags);
+    return JS_SetPropertyInternal(ctx,  ctx.global_obj, prop, val, flags);
   }
 
 
@@ -93,25 +113,28 @@ public class JSContext {
     ctx.set_value(pval, new_val);
   }
 
-   JSValue JS_GetGlobalVar(JSAtom prop,
+   static JSValue JS_GetGlobalVar(JSContext ctx,
+                                  JSAtom prop,
                                  int throw_ref_error)
   {
     JSObject p;
     JSShapeProperty prs;
-    JSProperty.Ptr pr = new JSProperty.Ptr();
+    PJSProperty ppr = new PJSProperty();
+    JSProperty pr;
 
     /* no exotic behavior is possible in global_var_obj */
-    p =  global_var_obj.JS_VALUE_GET_OBJ();
-    prs = p.find_own_property(pr,  prop);
+    p =  ctx.global_var_obj.JS_VALUE_GET_OBJ();
+    prs = find_own_property(ppr, p, prop);
+    pr = ppr.val;
     if (prs != null) {
       /* XXX: should handle JS_PROP_TMASK properties */
-      if (pr.value().JS_IsUninitialized()) {
-        return JSThrower.JS_ThrowReferenceErrorUninitialized(this, prs.atom);
+      if (pr.value.JS_IsUninitialized()) {
+        return JSThrower.JS_ThrowReferenceErrorUninitialized(ctx, prs.atom);
       }
-      return pr.value();
+      return pr.value;
     }
-    return global_obj.JS_GetPropertyInternal(this, prop,
-      global_obj, throw_ref_error);
+    return JS_GetPropertyInternal(ctx, ctx.global_obj, prop,
+      ctx.global_obj, throw_ref_error);
   }
 
   int JS_CheckDefineGlobalVar(JSAtom prop, int flags) {
@@ -145,7 +168,7 @@ public class JSContext {
     return 0;
   }
 
-  int JS_DefineGlobalVar(JSAtom prop, int def_flags) {
+  int JS_DefineGlobalVar(JSContext ctx, JSAtom prop, int def_flags) {
     JSObject p;
     JSShapeProperty prs;
     JSProperty pr;
@@ -168,7 +191,7 @@ public class JSContext {
       return 0;
     if (!p.extensible)
       return 0;
-    pr = add_property(p, prop, flags);
+    pr = add_property(ctx, p, prop, flags);
     if (pr != null)
       return -1;
     pr.value = val;
@@ -177,19 +200,20 @@ public class JSContext {
   }
 
 
-  JSProperty add_property(JSObject p, JSAtom prop, int prop_flags) {
+  static JSProperty add_property(JSContext ctx, JSObject p, JSAtom prop, int prop_flags) {
     JSShape sh, new_sh;
 
     sh = p.shape;
 
-    if (add_shape_property(p.shape, p, prop, prop_flags) == 1) {
+    if (add_shape_property(ctx, p.shape, p, prop, prop_flags) == 1) {
       return null;
     }
 
     return p.prop.get(p.shape.prop.size() - 1);
   }
 
-  int add_shape_property(JSShape psh,
+  static int add_shape_property(
+    JSContext ctx, JSShape psh,
                          JSObject p, JSAtom atom, int prop_flags) {
 
     JSShape sh = psh;
@@ -198,7 +222,7 @@ public class JSContext {
     int hash_mask, new_shape_hash = 0;
 
     if (p.prop.size() <= sh.prop.size()) {
-      resize_properties(sh, p, sh.prop.size() + 1);
+      resize_properties(ctx, sh, p, sh.prop.size() + 1);
     }
 
     /* Initialize the new shape property.
@@ -211,7 +235,7 @@ public class JSContext {
     return 0;
   }
 
-  int resize_properties(JSShape psh,
+  static int resize_properties(JSContext ctx, JSShape psh,
                         JSObject p, int count) {
     int start = p.prop.size();
     while (start < count) {
@@ -429,7 +453,8 @@ public class JSContext {
     stack_size = s.stack_len_max;
     return stack_size;
   }
-  JSValue JS_NewObjectFromShape(JSShape sh, JSClassID classID) {
+
+  static JSValue JS_NewObjectFromShape(JSContext ctx, JSShape sh, JSClassID classID) {
     JSObject p = new JSObject();
     p.shape = sh;
     switch (classID) {
@@ -444,44 +469,50 @@ public class JSContext {
     return new JSValue(JSTag.JS_TAG_OBJECT, p);
   }
 
-  JSValue JS_NewObjectClass(JSClassID class_id) {
-    return JS_NewObjectProtoClass(class_proto.get(class_id), class_id);
+  static JSValue JS_NewArray(JSContext ctx)
+  {
+    return JS_NewObjectFromShape(ctx, js_dup_shape(ctx.array_shape),
+      JS_CLASS_ARRAY);
   }
 
-  JSValue JS_NewObjectProto(final JSValue proto) {
-    return JS_NewObjectProtoClass(proto, JS_CLASS_OBJECT);
+  static JSValue JS_NewObjectClass(JSContext ctx, JSClassID class_id) {
+    return JS_NewObjectProtoClass(ctx, ctx.class_proto.get(class_id), class_id);
   }
 
-  JSValue JS_NewObject() {
-    return JS_NewObjectProtoClass(class_proto.get(JS_CLASS_OBJECT), JS_CLASS_OBJECT);
+  static JSValue JS_NewObjectProto(JSContext ctx, final JSValue proto) {
+    return JS_NewObjectProtoClass(ctx, proto, JS_CLASS_OBJECT);
   }
 
-  JSValue JS_NewObjectProtoClass(final JSValue proto_val, JSClassID class_id) {
+  static JSValue JS_NewObject(JSContext ctx) {
+    return JS_NewObjectProtoClass(ctx, ctx.class_proto.get(JS_CLASS_OBJECT), JS_CLASS_OBJECT);
+  }
+
+  static JSValue JS_NewObjectProtoClass(JSContext ctx, final JSValue proto_val, JSClassID class_id) {
     JSShape sh;
 //    JSObject proto = proto_val.get_proto_obj();
-    sh = js_new_shape(null);
+    sh = js_new_shape(ctx, null);
     if (sh == null) {
       return JSValue.JS_EXCEPTION;
     }
-    return JS_NewObjectFromShape(sh, class_id);
+    return JS_NewObjectFromShape(ctx, sh, class_id);
   }
 
   static int JS_PROP_INITIAL_SIZE = 2;
   static int JS_PROP_INITIAL_HASH_SIZE = 4; /* must be a power of two */
   static int JS_ARRAY_INITIAL_SIZE = 2;
 
-  JSShape js_new_shape(JSObject proto) {
-    return js_new_shape2(proto, JS_PROP_INITIAL_HASH_SIZE, JS_PROP_INITIAL_SIZE);
+  static JSShape js_new_shape(JSContext ctx, JSObject proto) {
+    return js_new_shape2(ctx, proto, JS_PROP_INITIAL_HASH_SIZE, JS_PROP_INITIAL_SIZE);
   }
 
-  JSShape js_new_shape2(JSObject proto, int hash_size, int prop_size) {
+  static JSShape js_new_shape2(JSContext ctx, JSObject proto, int hash_size, int prop_size) {
     JSShape sh = new JSShape();
     sh.proto = proto;
 
     return sh;
   }
 
-  JSValue js_closure(JSValue bfunc, JSVarRefWrapper cur_var_refs, JSStackFrame sf) {
+  static JSValue js_closure(JSContext ctx, JSValue bfunc, JSVarRefWrapper cur_var_refs, JSStackFrame sf) {
     JSFunctionBytecode b;
     JSValue func_obj = null;
     JSAtom name_atom;
@@ -489,8 +520,8 @@ public class JSContext {
       return JSValue.JS_EXCEPTION;
     }
     b = (JSFunctionBytecode) bfunc.value;
-    func_obj = JS_NewObjectClass(JSFunctionKindEnum.func_kind_to_class_id[b.func_kind]);
-    func_obj = js_closure2(func_obj, b, cur_var_refs, sf);
+    func_obj = JS_NewObjectClass(ctx, JSFunctionKindEnum.func_kind_to_class_id[b.func_kind]);
+    func_obj = js_closure2(ctx, func_obj, b, cur_var_refs, sf);
 
     name_atom = b.func_name;
     if (name_atom == JSAtom.JS_ATOM_NULL) {
@@ -499,7 +530,7 @@ public class JSContext {
     return func_obj;
   }
 
-  JSValue js_closure2(JSValue func_obj,
+  static JSValue js_closure2(JSContext ctx, JSValue func_obj,
                       JSFunctionBytecode b,
                       JSVarRefWrapper cur_var_refs,
                       JSStackFrame sf) {
@@ -591,8 +622,14 @@ public class JSContext {
   }
 
 
-  boolean is_strict_mode() {
-    JSStackFrame sf = rt.current_stack_frame;
+  static boolean is_strict_mode(JSContext ctx) {
+    JSStackFrame sf = ctx.rt.current_stack_frame;
     return false;
+  }
+
+  static JSContext JS_DupContext(JSContext ctx)
+  {
+    ctx.header.ref_count++;
+    return ctx;
   }
 }

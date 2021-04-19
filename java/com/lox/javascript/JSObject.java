@@ -15,37 +15,52 @@ public class JSObject {
   boolean is_uncatchable_error;
   boolean extensible = true;
   boolean is_exotic;
+  boolean is_constructor;
+  JSProxyData proxy_data;
   JSShape shape;
   final List<JSProperty> prop;
   JSClassID class_id;
 
-  final Func func ;
+  final Func func;
+  final CFunc cfunc;
+
   static class Func {
     JSFunctionBytecode function_bytecode;
     List<JSVarRef> var_refs;
     JSObject homeObject;
   }
 
+
+  static class CFunc {
+    JSContext realm;
+    JSCFunctionType c_function;
+    int length;
+    JSCFunctionEnum cproto;
+    int magic;
+  }
+
   public JSObject() {
     prop = new ArrayList<>();
     func = new Func();
+    cfunc = new CFunc();
+    proxy_data = new JSProxyData();
   }
 
-  JSShapeProperty find_own_property(JSProperty.Ptr ppr, JSAtom atom) {
+  static JSShapeProperty find_own_property(PJSProperty ppr, JSObject p, JSAtom atom) {
     JSShape sh;
     JSShapeProperty pr;
     List<JSShapeProperty> prop;
-    sh = shape;
+    sh = p.shape;
 
     prop = sh.get_shape_property();
     for (int i = 0; i < prop.size(); i++) {
       pr = prop.get(i);
       if (pr.atom.equals(atom)) {
-        ppr.setPtr(this.prop.get(i));
+        ppr.val = p.prop.get(i);
         return pr;
       }
     }
-    ppr.setPtr(null);
+    ppr.val = null;
     return null;
   }
 

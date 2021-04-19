@@ -6,9 +6,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static com.lox.javascript.JSCFunction.*;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
-import static com.lox.javascript.JSContext.__JS_evalInternal;
+import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSStdClassDef.js_std_class_def;
+import static com.lox.javascript.JSValue.*;
 
 /**
  * @author benpeng.jiang
@@ -69,6 +71,47 @@ public class LoxJS {
   public static void JS_DumpMemoryUsage(PrintStream stdout, final JSMemoryUsage s, JSRuntime rt)
   {
 
+  }
+
+  void js_std_add_helpers(JSContext ctx, int argc,String[] argv)
+  {
+    JSValue global_obj, console, args;
+    int i;
+
+
+    /* XXX: should these global definitions be enumerable? */
+    global_obj = JS_GetGlobalObject(ctx);
+
+    console = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, console, "log",
+      JS_NewCFunction(ctx, js_print, "log", 1));
+    JS_SetPropertyStr(ctx, global_obj, "console", console);
+
+    /* same methods as the mozilla JS shell */
+    if (argc >= 0) {
+      args = JS_NewArray(ctx);
+      for(i = 0; i < argc; i++) {
+        JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
+      }
+      JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
+    }
+
+    JS_SetPropertyStr(ctx, global_obj, "print",
+      JS_NewCFunction(ctx, js_print, "print", 1));
+    JS_SetPropertyStr(ctx, global_obj, "__loadScript",
+      JS_NewCFunction(ctx, js_loadScript, "__loadScript", 1));
+
+    JS_FreeValue(ctx, global_obj);
+  }
+
+  static boolean is_digit(int c) {
+    return c >= '0' && c <= '9';
+  }
+
+  /* return TRUE if the string is a number n with 0 <= n <= 2^32-1 */
+  static boolean is_num_string(PInteger pval, final JSString p)
+  {
+   return false;
   }
 
 }

@@ -8,10 +8,14 @@ import java.util.List;
 
 import static com.lox.javascript.JSAtom.JS_ATOM_NULL;
 import static com.lox.javascript.JSClassID.JS_CLASS_ERROR;
+import static com.lox.javascript.JSContext.JS_NewObjectClass;
+import static com.lox.javascript.JSContext.is_strict_mode;
 import static com.lox.javascript.JSErrorEnum.*;
 import static com.lox.javascript.JSTag.JS_TAG_OBJECT;
 import static com.lox.javascript.JSValue.JS_VALUE_GET_OBJ;
 import static com.lox.javascript.JSValue.JS_VALUE_GET_TAG;
+import static com.lox.javascript.JS_PROP.JS_PROP_THROW;
+import static com.lox.javascript.JS_PROP.JS_PROP_THROW_STRICT;
 
 /**
  * @author benpeng.jiang
@@ -37,13 +41,18 @@ public class JSThrower {
   }
 
   public static int JS_ThrowTypeErrorReadOnly(JSContext ctx, int flags, JSAtom atom) {
-    if ((flags & JS_PROP.JS_PROP_THROW) != 0 ||
-      ((flags & JS_PROP.JS_PROP_THROW_STRICT) != 0 && ctx.is_strict_mode())) {
+    if ((flags & JS_PROP_THROW) != 0 ||
+      ((flags & JS_PROP_THROW_STRICT) != 0 && is_strict_mode(ctx))) {
       JS_ThrowTypeErrorAtom(ctx, "'%s' is read-only", atom);
       return -1;
     } else {
       return 0;
     }
+  }
+
+  public static JSValue JS_ThrowTypeErrorNotAnObject(JSContext ctx)
+  {
+    return JS_ThrowTypeError(ctx, "not an object");
   }
 
   public static JSValue JS_ThrowTypeErrorAtom(JSContext ctx, String fmt, JSAtom atom) {
@@ -81,11 +90,23 @@ public class JSThrower {
     return JS_ThrowError2(ctx, error_num, fmt, ap, add_backtrace);
   }
 
+  static int JS_ThrowTypeErrorOrFalse(JSContext ctx, int flags, String fmt, Object... args)
+  {
+    if ((flags & JS_PROP_THROW) != 0 ||
+      ((flags & JS_PROP_THROW_STRICT) != 0 && is_strict_mode(ctx))) {
+      JS_ThrowError(ctx, JS_TYPE_ERROR, fmt, Arrays.asList(args));
+
+      return -1;
+    } else {
+      return 0;
+    }
+  }
+
   public static JSValue JS_ThrowError2(JSContext ctx, JSErrorEnum error_num,
                                        String fmt, List<Object> ap, boolean add_backtrace) {
     JSValue obj, ret;
 
-    obj = ctx.JS_NewObjectClass(JSClassID.JS_CLASS_OBJECT);
+    obj = JS_NewObjectClass(ctx, JSClassID.JS_CLASS_OBJECT);
     if (obj != null) {
 
       if (error_num != null) {

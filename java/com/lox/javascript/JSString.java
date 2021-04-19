@@ -10,6 +10,7 @@ import java.util.Objects;
  * @date 2021/2/277:33 PM
  */
 public class JSString {
+  final JSRefCountHeader header = new JSRefCountHeader();
   final int atom_type;
   final String str;
 
@@ -21,6 +22,11 @@ public class JSString {
   public JSString(String str, int atom_type) {
     this.atom_type = atom_type;
     this.str = str;
+  }
+
+  public JSString(char[] str, int atom_type) {
+    this.atom_type = atom_type;
+    this.str = new String(str);
   }
 
   @Override
@@ -64,6 +70,11 @@ public class JSString {
     if (str != null) {
       return str.toCharArray();
     }
+    return null;
+  }
+
+  static JSAtom js_get_atom_index(JSRuntime rt, JSAtomStruct p)
+  {
     return null;
   }
 }

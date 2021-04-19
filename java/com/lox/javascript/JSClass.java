@@ -11,4 +11,5 @@ public class JSClass {
   JSClassID class_id;
   JSAtom class_name;
   Object exotic;
+  JSClassCall call;
 }

@@ -1,11 +1,17 @@
 package com.lox.javascript;
 
+import static com.lox.javascript.JSAtom.*;
+import static com.lox.javascript.JSContext.add_property;
+import static com.lox.javascript.JSObject.find_own_property;
+import static com.lox.javascript.JSString.js_get_atom_index;
 import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JUtils.print_atom;
 import static com.lox.javascript.math.isnan;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 
 /**
  * @author benpeng.jiang
@@ -53,6 +59,10 @@ public class JSValue {
     return v.JS_VALUE_GET_OBJ();
   }
 
+  public static boolean JS_VALUE_HAS_REF_COUNT(JSValue v) {
+   return JS_VALUE_GET_TAG(v).ordinal() >= JS_TAG_FIRST.ordinal();
+  }
+
   public static int JS_VALUE_GET_BOOL(JSValue v) {
     return (int)v.value;
   }
@@ -92,21 +102,21 @@ public class JSValue {
     return v.JS_VALUE_GET_String();
   }
 
-  JSObject get_proto_obj() {
-    if (!JS_IsObject()) {
+  static JSObject get_proto_obj(JSValue v) {
+    if (!JS_IsObject(v)) {
       return null;
     } else {
-      return JS_VALUE_GET_OBJ();
+      return v.JS_VALUE_GET_OBJ();
     }
   }
 
-  public boolean JS_IsObject() {
-    return JS_TAG_OBJECT == tag;
+  public static boolean JS_IsObject(JSValue v) {
+    return JS_TAG_OBJECT == v.tag;
   }
 
-  boolean JS_IsException()
+  public static boolean JS_IsException(JSValue v)
   {
-    return tag == JS_TAG_EXCEPTION;
+    return v.tag == JS_TAG_EXCEPTION;
   }
 
 
@@ -150,6 +160,11 @@ public class JSValue {
     return v;
   }
 
+  static JSValue JS_MKPTR(JSTag tag, Object p) {
+    JSValue v = new JSValue(tag, p);
+    return v;
+  }
+
   static JSValue __JS_NewFloat64(JSContext ctx, double d)
   {
     JSValue v = new JSValue(JS_TAG_FLOAT64, d);
@@ -178,11 +193,11 @@ public class JSValue {
    freed by the function. 'flags' is a bitmask of JS_PROP_NO_ADD,
    JS_PROP_THROW or JS_PROP_THROW_STRICT. If JS_PROP_NO_ADD is set,
    the new property is not added and an error is raised. */
-  int JS_SetPropertyInternal(JSContext ctx,
+  public static int JS_SetPropertyInternal(JSContext ctx, final JSValue this_obj,
                              JSAtom prop, JSValue val, int flags) {
     JSObject p, p1;
     JSShapeProperty prs;
-    JSProperty.Ptr pr = new JSProperty.Ptr();
+    PJSProperty ppr = new PJSProperty();
     JSTag tag;
     JSPropertyDescriptor desc;
     int ret = 0;
@@ -192,7 +207,6 @@ public class JSValue {
       printf("\n");
     }
 
-    JSValue this_obj = this;
     tag = this_obj.tag;
     if (tag != JS_TAG_OBJECT) {
       switch (tag) {
@@ -211,12 +225,12 @@ public class JSValue {
     }
     p = this_obj.JS_VALUE_GET_OBJ();
 
-    prs = p.find_own_property(pr, prop);
+    prs = find_own_property(ppr, p, prop);
     if (prs != null) {
       if ((prs.flags & (JS_PROP_TMASK | JS_PROP_WRITABLE |
         JS_PROP_LENGTH)) == JS_PROP_WRITABLE) {
         /* fast case */
-        ctx.set_value(pr.value(), val);
+        ctx.set_value(ppr.val.value, val);
         return 1;
       }
     }
@@ -229,7 +243,7 @@ public class JSValue {
      }
     }
 
-    JSProperty jsprop = ctx.add_property(p, prop, JS_PROP_C_W_E);
+    JSProperty jsprop = add_property(ctx, p, prop, JS_PROP_C_W_E);
     jsprop.value = val;
 
 //    for(;;) {
@@ -392,12 +406,12 @@ public class JSValue {
     return ret;
   }
 
-  JSValue JS_GetPropertyInternal(JSContext ctx,
+  static JSValue JS_GetPropertyInternal(JSContext ctx,
+                                 JSValue obj,
                                  JSAtom prop, final JSValue this_obj,
                                  int throw_ref_error) {
-    JSValue obj = this;
     JSObject  p;
-    JSProperty.Ptr  pr = new JSProperty.Ptr();
+    PJSProperty  ppr = new PJSProperty();
     JSShapeProperty  prs;
     JSTag tag;
 
@@ -418,13 +432,13 @@ public class JSValue {
       }
       return JS_UNDEFINED;
     } else {
-      p = obj.get_proto_obj();
+      p = get_proto_obj(obj);
     }
 
     while (true) {
-      prs = p.find_own_property(pr, prop);
+      prs = find_own_property(ppr, p, prop);
       if (prs != null) {
-        return pr.value();
+        return ppr.val.value;
       }
       p = p.shape.proto;
       if (p == null) {
@@ -483,10 +497,176 @@ public class JSValue {
 
   static void JS_FreeValue(JSContext ctx, JSValue v)
   {
+    if (JS_VALUE_HAS_REF_COUNT(v)) {
+      JSRefCountHeader p = (JSRefCountHeader)JS_VALUE_GET_PTR(v);
+      if (--p.ref_count <= 0) {
+        __JS_FreeValue(ctx, v);
+      }
+    }
+  }
+
+  static void __JS_FreeValue(JSContext ctx, JSValue v)
+  {
+    __JS_FreeValueRT(ctx.rt, v);
+  }
+
+  static void __JS_FreeValueRT(JSRuntime rt, JSValue v)
+  {
 
   }
+
+  /* flags can be JS_PROP_THROW or JS_PROP_THROW_STRICT */
+  static int JS_SetPropertyValue(JSContext ctx, final JSValue this_obj,
+                                 JSValue prop, JSValue val, int flags) {
+    if (JS_VALUE_GET_TAG(this_obj) == JS_TAG_OBJECT &&
+      JS_VALUE_GET_TAG(prop) == JS_TAG_INT) {
+      return 1;
+    } else {
+      return on_slow_path(ctx, this_obj, prop, val, flags);
+    }
+  }
+
+  static JSAtom js_symbol_to_atom(JSContext ctx, JSValue val)
+  {
+    JSAtomStruct p = (JSAtomStruct) JS_VALUE_GET_PTR(val);
+    return js_get_atom_index(ctx.rt, p);
+  }
+
+  static JSAtom JS_ValueToAtom(JSContext ctx, final JSValue val)
+  {
+    JSAtom atom;
+    JSTag tag;
+    tag = JS_VALUE_GET_TAG(val);
+    if (tag == JS_TAG_INT &&
+      JS_VALUE_GET_INT(val) <= JS_ATOM_MAX_INT) {
+      /* fast path for integer values */
+      atom = __JS_AtomFromUInt32(JS_VALUE_GET_INT(val));
+    } else if (tag == JS_TAG_SYMBOL) {
+      JSAtomStruct p = (JSAtomStruct) JS_VALUE_GET_PTR(val);
+      atom = JS_DupAtom(ctx, js_get_atom_index(ctx.rt, p));
+    } else {
+      JSValue str;
+      str = JS_ToPropertyKey(ctx, val);
+      if (JS_IsException(str))
+        return JS_ATOM_NULL;
+      if (JS_VALUE_GET_TAG(str) == JS_TAG_SYMBOL) {
+        atom = js_symbol_to_atom(ctx, str);
+      } else {
+        atom = JS_NewAtomStr(ctx, JS_VALUE_GET_STRING(str));
+      }
+    }
+    return atom;
+  }
+
+  static JSValue JS_ToStringInternal(JSContext ctx, final JSValue val, boolean is_ToPropertyKey)
+  {
+    return null;
+  }
+
+  static JSValue JS_ToPropertyKey(JSContext ctx, final JSValue val)
+  {
+    return JS_ToStringInternal(ctx, val, TRUE);
+  }
+
+  private static int on_slow_path(JSContext ctx, final JSValue this_obj,
+                                  JSValue prop, JSValue val, int flags) {
+    JSAtom atom;
+    int ret;
+    slow_path:
+    atom = JS_ValueToAtom(ctx, prop);
+    JS_FreeValue(ctx, prop);
+    if (atom == JS_ATOM_NULL) {
+      JS_FreeValue(ctx, val);
+      return -1;
+    }
+    ret = JS_SetPropertyInternal(ctx, this_obj, atom, val, flags);
+    JS_FreeAtom(ctx, atom);
+    return ret;
+  }
+
+  static int JS_SetPropertyUint32(JSContext ctx, final JSValue this_obj,
+                           int idx, JSValue val)
+  {
+    return JS_SetPropertyValue(ctx, this_obj, JS_NewUint32(ctx, idx), val,
+      JS_PROP_THROW);
+  }
+
+  static JSValue JS_NewUint32(JSContext ctx, int val)
+  {
+    JSValue v;
+    if (val <= 0x7fffffff) {
+      v = JS_NewInt32(ctx, val);
+    } else {
+      v = __JS_NewFloat64(ctx, val);
+    }
+    return v;
+  }
+
   static int JS_ToBool(JSContext ctx, final JSValue val)
   {
     return JS_ToBoolFree(ctx, val);
+  }
+
+  static JSValue JS_GetGlobalObject(JSContext ctx)
+  {
+    return JS_DupValue(ctx, ctx.global_obj);
+  }
+
+  static JSValue JS_DupValue(JSContext ctx, JSValue v)
+  {
+    if (JS_VALUE_HAS_REF_COUNT(v)) {
+      JSRefCountHeader p = (JSRefCountHeader)JS_VALUE_GET_PTR(v);
+      p.ref_count++;
+    }
+    return (JSValue)v;
+  }
+
+  static int JS_SetPropertyStr(JSContext ctx, final JSValue this_obj,
+                               final String prop, JSValue val)
+  {
+    return JS_SetPropertyStr(ctx, this_obj, prop.toCharArray(), val);
+  }
+
+  static int JS_SetPropertyStr(JSContext ctx, final JSValue this_obj,
+                      final char[] prop, JSValue val)
+  {
+    JSAtom atom;
+    int ret;
+    atom = JS_NewAtom(ctx, prop);
+    ret = JS_SetPropertyInternal(ctx, this_obj, atom, val, JS_PROP_THROW);
+    JS_FreeAtom(ctx, atom);
+    return ret;
+  }
+
+ static JSValue JS_NewStringLen(JSContext ctx, final char[] buf, int buf_len)
+  {
+    StringBuffer b = new StringBuffer();
+    b.ctx = ctx;
+    b.str = new JSString(buf, buf_len);
+    b.size = buf_len;
+    b.len = buf_len;
+    return string_buffer_end(b);
+  }
+
+  static JSValue string_buffer_end(StringBuffer s)
+  {
+    JSString str = s.str;
+    return JS_MKPTR(JS_TAG_STRING, str);
+  }
+
+  static boolean JS_IsFunction(JSContext ctx, final JSValue val)
+  {
+    JSObject p;
+    if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
+      return FALSE;
+    p = JS_VALUE_GET_OBJ(val);
+    switch(p.class_id) {
+      case JS_CLASS_BYTECODE_FUNCTION:
+        return TRUE;
+      case JS_CLASS_PROXY:
+        return p.proxy_data.is_func;
+      default:
+        return (ctx.rt.class_array.get(p.class_id.ordinal()).call != null);
+    }
   }
 }

@@ -5,8 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.lox.clibrary.string_h.strlen;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.javascript.JSValue.JS_VALUE_GET_STRING;
+import static com.lox.javascript.LoxJS.is_digit;
 
 /**
  * @author benpeng.jiang
@@ -38,7 +41,7 @@ public class JSRuntime {
     this.atom_hash = new HashMap<>();
     this.class_array = new ArrayList<>();
 
-    JS_InitAtoms();
+    JS_InitAtoms(this);
   }
 
   public JSContext JS_NewCustomContext() {
@@ -51,7 +54,7 @@ public class JSRuntime {
   JSContext JS_NewContext() {
     JSContext ctx = JS_NewContextRaw();
 
-    ctx.JS_AddIntrinsicBaseObjects();
+    ctx.JS_AddIntrinsicBaseObjects(ctx);
     return ctx;
   }
 
@@ -63,48 +66,26 @@ public class JSRuntime {
   }
 
 
-  static public JSAtom JS_NewAtomStr(JSContext ctx, String str) {
-    JSRuntime rt = ctx.rt;
-    return __JS_NewAtom(rt, str, JS_ATOM_TYPE_STRING);
-  }
-
-  public JSAtom JS_NewAtomStr(String str) {
-    return __JS_NewAtom(str, JS_ATOM_TYPE_STRING);
-  }
-
-  static private JSAtom __JS_NewAtom(JSRuntime rt, String str, int atom_type) {
-    return rt.__JS_NewAtom(str, atom_type);
-  }
-
-  private JSAtom __JS_NewAtom(String str, int atom_type) {
+  public static JSAtom __JS_NewAtom(JSRuntime rt, JSString str, int atom_type) {
     if (false) {
       printf("__JS_NewAtom: "  + str + "\n");
     }
-    JSString p = new JSString(str, atom_type);
-    if (atom_hash.containsKey(p)) {
-      Integer atom = atom_hash.get(p);
+    JSString p = str;
+    if (rt.atom_hash.containsKey(p)) {
+      Integer atom = rt.atom_hash.get(p);
       return new JSAtom(atom);
     }
-    int atomCount = atom_array.size();
-    atom_hash.put(p, atomCount);
-    atom_array.add(p);
+    int atomCount = rt.atom_array.size();
+    rt.atom_hash.put(p, atomCount);
+    rt.atom_array.add(p);
     return new JSAtom(atomCount);
   }
 
-  private JSAtom __JS_FindAtom(String str, int atom_type) {
-    JSString p = new JSString(str, atom_type);
-    if (atom_hash.containsKey(p)) {
-      Integer atom = atom_hash.get(p);
-      return new JSAtom(atom);
-    }
 
-    return JS_ATOM_NULL;
-  }
-
-  private void JS_InitAtoms() {
-    atom_array.clear();
-    atom_hash.clear();
-    JS_NewAtomStr(null);
+  private static void JS_InitAtoms(JSRuntime rt) {
+    rt.atom_array.clear();
+    rt.atom_hash.clear();
+    __JS_NewAtomInit(rt,null, 0, JS_ATOM_TYPE_STRING);
     int atom_type;
     String str;
     for (int i = JSAtomEnum.JS_ATOM_null.ordinal(); i < JSAtomEnum.JS_ATOM_END.ordinal(); i++) {
@@ -116,9 +97,16 @@ public class JSRuntime {
         atom_type = JS_ATOM_TYPE_STRING;
       }
       str = JSAtomInit.js_atom_init.get(i);
-      __JS_NewAtom(str, atom_type);
+      __JS_NewAtomInit(rt, str.toCharArray(), str.length(), atom_type);
     }
-    atom_hash.size();
+    rt.atom_hash.size();
+  }
+
+  static JSAtom __JS_NewAtomInit(JSRuntime rt, final char[] str, int len,
+                                 int atom_type)
+  {
+    JSString p = new JSString(str, len);
+    return __JS_NewAtom(rt, p, atom_type);
   }
 
   int init_class_range(JSClassShortDef[] tab, int start, int count) {
@@ -140,5 +128,8 @@ public class JSRuntime {
   int JS_NewClass1(JSClassID class_id, final JSClassDef class_def, JSAtom name) {
     return 0;
   }
+  static void js_free_string(JSRuntime rt, JSString str)
+  {
 
+  }
 }

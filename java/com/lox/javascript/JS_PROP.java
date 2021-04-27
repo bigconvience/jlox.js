@@ -37,4 +37,12 @@ public class JS_PROP {
 
   static final int JS_PROP_NO_ADD = (1 << 16); /* internal use */
   static final int JS_PROP_NO_EXOTIC = (1 << 17); /* internal use */
+
+
+  static int get_prop_flags(int flags, int def_flags)
+  {
+    int mask;
+    mask = (flags >> JS_PROP_HAS_SHIFT) & JS_PROP_C_W_E;
+    return (flags & mask) | (def_flags & ~mask);
+  }
 }

@@ -1,5 +1,7 @@
 package com.lox.javascript;
 
+import static com.lox.javascript.JSValue.JS_NewFloat64;
+
 /**
  * @author benpeng.jiang
  * @title: Utils
@@ -8,6 +10,22 @@ package com.lox.javascript;
  * @date 2020/12/299:37 PM
  */
 public class JUtils {
+
+  static JSValue js_atof(JSContext ctx, char[] str, char[] pp,
+                         int radix, int flags) {
+    JSValue val;
+    double d = Double.parseDouble(new String(str));
+    val = JS_NewFloat64(ctx, d);
+    return val;
+  }
+
+  static char[] skip_spaces(final char[] pc)
+  {
+    String str = new String(pc);
+    String str1 = str.replaceAll("\\s*","");
+    return str1.toCharArray();
+  }
+
   static int to_digit(int c)
   {
     if (c >= '0' && c <= '9')

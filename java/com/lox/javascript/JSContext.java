@@ -7,19 +7,17 @@ import java.util.Map;
 
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.clibrary.stdio_h.putchar;
-import static com.lox.javascript.JSAtom.JS_ATOM_TYPE_STRING;
-import static com.lox.javascript.JSAtomEnum.JS_ATOM__eval_;
-import static com.lox.javascript.JSCFunction.JS_NewCFunction3;
-import static com.lox.javascript.JSCFunction.js_function_proto;
-import static com.lox.javascript.JSCFunctionEnum.JS_CFUNC_generic;
-import static com.lox.javascript.JSClassID.JS_CLASS_ARRAY;
-import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
-import static com.lox.javascript.JSObject.find_own_property;
+import static com.lox.javascript.JSAtom.*;
+import static com.lox.javascript.JSAtomEnum.*;
+import static com.lox.javascript.JSCFunction.*;
+import static com.lox.javascript.JSCFunctionEnum.*;
+import static com.lox.javascript.JSClassID.*;
+import static com.lox.javascript.JSObject.*;
 import static com.lox.javascript.JSShape.js_dup_shape;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JS_PROP.*;
-import static com.lox.javascript.LoxJS.JS_MODE_STRIP;
+import static com.lox.javascript.LoxJS.*;
 import static com.lox.javascript.Parser.js_parse_program;
 import static com.lox.javascript.Resolver.js_resolve_program;
 import static com.lox.javascript.Resolver.push_scope;
@@ -84,7 +82,7 @@ public class JSContext {
 
     if (prs != null) {
       if (flag != 1) {
-        if (pr.value.JS_IsUninitialized()) {
+        if (pr.u.value.JS_IsUninitialized()) {
           JSThrower.JS_ThrowReferenceErrorUninitialized(ctx, prs.atom);
           return -1;
         }
@@ -92,7 +90,7 @@ public class JSContext {
           return JSThrower.JS_ThrowTypeErrorReadOnly(ctx, JS_PROP_THROW, prop);
         }
       }
-      set_value(ctx, pr.value, val);
+      set_value(ctx, pr.u.value, val);
       return 0;
     }
 
@@ -119,7 +117,7 @@ public class JSContext {
   {
     JSObject p;
     JSShapeProperty prs;
-    PJSProperty ppr = new PJSProperty();
+    Pointer<JSProperty> ppr = new Pointer();
     JSProperty pr;
 
     /* no exotic behavior is possible in global_var_obj */
@@ -128,10 +126,10 @@ public class JSContext {
     pr = ppr.val;
     if (prs != null) {
       /* XXX: should handle JS_PROP_TMASK properties */
-      if (pr.value.JS_IsUninitialized()) {
+      if (pr.u.value.JS_IsUninitialized()) {
         return JSThrower.JS_ThrowReferenceErrorUninitialized(ctx, prs.atom);
       }
-      return pr.value;
+      return pr.u.value;
     }
     return JS_GetPropertyInternal(ctx, ctx.global_obj, prop,
       ctx.global_obj, throw_ref_error);
@@ -142,7 +140,7 @@ public class JSContext {
     JSShapeProperty prs;
     p = global_obj.JS_VALUE_GET_OBJ();
 
-    prs = p.find_own_property1(prop);
+    prs = find_own_property1(p, prop);
     if ((flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
       if (prs != null && (prs.flags & JS_PROP.JS_PROP_CONFIGURABLE) == 0) {
         JSThrower.JS_ThrowSyntaxErrorVarRedeclaration(this, prop);
@@ -160,7 +158,7 @@ public class JSContext {
       }
     }
     p = global_var_obj.JS_VALUE_GET_OBJ();
-    prs = p.find_own_property1(prop);
+    prs = find_own_property1(p, prop);
     if (prs != null) {
       JSThrower.JS_ThrowSyntaxErrorVarRedeclaration(this, prop);
       return -1;
@@ -186,7 +184,7 @@ public class JSContext {
         (def_flags & JS_PROP.JS_PROP_CONFIGURABLE);
       val = JSValue.JS_UNDEFINED;
     }
-    prs = p.find_own_property1(prop);
+    prs = find_own_property1(p, prop);
     if (prs != null)
       return 0;
     if (!p.extensible)
@@ -194,7 +192,7 @@ public class JSContext {
     pr = add_property(ctx, p, prop, flags);
     if (pr != null)
       return -1;
-    pr.value = val;
+    pr.u.value = val;
     return 0;
 
   }
@@ -209,7 +207,7 @@ public class JSContext {
       return null;
     }
 
-    return p.prop.get(p.shape.prop.size() - 1);
+    return p.prop.get(p.shape.prop_count - 1);
   }
 
   static int add_shape_property(
@@ -218,18 +216,18 @@ public class JSContext {
 
     JSShape sh = psh;
     JSShapeProperty pr;
-    List<JSShapeProperty> prop;
+    JSShapeProperty[] prop;
     int hash_mask, new_shape_hash = 0;
 
-    if (p.prop.size() <= sh.prop.size()) {
-      resize_properties(ctx, sh, p, sh.prop.size() + 1);
+    if (sh.prop_count >= sh.prop_size) {
+      resize_properties(ctx, sh, p, sh.prop_size + 1);
     }
 
     /* Initialize the new shape property.
        The object property at p->prop[sh->prop_count] is uninitialized */
-    prop = sh.get_shape_property();
+    prop = sh.prop;
     pr = new JSShapeProperty();
-    prop.add(pr);
+    prop[sh.prop_count++] = pr;
     pr.atom = atom;
     pr.flags = prop_flags;
     return 0;
@@ -265,8 +263,8 @@ public class JSContext {
 
   private JSValue __JS_AtomToValue(JSAtom atom, boolean force_string) {
     JSContext ctx = this;
-    if (atom.__JS_AtomIsTaggedInt()) {
-      int u32 = atom.__JS_AtomToUInt32();
+    if (__JS_AtomIsTaggedInt(atom)) {
+      int u32 = __JS_AtomToUInt32(atom);
       return JSValue.JS_NewString(ctx, JUtils.intToByteArray(u32));
     } else {
       JSRuntime rt = ctx.rt;
@@ -537,7 +535,7 @@ public class JSContext {
     JSObject p;
     JSVarRefWrapper var_refs;
     p = func_obj.JS_VALUE_GET_OBJ();
-    p.func.function_bytecode = b;
+    p.u.func.function_bytecode = b;
 
     return func_obj;
   }

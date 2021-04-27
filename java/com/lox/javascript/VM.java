@@ -63,11 +63,11 @@ public class VM {
 
     }
 
-    b = p.func.function_bytecode;
+    b = p.u.func.function_bytecode;
     sf.js_mode = b.js_mode;
     sf.cur_func = funcObj;
     sf.var_ref_list = new LinkedList<>();
-    var_refs = p.func.var_refs;
+    var_refs = p.u.func.var_refs;
 
     stack_buf = new JSValue[b.stack_size];
     int n = Math.min(argc, b.arg_count);

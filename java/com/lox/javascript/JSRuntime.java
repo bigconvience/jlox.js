@@ -132,4 +132,65 @@ public class JSRuntime {
   {
 
   }
+
+  static void js_free(JSContext ctx, Object ptr)
+  {
+    js_free_rt(ctx.rt, ptr);
+  }
+
+  static void js_free_rt(JSRuntime rt, Object ptr)
+  {
+
+  }
+
+  /* Throw out of memory in case of error */
+  static <T> T[]  js_realloc(JSContext ctx, T[] ptr, int size)
+  {
+    Object[] dst = new Object[size];
+    System.arraycopy(ptr, 0, dst, 0, size);
+    return (T[])dst;
+  }
+
+  /* store extra allocated size in *pslack if successful */
+  static <T> T[] js_realloc2(JSContext ctx, T[] ptr, int size)
+  {
+    Object[] dst = new Object[size];
+    System.arraycopy(ptr, 0, dst, 0, size);
+    return (T[])dst;
+  }
+
+  /* indicate that the object may be part of a function prototype cycle */
+  static void set_cycle_flag(JSContext ctx, JSValue obj)
+  {
+  }
+
+  static void free_var_ref(JSRuntime rt, JSVarRef var_ref)
+  {
+    if (var_ref != null) {
+
+      if (--var_ref.header.ref_count == 0) {
+        if (var_ref.is_detached) {
+
+        } else {
+           /* still on the stack */
+        }
+        js_free_rt(rt, var_ref);
+      }
+    }
+  }
+
+  static void js_autoinit_free(JSRuntime rt, JSProperty pr)
+  {
+    JS_FreeContext(js_autoinit_get_realm(pr));
+  }
+
+  static JSContext js_autoinit_get_realm(JSProperty pr)
+  {
+    return null;
+  }
+
+  static void JS_FreeContext(JSContext ctx) {
+
+  }
+
 }

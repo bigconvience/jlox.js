@@ -109,9 +109,19 @@ public class LoxJS {
   }
 
   /* return TRUE if the string is a number n with 0 <= n <= 2^32-1 */
-  static boolean is_num_string(PInteger pval, final JSString p)
+  static boolean is_num_string(uint32_t pval, final JSString p)
   {
-   return false;
+    String str = p.str;
+    try {
+      pval.val = Long.parseLong(str);
+      return true;
+    } catch (Exception ex) {
+      return false;
+    }
   }
 
+  static boolean is_num_string(Pointer<Integer> pval, final JSString p)
+  {
+    return false;
+  }
 }

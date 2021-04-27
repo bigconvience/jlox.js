@@ -10,7 +10,9 @@ import java.util.List;
  * @date 2021/3/31:56 PM
  */
 public class JSVarRef {
-  JSValue pValue;
+  JSGCObjectHeader header;
+  boolean is_detached = true;
+  JSValue pvalue;
   JSValue value;
 
 

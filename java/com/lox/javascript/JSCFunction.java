@@ -80,11 +80,11 @@ public abstract class JSCFunction {
       if (JS_IsException(func_obj))
          return func_obj;
       p = JS_VALUE_GET_OBJ(func_obj);
-      p.cfunc.realm = JS_DupContext(ctx);
-      p.cfunc.c_function.generic = func;
-      p.cfunc.length = length;
-      p.cfunc.cproto = cproto;
-      p.cfunc.magic = magic;
+      p.u.cfunc.realm = JS_DupContext(ctx);
+      p.u.cfunc.c_function.generic = func;
+      p.u.cfunc.length = length;
+      p.u.cfunc.cproto = cproto;
+      p.u.cfunc.magic = magic;
       p.is_constructor = (cproto == JS_CFUNC_constructor ||
         cproto == JS_CFUNC_constructor_magic ||
         cproto == JS_CFUNC_constructor_or_func ||

@@ -10,6 +10,6 @@ package com.lox.javascript;
 public class JSClass {
   JSClassID class_id;
   JSAtom class_name;
-  Object exotic;
+  JSClassExoticMethods exotic;
   JSClassCall call;
 }

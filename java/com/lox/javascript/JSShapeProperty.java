@@ -10,4 +10,11 @@ package com.lox.javascript;
 public class JSShapeProperty {
   int flags;
   JSAtom atom;
+  int hash_next;
+
+  static int js_shape_prepare_update(JSContext ctx, JSObject p,
+                                     JSShapeProperty pprs)
+  {
+    return 0;
+  }
 }

@@ -40,6 +40,10 @@ public class JSThrower {
     return -1;
   }
 
+  public static int JS_ThrowTypeErrorReadOnly(JSContext ctx, int flags, JSAtomEnum atom) {
+    return JS_ThrowTypeErrorReadOnly(ctx, flags, atom.toJSAtom());
+  }
+
   public static int JS_ThrowTypeErrorReadOnly(JSContext ctx, int flags, JSAtom atom) {
     if ((flags & JS_PROP_THROW) != 0 ||
       ((flags & JS_PROP_THROW_STRICT) != 0 && is_strict_mode(ctx))) {
@@ -168,5 +172,11 @@ public class JSThrower {
     p = JS_VALUE_GET_OBJ(val);
     if (p.class_id == JS_CLASS_ERROR)
       p.is_uncatchable_error = flag;
+  }
+
+  static JSValue JS_ThrowRangeError(JSContext ctx, String fmt, Object... args) {
+    JSValue val;
+    val = JS_ThrowError(ctx, JS_RANGE_ERROR, fmt, Arrays.asList(args));
+    return val;
   }
 }

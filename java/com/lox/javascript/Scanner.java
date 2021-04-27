@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.TokenType.*; // [static-import]
 
 class Scanner {
@@ -476,7 +477,7 @@ class Scanner {
 
   private void addToken_String(TokenType type, String literal) {
     String text = source.substring(start, current);
-    JSAtom str = ctx.rt.JS_NewAtomStr(literal);
+    JSAtom str = JS_NewAtomStr(ctx, new JSString(literal));
     Token token = new Token(type, text, literal, line);
     token.str_str = str;
     tokens.add(token);
@@ -484,7 +485,7 @@ class Scanner {
 
   private void addToken_Ident(TokenType type) {
     String text = source.substring(start, current);
-    JSAtom ident = ctx.rt.JS_NewAtomStr(text);
+    JSAtom ident = JS_NewAtomStr(ctx, new JSString(text));
     Token token = new Token(type, text, null, line);
     token.ident_atom = ident;
     token.start = start;

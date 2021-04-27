@@ -1,11 +1,16 @@
 package com.lox.javascript;
 
 import static com.lox.javascript.JSAtom.*;
+import static com.lox.javascript.JSClassID.JS_CLASS_PROXY;
 import static com.lox.javascript.JSContext.add_property;
 import static com.lox.javascript.JSObject.find_own_property;
+import static com.lox.javascript.JSProxy.js_proxy_isExtensible;
 import static com.lox.javascript.JSString.js_get_atom_index;
+import static com.lox.javascript.JSStringUtils.JS_ToStringInternal;
 import static com.lox.javascript.JSTag.*;
+import static com.lox.javascript.JSThrower.JS_ThrowRangeError;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorAtom;
+import static com.lox.javascript.JSToNumber.JS_ToNumberFree;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JUtils.print_atom;
@@ -78,6 +83,8 @@ public class JSValue {
   public int JS_VALUE_GET_INT() {
     if (value instanceof Integer) {
       return (Integer) value;
+    } else if (value instanceof Boolean) {
+      return (Boolean)value?1:0;
     }
     return 0;
   }
@@ -155,6 +162,22 @@ public class JSValue {
     return v;
   }
 
+  static  boolean JS_IsBool(final JSValue v)
+  {
+    return JS_VALUE_GET_TAG(v) == JS_TAG_BOOL;
+  }
+
+  static  boolean JS_IsNull(final JSValue v)
+  {
+    return JS_VALUE_GET_TAG(v) == JS_TAG_NULL;
+  }
+
+  static boolean JS_IsUndefined(final JSValue v)
+  {
+    return JS_VALUE_GET_TAG(v) == JS_TAG_UNDEFINED;
+  }
+
+
   static JSValue JS_MKVAL(JSTag tag, int val) {
     JSValue v = new JSValue(tag, val);
     return v;
@@ -197,7 +220,7 @@ public class JSValue {
                              JSAtom prop, JSValue val, int flags) {
     JSObject p, p1;
     JSShapeProperty prs;
-    PJSProperty ppr = new PJSProperty();
+    Pointer<JSProperty> ppr = new Pointer();
     JSTag tag;
     JSPropertyDescriptor desc;
     int ret = 0;
@@ -230,7 +253,7 @@ public class JSValue {
       if ((prs.flags & (JS_PROP_TMASK | JS_PROP_WRITABLE |
         JS_PROP_LENGTH)) == JS_PROP_WRITABLE) {
         /* fast case */
-        ctx.set_value(ppr.val.value, val);
+        ctx.set_value(ppr.val.u.value, val);
         return 1;
       }
     }
@@ -244,7 +267,7 @@ public class JSValue {
     }
 
     JSProperty jsprop = add_property(ctx, p, prop, JS_PROP_C_W_E);
-    jsprop.value = val;
+    jsprop.u.value = val;
 
 //    for(;;) {
 //      if (p1->is_exotic) {
@@ -406,8 +429,14 @@ public class JSValue {
     return ret;
   }
 
+  static JSValue JS_GetProperty(JSContext ctx, final JSValue this_obj,
+                                                JSAtom prop)
+  {
+    return JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, 0);
+  }
+
   static JSValue JS_GetPropertyInternal(JSContext ctx,
-                                 JSValue obj,
+                                 final JSValue obj,
                                  JSAtom prop, final JSValue this_obj,
                                  int throw_ref_error) {
     JSObject  p;
@@ -438,7 +467,7 @@ public class JSValue {
     while (true) {
       prs = find_own_property(ppr, p, prop);
       if (prs != null) {
-        return ppr.val.value;
+        return ppr.val.u.value;
       }
       p = p.shape.proto;
       if (p == null) {
@@ -558,10 +587,7 @@ public class JSValue {
     return atom;
   }
 
-  static JSValue JS_ToStringInternal(JSContext ctx, final JSValue val, boolean is_ToPropertyKey)
-  {
-    return null;
-  }
+
 
   static JSValue JS_ToPropertyKey(JSContext ctx, final JSValue val)
   {
@@ -591,11 +617,11 @@ public class JSValue {
       JS_PROP_THROW);
   }
 
-  static JSValue JS_NewUint32(JSContext ctx, int val)
+  static JSValue JS_NewUint32(JSContext ctx, long val)
   {
     JSValue v;
     if (val <= 0x7fffffff) {
-      v = JS_NewInt32(ctx, val);
+      v = JS_NewInt32(ctx, (int) val);
     } else {
       v = __JS_NewFloat64(ctx, val);
     }
@@ -668,5 +694,64 @@ public class JSValue {
       default:
         return (ctx.rt.class_array.get(p.class_id.ordinal()).call != null);
     }
+  }
+
+  static int JS_IsExtensible(JSContext ctx, final JSValue obj)
+  {
+    JSObject p;
+
+    if ((JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT))
+      return 0;
+    p = JS_VALUE_GET_OBJ(obj);
+    if ((p.class_id == JS_CLASS_PROXY))
+      return js_proxy_isExtensible(ctx, obj);
+    else
+      return p.extensible?1:0;
+  }
+
+  static int JS_ToArrayLengthFree(JSContext ctx, uint32_t plen,
+                                              JSValue val)
+  {
+    long len;
+    JSTag tag;
+
+    redo:
+    tag = JS_VALUE_GET_TAG(val);
+    switch(tag) {
+      case JS_TAG_INT:
+      case JS_TAG_BOOL:
+      case JS_TAG_NULL:
+      {
+        int v;
+        v = JS_VALUE_GET_INT(val);
+        if (v < 0)
+               return JS_ToArrayLengthFree_fail(ctx);
+        len = v;
+      }
+      break;
+
+      default:
+        if (JS_TAG_IS_FLOAT64(tag)) {
+          double d;
+          d = JS_VALUE_GET_FLOAT64(val);
+          len = (long) d;
+          if (len != d) {
+            return JS_ToArrayLengthFree_fail(ctx);
+          }
+        } else {
+          val = JS_ToNumberFree(ctx, val);
+          if (JS_IsException(val))
+            return -1;
+          return JS_ToArrayLengthFree(ctx, plen, val);
+        }
+        break;
+    }
+    plen.val = len;
+    return 0;
+  }
+
+  static int JS_ToArrayLengthFree_fail(JSContext ctx) {
+    JS_ThrowRangeError(ctx, "invalid array length");
+    return -1;
   }
 }

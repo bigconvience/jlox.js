@@ -85,7 +85,7 @@ public class JSRuntime {
   private static void JS_InitAtoms(JSRuntime rt) {
     rt.atom_array.clear();
     rt.atom_hash.clear();
-    __JS_NewAtomInit(rt,null, 0, JS_ATOM_TYPE_STRING);
+    __JS_NewAtom(rt, new JSString(null), JS_ATOM_TYPE_STRING);
     int atom_type;
     String str;
     for (int i = JSAtomEnum.JS_ATOM_null.ordinal(); i < JSAtomEnum.JS_ATOM_END.ordinal(); i++) {

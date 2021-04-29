@@ -116,6 +116,11 @@ public class JSValue {
       return v.JS_VALUE_GET_OBJ();
     }
   }
+  static boolean JS_IsNumber(JSValue v)
+  {
+    JSTag tag = JS_VALUE_GET_TAG(v);
+    return tag == JS_TAG_INT || JS_TAG_IS_FLOAT64(tag);
+  }
 
   public static boolean JS_IsObject(JSValue v) {
     return JS_TAG_OBJECT == v.tag;
@@ -530,6 +535,16 @@ public class JSValue {
       JSRefCountHeader p = (JSRefCountHeader)JS_VALUE_GET_PTR(v);
       if (--p.ref_count <= 0) {
         __JS_FreeValue(ctx, v);
+      }
+    }
+  }
+
+  static void JS_FreeValueRT(JSRuntime rt, JSValue v)
+  {
+    if (JS_VALUE_HAS_REF_COUNT(v)) {
+      JSRefCountHeader p = (JSRefCountHeader )JS_VALUE_GET_PTR(v);
+      if (--p.ref_count <= 0) {
+        __JS_FreeValueRT(rt, v);
       }
     }
   }

@@ -1,14 +1,16 @@
 package com.lox.javascript;
 
+import java.util.Arrays;
+
 import static com.lox.clibrary.stdlib_h.abort;
-import static com.lox.javascript.JSArrayUtils.convert_fast_array_to_array;
-import static com.lox.javascript.JSArrayUtils.set_array_length;
+import static com.lox.javascript.JSArrayUtils.*;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSClassID.JS_CLASS_FLOAT64_ARRAY;
 import static com.lox.javascript.JSCompare.js_same_value;
 import static com.lox.javascript.JSContext.set_value;
 import static com.lox.javascript.JSObject.find_own_property;
+import static com.lox.javascript.JSObject.free_property;
 import static com.lox.javascript.JSProperty.JS_CreateProperty;
 import static com.lox.javascript.JSProperty.check_define_prop_flags;
 import static com.lox.javascript.JSRuntime.free_var_ref;
@@ -19,6 +21,8 @@ import static com.lox.javascript.JSShapeProperty.js_shape_prepare_update;
 import static com.lox.javascript.JSTag.JS_TAG_OBJECT;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorNotAnObject;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorOrFalse;
+import static com.lox.javascript.JSToNumber.JS_NumberIsInteger;
+import static com.lox.javascript.JSToNumber.JS_NumberIsNegativeOrMinusZero;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JS_PROP.*;
 import static java.lang.Boolean.TRUE;
@@ -94,7 +98,6 @@ public class JSPropertyUtils {
     }
     p = JS_VALUE_GET_OBJ(this_obj);
 
-    redo_prop_update:
     prs = find_own_property(ppr, p, prop);
     pr = ppr.val;
 
@@ -202,9 +205,9 @@ public class JSPropertyUtils {
                        read-only behavior in JS_SetProperty(). */
           if ((flags & (JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE)) ==
             JS_PROP_HAS_WRITABLE) {
-            prs = get_shape_prop(p.shape);
+            prs = get_shape_prop(p.shape)[0];
             if (js_update_property_flags(ctx, p, prs,
-              prs.flags & ~(JS_PROP_WRITABLE | JS_PROP_LENGTH)))
+              prs.flags & ~(JS_PROP_WRITABLE | JS_PROP_LENGTH)) != 0)
               return -1;
           }
           return res;
@@ -243,7 +246,7 @@ public class JSPropertyUtils {
           if ((flags & JS_PROP_HAS_WRITABLE) != 0) {
             if (js_update_property_flags(ctx, p, prs,
               (prs.flags & ~JS_PROP_WRITABLE) |
-                (flags & JS_PROP_WRITABLE)))
+                (flags & JS_PROP_WRITABLE)) != 0)
               return -1;
           }
         }
@@ -255,15 +258,14 @@ public class JSPropertyUtils {
     if ((flags & JS_PROP_HAS_ENUMERABLE) != 0)
       mask |= JS_PROP_ENUMERABLE;
     if (js_update_property_flags(ctx, p, prs,
-      (prs.flags & ~mask) | (flags & mask)))
+      (prs.flags & ~mask) | (flags & mask)) != 0)
       return -1;
     return 1;
   }
 
   public static int JS_DefineProperty_handle_fast_array(JSContext ctx, final JSValue this_obj,
                                       JSAtom prop, final JSValue val,
-                                      final JSValue getter, final JSValue setter, int flags)
-  {
+                                      final JSValue getter, final JSValue setter, int flags) {
     JSObject p;
     JSShapeProperty prs;
     JSProperty pr;
@@ -287,14 +289,14 @@ public class JSPropertyUtils {
           if (idx < p.u.array.count) {
             prop_flags = get_prop_flags(flags, JS_PROP_C_W_E);
             if (prop_flags != JS_PROP_C_W_E) {
-              if (convert_fast_array_to_array(ctx, p) !=0 )
+              if (convert_fast_array_to_array(ctx, p) != 0)
                 return -1;
             }
             if ((flags & (JS_PROP_HAS_GET | JS_PROP_HAS_SET)) != 0) {
-              if (convert_fast_array_to_array(ctx, p) !=0 )
+              if (convert_fast_array_to_array(ctx, p) != 0)
                 return -1;
               else
-                            goto redo_prop_update;
+                return JS_DefineProperty_handle_retry(ctx, this_obj, prop, val, getter, setter, flags);
             }
             if ((flags & JS_PROP_HAS_VALUE) != 0) {
               set_value(ctx, p.u.array.u.values[idx], JS_DupValue(ctx, val));
@@ -311,7 +313,7 @@ public class JSPropertyUtils {
           /* slow path with to handle all numeric indexes */
           num = JS_AtomIsNumericIndex1(ctx, prop);
           if (JS_IsUndefined(num))
-                   return 0;
+            return 0;
           if (JS_IsException(num))
             return -1;
           ret = JS_NumberIsInteger(ctx, num);
@@ -323,22 +325,21 @@ public class JSPropertyUtils {
             JS_FreeValue(ctx, num);
             return JS_ThrowTypeErrorOrFalse(ctx, flags, "non integer index in typed array");
           }
-          ret = JS_NumberIsNegativeOrMinusZero(ctx, num);
+          ret = JS_NumberIsNegativeOrMinusZero(ctx, num) ? 1 : 0;
           JS_FreeValue(ctx, num);
           if (ret != 0) {
             return JS_ThrowTypeErrorOrFalse(ctx, flags, "negative index in typed array");
           }
           if (!__JS_AtomIsTaggedInt(prop))
-                    goto typed_array_oob;
+            return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound index in typed array");
         }
         idx = __JS_AtomToUInt32(prop);
         /* if the typed array is detached, p.u.array.count = 0 */
         if (idx >= typed_array_get_length(ctx, p)) {
-          typed_array_oob:
           return JS_ThrowTypeErrorOrFalse(ctx, flags, "out-of-bound index in typed array");
         }
         prop_flags = get_prop_flags(flags, JS_PROP_ENUMERABLE | JS_PROP_WRITABLE);
-        if ((flags & (JS_PROP_HAS_GET | JS_PROP_HAS_SET)) != 0||
+        if ((flags & (JS_PROP_HAS_GET | JS_PROP_HAS_SET)) != 0 ||
           prop_flags != (JS_PROP_ENUMERABLE | JS_PROP_WRITABLE)) {
           return JS_ThrowTypeErrorOrFalse(ctx, flags, "invalid descriptor flags");
         }
@@ -348,7 +349,7 @@ public class JSPropertyUtils {
         return 1;
       }
     }
-
+    return 0;
   }
 
 
@@ -359,87 +360,94 @@ public class JSPropertyUtils {
   static int delete_property(JSContext ctx, JSObject p, JSAtom atom)
   {
     JSShape sh;
-    JSShapeProperty pr, lpr, prop;
+    JSShapeProperty pr, lpr;
+    JSShapeProperty[] prop;
     JSProperty pr1;
-    uint32_t lpr_idx;
+    int lpr_idx;
     int h, h1;
 
-    redo:
     sh = p.shape;
-    h1 = atom & sh.prop_hash_mask;
+    h1 = atom.getVal() & sh.prop_hash_mask;
     h = prop_hash_end(sh)[h1];
     prop = get_shape_prop(sh);
-    lpr = NULL;
+    lpr = null;
     lpr_idx = 0;   /* prevent warning */
     while (h != 0) {
-      pr = &prop[h - 1];
-      if (likely(pr->atom == atom)) {
+      pr = prop[h - 1];
+      if ((pr.atom == atom)) {
         /* found ! */
-        if (!(pr->flags & JS_PROP_CONFIGURABLE))
-          return FALSE;
+        if ((pr.flags & JS_PROP_CONFIGURABLE) == 0)
+          return 0;
         /* realloc the shape if needed */
-        if (lpr)
-          lpr_idx = lpr - get_shape_prop(sh);
-        if (js_shape_prepare_update(ctx, p, &pr))
-        return -1;
+        if (lpr != null)
+          lpr_idx = Arrays.asList(get_shape_prop(sh)).indexOf(lpr_idx);
+        if (js_shape_prepare_update(ctx, p, pr) != 0)
+          return -1;
         sh = p.shape;
         /* remove property */
-        if (lpr) {
-          lpr = get_shape_prop(sh) + lpr_idx;
-          lpr->hash_next = pr->hash_next;
+        if (lpr != null) {
+          lpr = get_shape_prop(sh)[lpr_idx];
+          lpr.hash_next = pr.hash_next;
         } else {
-          prop_hash_end(sh)[-h1 - 1] = pr->hash_next;
+          prop_hash_end(sh)[h1 - 1] = pr.hash_next;
         }
         sh.deleted_prop_count++;
         /* free the entry */
-        pr1 = &p.prop[h - 1];
-        free_property(ctx->rt, pr1, pr->flags);
-        JS_FreeAtom(ctx, pr->atom);
+        pr1 = p.prop.get(h - 1);
+        free_property(ctx.rt, pr1, pr.flags);
+        JS_FreeAtom(ctx, pr.atom);
         /* put default values */
-        pr->flags = 0;
-        pr->atom = JS_ATOM_NULL;
-        pr1->u.value = JS_UNDEFINED;
+        pr.flags = 0;
+        pr.atom = JS_ATOM_NULL;
+        pr1.u.value = JS_UNDEFINED;
 
-        /* compact the properties if too many deleted properties */
-        if (sh.deleted_prop_count >= 8 &&
-          sh.deleted_prop_count >= ((unsigned)sh.prop_count / 2)) {
-          compact_properties(ctx, p);
-        }
-        return TRUE;
+
+        return 1;
       }
       lpr = pr;
-      h = pr->hash_next;
+      h = pr.hash_next;
     }
 
     if (p.is_exotic) {
       if (p.fast_array) {
-        uint32_t idx;
-        if (JS_AtomIsArrayIndex(ctx, &idx, atom) &&
-        idx < p.u.array.count) {
+        uint32_t idx = new uint32_t();
+        if (JS_AtomIsArrayIndex(ctx, idx, atom) &&
+        idx.toInt() < p.u.array.count) {
           if (p.class_id == JS_CLASS_ARRAY ||
             p.class_id == JS_CLASS_ARGUMENTS) {
             /* Special case deleting the last element of a fast Array */
-            if (idx == p.u.array.count - 1) {
-              JS_FreeValue(ctx, p.u.array.u.values[idx]);
-              p.u.array.count = idx;
-              return TRUE;
+            if (idx.toInt() == p.u.array.count - 1) {
+              JS_FreeValue(ctx, p.u.array.u.values[idx.toInt()]);
+              p.u.array.count = idx.toInt();
+              return 1;
             }
-            if (convert_fast_array_to_array(ctx, p))
+            if (convert_fast_array_to_array(ctx, p) != 0)
               return -1;
-                    goto redo;
+            return delete_property(ctx, p, atom);
           } else {
-            return FALSE; /* not configurable */
+            return 0; /* not configurable */
           }
         }
       } else {
-            const JSClassExoticMethods *em = ctx->rt->class_array[p.class_id].exotic;
-        if (em && em->delete_property) {
-          return em->delete_property(ctx, JS_MKPTR(JS_TAG_OBJECT, p), atom);
+             JSClassExoticMethods em = ctx.rt.class_array.get(p.class_id.ordinal()).exotic;
+        if (em != null && em.delete_property) {
+          return em.delete_property(ctx, JS_MKPTR(JS_TAG_OBJECT, p), atom);
         }
       }
     }
     /* not found */
     return 1;
+  }
+
+  static int js_update_property_flags(JSContext ctx, JSObject p,
+                                      JSShapeProperty pprs, int flags)
+  {
+    if (flags != pprs.flags) {
+    if (js_shape_prepare_update(ctx, p, pprs) != 0)
+      return -1;
+    pprs.flags = flags;
+  }
+    return 0;
   }
 
 }

@@ -3,8 +3,12 @@ package com.lox.javascript;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.lox.javascript.JSShape.get_shape_prop;
-import static com.lox.javascript.JSShape.prop_hash_end;
+import static com.lox.javascript.JSRuntime.free_var_ref;
+import static com.lox.javascript.JSRuntime.js_autoinit_free;
+import static com.lox.javascript.JSShape.*;
+import static com.lox.javascript.JSTag.*;
+import static com.lox.javascript.JSValue.*;
+import static com.lox.javascript.JS_PROP.*;
 
 /**
  * @author benpeng.jiang
@@ -32,6 +36,7 @@ public class JSObject {
     final Array array;
     final CFunc cfunc;
     final Func func;
+    JSTypedArray[] typed_array;
 
     public U() {
       array = new Array();
@@ -91,6 +96,24 @@ public class JSObject {
 
     proxy_data = new JSProxyData();
     u = new U();
+  }
+
+  static void free_property(JSRuntime rt, JSProperty pr, int prop_flags)
+  {
+    if ((prop_flags & JS_PROP_TMASK) != 0) {
+      if ((prop_flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
+        if (pr.u.getset.getter != null)
+          JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, pr.u.getset.getter));
+        if (pr.u.getset.setter != null)
+          JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, pr.u.getset.setter));
+      } else if ((prop_flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
+        free_var_ref(rt, pr.u.var_ref.val);
+      } else if ((prop_flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
+        js_autoinit_free(rt, pr);
+      }
+    } else {
+      JS_FreeValueRT(rt, pr.u.value);
+    }
   }
 
   static  JSShapeProperty find_own_property1(JSObject p,

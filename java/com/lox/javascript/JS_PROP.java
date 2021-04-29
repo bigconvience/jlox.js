@@ -16,7 +16,7 @@ public class JS_PROP {
   static final int JS_PROP_LENGTH = (1 << 3); /* used internally in Arrays */
   static final int JS_PROP_TMASK = (3 << 4); /* mask for NORMAL, GETSET, VARREF, AUTOINIT */
   static final int JS_PROP_NORMAL = (0 << 4);
-  static final int JS_PROP_GETSET = (1 << 4);
+  public static final int JS_PROP_GETSET = (1 << 4);
   static final int JS_PROP_VARREF = (2 << 4); /* used internally */
   static final int JS_PROP_AUTOINIT = (3 << 4); /* used internally */
   /* flags for JS_DefineProperty */

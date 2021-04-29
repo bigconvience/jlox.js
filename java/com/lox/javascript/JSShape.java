@@ -47,4 +47,26 @@ public class JSShape {
   static int[] prop_hash_end(JSShape sh) {
     return sh.hash_array;
   }
+
+  static void js_shape_hash_unlink(JSRuntime rt, JSShape sh)
+  {
+
+  }
+
+  static void js_free_shape(JSRuntime rt, JSShape sh)
+  {
+    if ((--sh.header.ref_count <= 0)) {
+      js_free_shape0(rt, sh);
+    }
+  }
+
+  static void js_free_shape0(JSRuntime rt, JSShape sh)
+  {
+
+  }
+
+  static JSShape js_clone_shape(JSContext ctx, JSShape sh1)
+  {
+    return sh1;
+  }
 }

@@ -284,4 +284,24 @@ public class JSArrayUtils {
     }
     return 1;
   }
+
+  /* WARNING: 'p' must be a typed array. Works even if the array buffer
+     is detached */
+  static long typed_array_get_length(JSContext ctx, JSObject p)
+  {
+    JSTypedArray[] ta = p.u.typed_array;
+    int size_log2 = typed_array_size_log2(p.class_id);
+    return ta.length >> size_log2;
+  }
+
+
+  static final int JS_TYPED_ARRAY_COUNT = (JS_CLASS_FLOAT64_ARRAY.ordinal() - JS_CLASS_UINT8C_ARRAY.ordinal() + 1);
+
+  static int[] typed_array_size_log2 =  {
+    0, 0, 0, 1, 1, 2, 2,
+    2, 3
+};
+  static  int  typed_array_size_log2(JSClassID classID) {
+      return typed_array_size_log2[classID.ordinal() - JS_CLASS_UINT8C_ARRAY.ordinal()];
+  }
 }

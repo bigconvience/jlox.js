@@ -15,9 +15,4 @@ public class JSVarRef {
   JSValue pvalue;
   JSValue value;
 
-
-  public static class PPtr {
-    List<JSVarRef> var_refs;
-  }
-
 }

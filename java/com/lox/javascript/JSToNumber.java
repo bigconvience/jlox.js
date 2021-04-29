@@ -1,12 +1,15 @@
 package com.lox.javascript;
 
+import static com.lox.clibrary.stdlib_h.abort;
 import static com.lox.javascript.JSStringUtils.*;
+import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSToPrimitive.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JSToNumberHintEnum.*;
 import static com.lox.javascript.JUtils.js_atof;
 import static com.lox.javascript.JUtils.skip_spaces;
+import static java.lang.Math.floor;
 
 /**
  * @author benpeng.jiang
@@ -171,4 +174,85 @@ public class JSToNumber {
     return JS_ToNumericFree(ctx, JS_DupValue(ctx, val));
   }
 
+  static int JS_NumberIsInteger(JSContext ctx, final JSValue val)
+  {
+    Pointer<Double> d = new Pointer<>();
+    if (!JS_IsNumber(val))
+      return 0;
+    if (JS_ToFloat64(ctx, d, val) != 0)
+    return -1;
+    return Double.isInfinite(d.val) && floor(d.val) == d.val?1:0;
+  }
+
+  static boolean JS_NumberIsNegativeOrMinusZero(JSContext ctx, JSValue val)
+  {
+    JSTag tag;
+
+    tag = JS_VALUE_GET_NORM_TAG(val);
+    switch(tag) {
+      case JS_TAG_INT:
+      {
+        int v;
+        v = JS_VALUE_GET_INT(val);
+        return (v < 0);
+      }
+      case JS_TAG_FLOAT64:
+      {
+        JSFloat64Union u = new JSFloat64Union();
+        u.d = JS_VALUE_GET_FLOAT64(val);
+        return (u.u64 >> 63) != 0;
+      }
+      default:
+        return false;
+    }
+  }
+
+
+  static int JS_ToFloat64(JSContext ctx,  Pointer<Double>  pres, final JSValue val)
+  {
+    return JS_ToFloat64Free(ctx, pres, JS_DupValue(ctx, val));
+  }
+
+  static int JS_ToFloat64Free(JSContext ctx, Pointer<Double> pres, JSValue val)
+  {
+    uint32_t tag;
+
+    tag = new uint32_t(JS_VALUE_GET_TAG(val).ordinal());
+    if (tag.toInt() <= JS_TAG_NULL.ordinal()) {
+        pres.val = (double)JS_VALUE_GET_INT(val);
+      return 0;
+    } else if (JS_TAG_IS_FLOAT64(JSTag.values()[tag.toInt()])) {
+        pres.val = (double)JS_VALUE_GET_FLOAT64(val);
+      return 0;
+    } else {
+      return __JS_ToFloat64Free(ctx, pres, val);
+    }
+  }
+
+  static  int __JS_ToFloat64Free(JSContext ctx, Pointer<Double> pres,
+                                            JSValue val)
+  {
+    double d = 0;
+    JSTag tag;
+
+    val = JS_ToNumberFree(ctx, val);
+    if (JS_IsException(val)) {
+        pres.val = Double.NaN;
+      return -1;
+    }
+    tag = JS_VALUE_GET_NORM_TAG(val);
+    switch(tag) {
+      case JS_TAG_INT:
+        d = JS_VALUE_GET_INT(val);
+        break;
+      case JS_TAG_FLOAT64:
+        d = JS_VALUE_GET_FLOAT64(val);
+        break;
+
+      default:
+        abort();
+    }
+    pres.val = d;
+    return 0;
+  }
 }

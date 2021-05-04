@@ -65,7 +65,7 @@ public class JSValue {
   }
 
   public static boolean JS_VALUE_HAS_REF_COUNT(JSValue v) {
-   return JS_VALUE_GET_TAG(v).ordinal() >= JS_TAG_FIRST.ordinal();
+    return JS_VALUE_GET_PTR(v) instanceof JSRefCountHeader;
   }
 
   public static int JS_VALUE_GET_BOOL(JSValue v) {

@@ -15,7 +15,7 @@ public class JSStackFrame {
   JSValue[] arg_buf;
   JSValue[] var_buf;
   List<JSVarRef> var_ref_list;
-  byte cur_pc;
+  int cur_pc;
   int js_mode;
   JSValue cur_sp;
 }

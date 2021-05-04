@@ -73,7 +73,7 @@ public class LoxJS {
 
   }
 
-  void js_std_add_helpers(JSContext ctx, int argc,String[] argv)
+  static void js_std_add_helpers(JSContext ctx, int argc,String[] argv)
   {
     JSValue global_obj, console, args;
     int i;
@@ -88,7 +88,7 @@ public class LoxJS {
     JS_SetPropertyStr(ctx, global_obj, "console", console);
 
     /* same methods as the mozilla JS shell */
-    if (argc >= 0) {
+    if (argc > 0) {
       args = JS_NewArray(ctx);
       for(i = 0; i < argc; i++) {
         JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));

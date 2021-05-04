@@ -393,7 +393,7 @@ public class JSPropertyUtils {
         }
         sh.deleted_prop_count++;
         /* free the entry */
-        pr1 = p.prop.get(h - 1);
+        pr1 = p.prop[h - 1];
         free_property(ctx.rt, pr1, pr.flags);
         JS_FreeAtom(ctx, pr.atom);
         /* put default values */
@@ -450,4 +450,44 @@ public class JSPropertyUtils {
     return 0;
   }
 
+  /* make space to hold at least 'count' properties */
+  static  int resize_properties(JSContext ctx, JSShape psh,
+                                         JSObject p, int count)
+  {
+    JSShape sh;
+    int new_size, new_hash_size, new_hash_mask, i;
+
+
+    sh = psh;
+    new_size = Math.min(count, sh.prop_size * 3 / 2);
+    /* Reallocate prop array first to avoid crash or size inconsistency
+       in case of memory allocation failure */
+    if (p != null) {
+      JSProperty[] new_prop;
+      new_prop = new JSProperty[new_size];
+      System.arraycopy(p.prop, 0, new_prop, 0, sh.prop_size);
+      p.prop = new_prop;
+    }
+    new_hash_size = sh.prop_hash_mask + 1;
+    while (new_hash_size < new_size)
+      new_hash_size = 2 * new_hash_size;
+    if (new_hash_size != (sh.prop_hash_mask + 1)) {
+      int[] new_hash_array = new int[new_hash_size];
+      System.arraycopy(sh.prop_hash_mask, 0, new_hash_array, 0, new_hash_size);
+      sh.hash_array = new_hash_array;
+    }
+    JSShape old_sh;
+    /* resize the hash table and the properties */
+    old_sh = sh;
+    JSShapeProperty[] new_prop = new JSShapeProperty[new_size];
+    for (i = old_sh.prop_count; i < new_size; i++) {
+      new_prop[i] = new JSShapeProperty();
+    }
+    System.arraycopy(sh.prop, 0, new_prop, 0, old_sh.prop_count);
+    sh.prop = new_prop;
+
+    psh = sh;
+    sh.prop_size = new_size;
+    return 0;
+  }
 }

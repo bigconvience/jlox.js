@@ -5,6 +5,7 @@ import static com.lox.javascript.JSAtomEnum.*;
 import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSPropertyUtils.delete_property;
+import static com.lox.javascript.JSPropertyUtils.resize_properties;
 import static com.lox.javascript.JSRuntime.*;
 import static com.lox.javascript.JSShape.*;
 import static com.lox.javascript.JSShapeProperty.*;
@@ -33,7 +34,7 @@ public class JSArrayUtils {
     long len;
     JSProperty plen;
     JSShapeProperty pslen;
-    plen = p.prop.get(0);
+    plen = p.prop[0];
     JS_ToUint32(ctx, pplen, plen.u.value);
     len = pplen.val;
     if ((idx + 1) > len) {
@@ -166,14 +167,14 @@ public class JSArrayUtils {
     new_len = new uint32_t(p.u.array.count + 1);
     /* update the length if necessary. We assume that if the length is
        not an integer, then if it >= 2^31.  */
-    if (JS_VALUE_GET_TAG(p.prop.get(0).u.value) == JS_TAG_INT) {
-      array_len = new uint32_t(JS_VALUE_GET_INT(p.prop.get(0).u.value));
+    if (JS_VALUE_GET_TAG(p.prop[0].u.value) == JS_TAG_INT) {
+      array_len = new uint32_t(JS_VALUE_GET_INT(p.prop[0].u.value));
       if (new_len.toUnit32() > array_len.toUnit32()) {
         if ((get_shape_prop(p.shape)[0].flags & JS_PROP_WRITABLE) == 0) {
           JS_FreeValue(ctx, val);
           return JS_ThrowTypeErrorReadOnly(ctx, flags, JS_ATOM_length);
         }
-        p.prop.get(0).u.value = JS_NewInt32(ctx, new_len.toInt());
+        p.prop[0].u.value = JS_NewInt32(ctx, new_len.toInt());
       }
     }
     if (new_len.toUnit32() > p.u.array.u1.size.toUnit32()) {
@@ -216,12 +217,12 @@ public class JSArrayUtils {
         }
         p.u.array.count = len.toInt();
       }
-      p.prop.get(0).u.value = JS_NewUint32(ctx, len.toInt());
+      p.prop[0].u.value = JS_NewUint32(ctx, len.toInt());
     } else {
         /* Note: length is always a uint32 because the object is an
            array */
       Pointer<Integer> p_cur_len = new Pointer<>();
-      JS_ToUint32(ctx, p_cur_len, p.prop.get(0).u.value);
+      JS_ToUint32(ctx, p_cur_len, p.prop[0].u.value);
       cur_len = p_cur_len.val;
       if (len.val < cur_len) {
         uint32_t d;
@@ -277,7 +278,7 @@ public class JSArrayUtils {
       } else {
         cur_len = len.val;
       }
-      set_value(ctx, p.prop.get(0).u.value, JS_NewUint32(ctx, cur_len));
+      set_value(ctx, p.prop[0].u.value, JS_NewUint32(ctx, cur_len));
       if ((cur_len > len.val)) {
         return JS_ThrowTypeErrorOrFalse(ctx, flags, "not configurable");
       }

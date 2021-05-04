@@ -13,7 +13,8 @@ import static com.lox.javascript.JSCFunction.*;
 import static com.lox.javascript.JSCFunctionEnum.*;
 import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSObject.*;
-import static com.lox.javascript.JSShape.js_dup_shape;
+import static com.lox.javascript.JSPropertyUtils.resize_properties;
+import static com.lox.javascript.JSShape.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JS_PROP.*;
@@ -207,42 +208,46 @@ public class JSContext {
       return null;
     }
 
-    return p.prop.get(p.shape.prop_count - 1);
+    return p.prop[p.shape.prop_count - 1];
   }
 
   static int add_shape_property(
     JSContext ctx, JSShape psh,
                          JSObject p, JSAtom atom, int prop_flags) {
-
+    JSRuntime rt = ctx.rt;
     JSShape sh = psh;
     JSShapeProperty pr;
     JSShapeProperty[] prop;
     int hash_mask, new_shape_hash = 0;
+    int h;
+
+    if (sh.is_hashed) {
+      js_shape_hash_unlink(rt, sh);
+      new_shape_hash = shape_hash(shape_hash(sh.hash, atom.getVal()), prop_flags);
+    }
 
     if (sh.prop_count >= sh.prop_size) {
-      resize_properties(ctx, sh, p, sh.prop_size + 1);
+      resize_properties(ctx, sh, p, sh.prop_count + 1);
     }
 
     /* Initialize the new shape property.
-       The object property at p->prop[sh->prop_count] is uninitialized */
+       The object property at p->prop[sh.prop_count] is uninitialized */
+    if (sh.is_hashed) {
+      sh.hash = new_shape_hash;
+    }
     prop = sh.prop;
-    pr = new JSShapeProperty();
-    prop[sh.prop_count++] = pr;
+    pr = prop[sh.prop_count++];
     pr.atom = atom;
     pr.flags = prop_flags;
+    sh.has_small_array_index |= __JS_AtomIsTaggedInt(atom);
+
+    /* add in hash table */
+    hash_mask = sh.prop_hash_mask;
+    h = atom.getVal() & hash_mask;
+    pr.hash_next = prop_hash_end(sh)[h];
+    prop_hash_end(sh)[h] = sh.prop_count;
     return 0;
   }
-
-  static int resize_properties(JSContext ctx, JSShape psh,
-                        JSObject p, int count) {
-    int start = p.prop.size();
-    while (start < count) {
-      p.prop.add(new JSProperty());
-      start++;
-    }
-    return 0;
-  }
-
 
   JSValue JS_AtomToValue(int atomIdx) {
     JSAtom atom = new JSAtom(atomIdx);
@@ -455,6 +460,10 @@ public class JSContext {
   static JSValue JS_NewObjectFromShape(JSContext ctx, JSShape sh, JSClassID classID) {
     JSObject p = new JSObject();
     p.shape = sh;
+    p.prop = new JSProperty[sh.prop_size];
+    for (int i = 0 ; i < sh.prop_size; i++) {
+      p.prop[i] = new JSProperty();
+    }
     switch (classID) {
       case JS_CLASS_OBJECT:
         break;
@@ -487,7 +496,7 @@ public class JSContext {
 
   static JSValue JS_NewObjectProtoClass(JSContext ctx, final JSValue proto_val, JSClassID class_id) {
     JSShape sh;
-//    JSObject proto = proto_val.get_proto_obj();
+//    JSObject proto = get_proto_obj(proto_val);
     sh = js_new_shape(ctx, null);
     if (sh == null) {
       return JSValue.JS_EXCEPTION;
@@ -505,9 +514,43 @@ public class JSContext {
 
   static JSShape js_new_shape2(JSContext ctx, JSObject proto, int hash_size, int prop_size) {
     JSShape sh = new JSShape();
+
+    sh.hash_array = new int[hash_size];
+    sh.prop = new JSShapeProperty[prop_size];
+    for (int i  = 0; i < prop_size; i++) {
+      sh.prop[i] = new JSShapeProperty();
+    }
     sh.proto = proto;
 
+    sh.prop_hash_mask = hash_size - 1;
+    sh.prop_size = prop_size;
+    sh.prop_count = 0;
+    sh.deleted_prop_count = 0;
+
+    sh.hash = shape_initial_hash(proto);
+    sh.is_hashed = true;
+    sh.has_small_array_index = false;
+
     return sh;
+  }
+
+  static int shape_hash(int h, int val)
+  {
+    return (h + val) * 0x9e370001;
+  }
+
+  /* truncate the shape hash to 'hash_bits' bits */
+  static int get_shape_hash(int h, int hash_bits)
+  {
+    return h >> (32 - hash_bits);
+  }
+
+  static int shape_initial_hash(JSObject proto)
+  {
+    int h;
+    int hash = proto == null ? 0 : proto.hashCode();
+    h = shape_hash(1, hash);
+    return h;
   }
 
   static JSValue js_closure(JSContext ctx, JSValue bfunc, JSVarRefWrapper cur_var_refs, JSStackFrame sf) {

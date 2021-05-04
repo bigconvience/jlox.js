@@ -13,7 +13,7 @@ class Scanner {
 
   static {
     keywords = new HashMap<>();
-    keywords.put("print", PRINT);
+//    keywords.put("print", PRINT);
 
     // 关键字 @https://ecma-international.org/ecma-262/10.0/index.html#sec-reserved-words
     keywords.put("null", TOK_NULL);

@@ -11,6 +11,7 @@ import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JUtils.*;
+import static com.lox.javascript.ShortOPCodeEnum.*;
 
 /*
   @author benpeng.jiang
@@ -435,6 +436,34 @@ public class VM {
             on_exception();
         }
         break;
+        case OP_call0:
+        case OP_call1:
+        case OP_call2:
+        case OP_call3:
+        case OP_call:
+        case OP_tail_call:
+          if (opcode == OP_call || opcode == OP_tail_call) {
+            call_argc = get_u16(code_buf, pc);
+            pc += 2;
+          } else {
+            call_argc = opcode.ordinal() - OP_call0.ordinal();
+          }
+
+          call_argv = get_values(stack_buf, sp, call_argc);
+          sf.cur_pc = pc;
+          ret_val = JS_CallInternal(ctx, peek(stack_buf, sp - call_argc), JS_UNDEFINED,
+            JS_UNDEFINED, call_argc, call_argv, 0);
+          if ((JS_IsException(ret_val))) {
+              on_exception();
+          }
+          if (opcode == OP_tail_call) {
+              on_done();
+          }
+          for(i = -1; i < call_argc; i++)
+            JS_FreeValue(ctx, call_argv[i]);
+          sp -= call_argc + 1;
+          push(stack_buf, sp++, ret_val);
+         break;
       }
     }
 
@@ -443,6 +472,10 @@ public class VM {
   }
 
   private static void on_exception() {
+
+  }
+
+  private static void on_done() {
 
   }
 
@@ -476,6 +509,14 @@ public class VM {
   private static JSValue push(JSValue[] stackBuf, int sp, JSValue value) {
     stackBuf[sp] = value;
     return value;
+  }
+
+  static JSValue[] get_values(JSValue[] stack, int sp, int count) {
+    JSValue[] values = new JSValue[count];
+    for (int i = 0, j = sp - count; i < count; i++) {
+      values[i] = stack[j + i];
+    }
+    return values;
   }
 
 

@@ -87,7 +87,7 @@ public class JSAtom {
 
     if (len == 0 || !is_digit(str[0])) {
       JSAtom atom = __JS_FindAtom(ctx.rt, str, len, JS_ATOM_TYPE_STRING);
-      if (atom != null)
+      if (atom != null && atom.val != 0)
         return atom;
     }
     val = JS_NewStringLen(ctx, str, len);

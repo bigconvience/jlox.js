@@ -17,7 +17,7 @@ import static com.lox.javascript.JS_PROP.*;
  * @description: TODO
  * @date 2021/1/151:47 PM
  */
-public class JSObject {
+public class JSObject extends JSRefCountHeader{
   boolean is_HTMLDDA;
   boolean is_uncatchable_error;
   boolean extensible = true;
@@ -26,7 +26,7 @@ public class JSObject {
   boolean is_constructor;
   JSProxyData proxy_data;
   JSShape shape;
-  final List<JSProperty> prop;
+  JSProperty[] prop;
   JSClassID class_id;
 
 
@@ -58,6 +58,10 @@ public class JSObject {
     int length;
     JSCFunctionEnum cproto;
     int magic;
+
+    public CFunc() {
+      c_function = new JSCFunctionType();
+    }
   }
 
   static class Array {
@@ -92,8 +96,6 @@ public class JSObject {
   }
 
   public JSObject() {
-    prop = new ArrayList<>();
-
     proxy_data = new JSProxyData();
     u = new U();
   }
@@ -152,7 +154,7 @@ public class JSObject {
     while (h != 0) {
       pr = prop[h - 1];
       if (pr.atom == atom) {
-            ppr.val = p.prop.get(h - 1);
+            ppr.val = p.prop[h - 1];
         /* the compiler should be able to assume that pr != NULL here */
         return pr;
       }
@@ -175,7 +177,7 @@ public class JSObject {
     while (h != 0) {
       pr = prop[h - 1];
       if (pr.atom == atom) {
-        ppr.val = p.prop.get(h - 1);
+        ppr.val = p.prop[h - 1];
         /* the compiler should be able to assume that pr != NULL here */
         return pr;
       }

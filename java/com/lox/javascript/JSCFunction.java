@@ -1,11 +1,15 @@
 package com.lox.javascript;
 
+import com.lox.clibrary.stdio_h;
+
+import static com.lox.clibrary.stdio_h.*;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.JSAtomEnum.*;
 import static com.lox.javascript.JSCFunctionEnum.*;
 import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSContext.*;
 import static com.lox.javascript.JSProperty.*;
+import static com.lox.javascript.JSStringUtils.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JS_PROP.*;
 
@@ -20,7 +24,17 @@ public abstract class JSCFunction {
    public static JSCFunction js_print = new JSCFunction() {
       @Override
       public JSValue JSCFunction(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
-         return null;
+         char[] str;
+         Pointer<Integer> len = new Pointer<>();
+         for (int i = 0; i < argc; i++) {
+            if (i != 0) {
+               putchar(' ');
+            }
+            str = JS_ToCStringLen(ctx, len, argv[i]);
+            printf(new String(str));
+         }
+         putchar('\n');
+         return JS_UNDEFINED;
       }
    };
 

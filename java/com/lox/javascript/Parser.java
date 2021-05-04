@@ -694,7 +694,7 @@ class Parser {
   }
 
   public Token previous() {
-    return tokens.get(current - 1);
+    return current > 0 ? tokens.get(current - 1) : null;
   }
 
   private ParseError error(Token token, String message) {
@@ -1065,7 +1065,7 @@ class Parser {
   }
 
   int getPreviousLineNum() {
-    return previous().line_num;
+    return previous() != null ? previous().line_num : 0;
   }
   int getCurrentLinenum() {
     return peek().line_num;

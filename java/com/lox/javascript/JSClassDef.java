@@ -11,4 +11,6 @@ public class JSClassDef {
   String class_name;
   JSClassFinalizer finalizer;
   JSClassGCMark gc_mark;
+  JSClassCall call;
+  JSClassExoticMethods exotic;
 }

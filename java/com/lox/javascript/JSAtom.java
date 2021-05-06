@@ -142,6 +142,17 @@ public class JSAtom {
 
   }
 
+  static JSAtom JS_DupAtomRT(JSRuntime rt, JSAtom v)
+  {
+    JSString p;
+
+    if (!__JS_AtomIsConst(v)) {
+      p = rt.atom_array.get(v.getVal());
+      p.header.ref_count++;
+    }
+    return v;
+  }
+
   static JSAtom JS_DupAtom(JSContext ctx, JSAtom v)
   {
     JSRuntime rt;

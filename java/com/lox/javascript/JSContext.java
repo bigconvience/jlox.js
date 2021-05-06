@@ -41,7 +41,8 @@ public class JSContext {
   static final int JS_STACK_SIZE_MAX = 65536;
   static final int JS_STRING_LEN_MAX = ((1 << 30) - 1);
 
-  final Map<JSClassID, JSValue> class_proto;
+  JSContext link;
+  JSValue[] class_proto;
   JSRefCountHeader header = new JSRefCountHeader();
   public JSValue global_obj;
   public JSValue global_var_obj;
@@ -52,19 +53,18 @@ public class JSContext {
 
   public JSContext(JSRuntime rt) {
     this.rt = rt;
-    class_proto = new HashMap<>();
   }
 
   static void JS_AddIntrinsicBasicObjects(JSContext ctx) {
     JSValue proto;
     int i;
 
-    ctx.class_proto.put(JS_CLASS_OBJECT, JS_NewObjectProto(ctx, JS_NULL));
+    ctx.class_proto[JS_CLASS_OBJECT.ordinal()] = JS_NewObjectProto(ctx, JS_NULL);
     ctx.function_proto = JS_NewCFunction3(ctx, js_function_proto, "", 0,
       JS_CFUNC_generic, 0,
-      ctx.class_proto.get(JS_CLASS_OBJECT));
+      ctx.class_proto[JS_CLASS_OBJECT.ordinal()]);
 
-    ctx.array_shape = js_new_shape2(ctx, JSValue.get_proto_obj(ctx.class_proto.get(JS_CLASS_ARRAY)),
+    ctx.array_shape = js_new_shape2(ctx, JSValue.get_proto_obj(ctx.class_proto[JS_CLASS_ARRAY.ordinal()]),
       JS_PROP_INITIAL_HASH_SIZE, 1);
   }
 
@@ -483,7 +483,7 @@ public class JSContext {
   }
 
   static JSValue JS_NewObjectClass(JSContext ctx, JSClassID class_id) {
-    return JS_NewObjectProtoClass(ctx, ctx.class_proto.get(class_id), class_id);
+    return JS_NewObjectProtoClass(ctx, ctx.class_proto[class_id.ordinal()], class_id);
   }
 
   static JSValue JS_NewObjectProto(JSContext ctx, final JSValue proto) {
@@ -491,7 +491,7 @@ public class JSContext {
   }
 
   static JSValue JS_NewObject(JSContext ctx) {
-    return JS_NewObjectProtoClass(ctx, ctx.class_proto.get(JS_CLASS_OBJECT), JS_CLASS_OBJECT);
+    return JS_NewObjectProtoClass(ctx, ctx.class_proto[JS_CLASS_OBJECT.ordinal()], JS_CLASS_OBJECT);
   }
 
   static JSValue JS_NewObjectProtoClass(JSContext ctx, final JSValue proto_val, JSClassID class_id) {

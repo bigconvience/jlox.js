@@ -11,6 +11,7 @@ import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.JS_ThrowRangeError;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorAtom;
 import static com.lox.javascript.JSToNumber.JS_ToNumberFree;
+import static com.lox.javascript.JSValueUtils.JS_GetPrototypePrimitive;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JUtils.print_atom;
@@ -247,8 +248,8 @@ public class JSValue {
         default:
           /* even on a primitive type we can have setters on the prototype */
           p = null;
-//          p1 = JS_VALUE_GET_OBJ(JS_GetPrototypePrimitive(ctx, this_obj));
-//            goto prototype_lookup;
+          p1 = JS_VALUE_GET_OBJ(JS_GetPrototypePrimitive(ctx, this_obj));
+            goto prototype_lookup;
       }
     }
     p = this_obj.JS_VALUE_GET_OBJ();
@@ -707,7 +708,7 @@ public class JSValue {
       case JS_CLASS_PROXY:
         return p.proxy_data.is_func;
       default:
-        return (ctx.rt.class_array.get(p.class_id.ordinal()).call != null);
+        return (ctx.rt.class_array[p.class_id.ordinal()].call != null);
     }
   }
 

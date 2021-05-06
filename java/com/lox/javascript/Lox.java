@@ -8,6 +8,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static com.lox.javascript.JSRuntime.JS_NewCustomContext;
 import static com.lox.javascript.LoxJS.js_std_add_helpers;
 
 public class Lox {
@@ -54,7 +55,7 @@ public class Lox {
     }
     JSRuntime rt = new JSRuntime();
 
-    JSContext ctx = rt.JS_NewCustomContext();
+    JSContext ctx = JS_NewCustomContext(rt);
     js_std_add_helpers(ctx, 0, new String[0]);
     LoxJS.JS_Eval(ctx, source, filename, LoxJS.JS_EVAL_TYPE_GLOBAL);
     // Stop if there was a syntax error.

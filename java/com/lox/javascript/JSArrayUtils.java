@@ -135,7 +135,7 @@ public class JSArrayUtils {
           return JS_ThrowTypeErrorOrFalse(ctx, flags, "cannot create numeric index in typed array");
         }
       } else if ((flags & JS_PROP_NO_EXOTIC) == 0) {
-            final JSClassExoticMethods em = ctx.rt.class_array.get(p.class_id.ordinal()).exotic;
+            final JSClassExoticMethods em = ctx.rt.class_array[p.class_id.ordinal()].exotic;
         if (em != null) {
           if (!em.define_own_property) {
             return em.define_own_property(ctx, JS_MKPTR(JS_TAG_OBJECT, p),

@@ -8,7 +8,7 @@ package com.lox.javascript;
  * @date 2021/3/42:38 PM
  */
 public class JSClass {
-  JSClassID class_id;
+  int class_id;
   JSAtom class_name;
   JSClassExoticMethods exotic;
   JSClassCall call;

@@ -429,7 +429,7 @@ public class JSPropertyUtils {
           }
         }
       } else {
-             JSClassExoticMethods em = ctx.rt.class_array.get(p.class_id.ordinal()).exotic;
+             JSClassExoticMethods em = ctx.rt.class_array[p.class_id.ordinal()].exotic;
         if (em != null && em.delete_property) {
           return em.delete_property(ctx, JS_MKPTR(JS_TAG_OBJECT, p), atom);
         }

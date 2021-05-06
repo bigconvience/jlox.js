@@ -569,7 +569,7 @@ public class Dumper {
       break;
       case JS_TAG_OBJECT: {
         JSObject p = JS_VALUE_GET_OBJ(val);
-        JSAtom atom = rt.class_array.get(p.class_id.ordinal()).class_name;
+        JSAtom atom = rt.class_array[p.class_id.ordinal()].class_name;
         printf("[%s %s]",
           JS_AtomGetStrRT(rt, atom), p.toString());
       }

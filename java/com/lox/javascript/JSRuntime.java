@@ -1,5 +1,7 @@
 package com.lox.javascript;
 
+import com.sun.org.apache.bcel.internal.generic.JSR;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +10,9 @@ import java.util.Map;
 import static com.lox.clibrary.string_h.strlen;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.clibrary.stdio_h.printf;
+import static com.lox.javascript.JSClassID.JS_CLASS_INIT_COUNT;
+import static com.lox.javascript.JSRuntimeUtils.js_realloc_rt;
+import static com.lox.javascript.JSValue.JS_NULL;
 import static com.lox.javascript.JSValue.JS_VALUE_GET_STRING;
 import static com.lox.javascript.LoxJS.is_digit;
 
@@ -21,12 +26,14 @@ import static com.lox.javascript.LoxJS.is_digit;
 public class JSRuntime {
   final List<JSString> atom_array;
   final Map<JSString, Integer> atom_hash;
-  final List<JSClass> class_array;
+  int class_count;
+  JSClass[] class_array;
 
   int stack_size;
   int stack_top;
   JSStackFrame current_stack_frame;
   JSValue current_exception;
+  JSContext context_list;
 
   static boolean interrupt_handler(JSRuntime rt, Object opaque) {
 
@@ -39,27 +46,27 @@ public class JSRuntime {
   public JSRuntime() {
     this.atom_array = new ArrayList<>();
     this.atom_hash = new HashMap<>();
-    this.class_array = new ArrayList<>();
 
     JS_InitAtoms(this);
   }
 
-  public JSContext JS_NewCustomContext() {
-    JSContext ctx = JS_NewContext();
+  public static JSContext JS_NewCustomContext(JSRuntime rt) {
+    JSContext ctx = JS_NewContext(rt);
 
 
     return ctx;
   }
 
-  JSContext JS_NewContext() {
-    JSContext ctx = JS_NewContextRaw();
+  static JSContext JS_NewContext(JSRuntime rt) {
+    JSContext ctx = JS_NewContextRaw(rt);
 
     ctx.JS_AddIntrinsicBaseObjects(ctx);
     return ctx;
   }
 
-  JSContext JS_NewContextRaw() {
-    JSContext ctx = new JSContext(this);
+  static JSContext JS_NewContextRaw(JSRuntime rt) {
+    JSContext ctx = new JSContext(rt);
+    ctx.class_proto = new JSValue[rt.class_count];
 
 
     return ctx;
@@ -109,7 +116,7 @@ public class JSRuntime {
     return __JS_NewAtom(rt, p, atom_type);
   }
 
-  int init_class_range(JSClassShortDef[] tab, int start, int count) {
+  static int init_class_range(JSRuntime rt, JSClassShortDef[] tab, int start, int count) {
     JSClassDef cm;
     int class_id;
     for (int i = 0; i < count; i++) {
@@ -117,7 +124,7 @@ public class JSRuntime {
       cm = new JSClassDef();
       cm.finalizer = tab[i].finalizer;
       cm.gc_mark = tab[i].gc_mark;
-      if (JS_NewClass1(JSClassID.values()[class_id], cm, tab[i].class_name) < 0) {
+      if (JS_NewClass1(rt, JSClassID.values()[class_id], cm, tab[i].class_name) < 0) {
         return -1;
       }
     }
@@ -125,7 +132,47 @@ public class JSRuntime {
     return 0;
   }
 
-  int JS_NewClass1(JSClassID class_id, final JSClassDef class_def, JSAtom name) {
+  static int JS_NewClass1(JSRuntime rt, JSClassID classId, final JSClassDef class_def, JSAtom name) {
+    int new_size, i;
+    JSClass cl;
+    JSClass[] new_class_array;
+
+    int class_id = classId.ordinal();
+    if (class_id < rt.class_count &&
+      rt.class_array[class_id].class_id != 0)
+      return -1;
+
+    if (class_id >= rt.class_count) {
+      new_size = Math.max(JS_CLASS_INIT_COUNT.ordinal(),
+        Math.min(class_id + 1, rt.class_count * 3 / 2));
+
+      /* reallocate the context class prototype array, if any */
+      JSContext ctx = rt.context_list;
+      while (ctx != null) {
+
+        JSValue[] new_tab;
+        new_tab = js_realloc_rt(rt, JSValue.class, ctx.class_proto,
+          new_size);
+        if (new_tab == null)
+          return -1;
+        for(i = rt.class_count; i < new_size; i++)
+          new_tab[i] = JS_NULL;
+        ctx.class_proto = new_tab;
+        ctx = ctx.link;
+      }
+      /* reallocate the class array */
+      new_class_array = js_realloc_rt(rt, JSClass.class, rt.class_array,
+         new_size);
+      if (new_class_array == null)
+        return -1;
+      rt.class_array = new_class_array;
+      rt.class_count = new_size;
+    }
+    cl = rt.class_array[class_id];
+    cl.class_id = class_id;
+    cl.class_name = JS_DupAtomRT(rt, name);
+    cl.call = class_def.call;
+    cl.exotic = class_def.exotic;
     return 0;
   }
   static void js_free_string(JSRuntime rt, JSString str)

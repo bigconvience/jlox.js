@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import static com.lox.javascript.JSCFunction.*;
 import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
 import static com.lox.javascript.JSContext.*;
+import static com.lox.javascript.JSRuntime.init_class_range;
 import static com.lox.javascript.JSStdClassDef.js_std_class_def;
 import static com.lox.javascript.JSValue.*;
 
@@ -63,7 +64,7 @@ public class LoxJS {
 
   JSRuntime JS_NewRuntime2() {
     JSRuntime rt = new JSRuntime();
-    rt.init_class_range(js_std_class_def, JS_CLASS_OBJECT.ordinal(), js_std_class_def.length);
+    init_class_range(rt, js_std_class_def, JS_CLASS_OBJECT.ordinal(), js_std_class_def.length);
 
     return rt;
   }

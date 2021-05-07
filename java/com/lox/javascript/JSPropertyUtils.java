@@ -5,6 +5,8 @@ import java.util.Arrays;
 import static com.lox.clibrary.stdlib_h.abort;
 import static com.lox.javascript.JSArrayUtils.*;
 import static com.lox.javascript.JSAtom.*;
+import static com.lox.javascript.JSAutoInitFunc.js_autoinit_func_table;
+import static com.lox.javascript.JSAutoInitFunc.js_autoinit_get_id;
 import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSClassID.JS_CLASS_FLOAT64_ARRAY;
 import static com.lox.javascript.JSCompare.js_same_value;
@@ -13,8 +15,7 @@ import static com.lox.javascript.JSObject.find_own_property;
 import static com.lox.javascript.JSObject.free_property;
 import static com.lox.javascript.JSProperty.JS_CreateProperty;
 import static com.lox.javascript.JSProperty.check_define_prop_flags;
-import static com.lox.javascript.JSRuntime.free_var_ref;
-import static com.lox.javascript.JSRuntime.js_autoinit_free;
+import static com.lox.javascript.JSRuntime.*;
 import static com.lox.javascript.JSShape.get_shape_prop;
 import static com.lox.javascript.JSShape.prop_hash_end;
 import static com.lox.javascript.JSShapeProperty.js_shape_prepare_update;
@@ -489,5 +490,18 @@ public class JSPropertyUtils {
     psh = sh;
     sh.prop_size = new_size;
     return 0;
+  }
+
+  static int JS_AutoInitProperty(JSContext ctx, JSObject p, JSAtom prop,
+                                 JSProperty pr)
+  {
+    int ret;
+    JSContext realm;
+    JSAutoInitFunc func;
+
+    realm = js_autoinit_get_realm(pr);
+    func = js_autoinit_func_table[js_autoinit_get_id(pr)];
+    ret = func.JSAutoInitFunc(realm, p, prop, pr.u.init.opaque);
+    return ret;
   }
 }

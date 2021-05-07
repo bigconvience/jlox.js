@@ -94,6 +94,11 @@ public class JSThrower {
     return JS_ThrowError2(ctx, error_num, fmt, ap, add_backtrace);
   }
 
+  static JSValue JS_ThrowReferenceErrorNotDefined(JSContext ctx, JSAtom name)
+  {
+    return JS_ThrowReferenceError(ctx, "'%s' is not defined", name);
+  }
+
   static int JS_ThrowTypeErrorOrFalse(JSContext ctx, int flags, String fmt, Object... args)
   {
     if ((flags & JS_PROP_THROW) != 0 ||

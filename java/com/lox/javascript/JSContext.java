@@ -17,6 +17,7 @@ import static com.lox.javascript.JSPropertyUtils.resize_properties;
 import static com.lox.javascript.JSShape.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
+import static com.lox.javascript.JSValueUtils.JS_SetPropertyInternal;
 import static com.lox.javascript.JS_PROP.*;
 import static com.lox.javascript.LoxJS.*;
 import static com.lox.javascript.Parser.js_parse_program;

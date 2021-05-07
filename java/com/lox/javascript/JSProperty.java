@@ -34,10 +34,20 @@ public class JSProperty {
     JSValue value;
     GetSet getset;
     Pointer<JSVarRef> var_ref;
+    Init init;
 
     public U() {
       this.value = new JSValue(JSTag.JS_TAG_UNDEFINED, null);
+      init = new Init();
     }
+
+    static class  Init {            /* JS_PROP_AUTOINIT */
+            /* in order to use only 2 pointers, we compress the realm
+               and the init function pointer */
+      int realm_and_id; /* realm and init_id (JS_AUTOINIT_ID_x)
+                                       in the 2 low bits */
+      Object opaque;
+    } ;
   }
 
   public JSProperty() {

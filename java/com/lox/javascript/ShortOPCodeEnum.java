@@ -181,7 +181,6 @@ public enum ShortOPCodeEnum {
   OP_is_undefined_or_null,
   OP_mul_pow10,
   OP_math_mod,
-  OP_print,
   OP_nop,
   OP_push_minus1,
   OP_push_0,

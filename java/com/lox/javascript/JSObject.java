@@ -176,7 +176,7 @@ public class JSObject extends JSRefCountHeader{
     prop = get_shape_prop(sh);
     while (h != 0) {
       pr = prop[h - 1];
-      if (pr.atom == atom) {
+      if (pr.atom.getVal() == atom.getVal()) {
         ppr.val = p.prop[h - 1];
         /* the compiler should be able to assume that pr != NULL here */
         return pr;

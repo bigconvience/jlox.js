@@ -108,10 +108,6 @@ public class VM {
       ShortOPCodeEnum opcode = ShortOPCodeInfo.opcode_enum.get(op);
       JSValue op1, op2;
       switch (opcode) {
-        case OP_print:
-          top = peek(stack_buf, --sp);
-          top.print();
-          break;
         case OP_push_i32:
           u32 = JUtils.get_u32(code_buf, pc);
           push(stack_buf, sp++, JSValue.JS_NewInt32(ctx, u32));

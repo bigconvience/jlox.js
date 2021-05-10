@@ -10,19 +10,29 @@ import java.util.Objects;
  * @date 2021/2/277:33 PM
  */
 public class JSString {
-  final JSRefCountHeader header = new JSRefCountHeader();
-  final int atom_type;
-  final String str;
+  JSRefCountHeader header = new JSRefCountHeader();
+  int atom_type;
+  String str;
+
+  static JSString js_alloc_string_rt(JSRuntime rt, int max_len, int is_wide_char)
+  {
+    JSString str = new JSString();
+
+    str.header.ref_count = 1;
+    str.atom_type = 0;
+
+    return str;
+  }
+
+  public JSString() {
+  }
+
 
   public JSString(String str) {
     atom_type = JSAtom.JS_ATOM_TYPE_STRING;
     this.str = str;
   }
 
-  public JSString(String str, int atom_type) {
-    this.atom_type = atom_type;
-    this.str = str;
-  }
 
   public JSString(char[] str, int atom_type) {
     this.atom_type = atom_type;

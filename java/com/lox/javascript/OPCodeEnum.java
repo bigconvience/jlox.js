@@ -181,7 +181,6 @@ public enum OPCodeEnum {
   OP_is_undefined_or_null,
   OP_mul_pow10,
   OP_math_mod,
-  OP_print,
   OP_nop,
   OP_set_arg_valid_upto,
   OP_enter_scope,

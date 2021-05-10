@@ -12,6 +12,7 @@ import static com.lox.javascript.JSAtom.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JSClassID.JS_CLASS_INIT_COUNT;
 import static com.lox.javascript.JSRuntimeUtils.js_realloc_rt;
+import static com.lox.javascript.JSString.js_alloc_string_rt;
 import static com.lox.javascript.JSValue.JS_NULL;
 import static com.lox.javascript.JSValue.JS_VALUE_GET_STRING;
 import static com.lox.javascript.LoxJS.is_digit;
@@ -112,7 +113,8 @@ public class JSRuntime {
   static JSAtom __JS_NewAtomInit(JSRuntime rt, final char[] str, int len,
                                  int atom_type)
   {
-    JSString p = new JSString(str, len);
+    JSString p = js_alloc_string_rt(rt, len, 0);
+    p.str = new String(str);
     return __JS_NewAtom(rt, p, atom_type);
   }
 

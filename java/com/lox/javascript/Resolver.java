@@ -161,7 +161,7 @@ static final int DECL_MASK_ALL =  (DECL_MASK_FUNC | DECL_MASK_FUNC_WITH_LABEL | 
     Expr expr = stmt.expression;
     expr.accept(this);
 
-    emit_op(OPCodeEnum.OP_print);
+
     return null;
   }
 

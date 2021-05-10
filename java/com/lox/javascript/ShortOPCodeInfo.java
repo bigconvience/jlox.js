@@ -557,9 +557,6 @@ public class ShortOPCodeInfo {
       OP_math_mod.ordinal(),
       new JSOpCode("math_mod",1,2,1,none));
     opcode_info.put(
-      OP_print.ordinal(),
-      new JSOpCode("print",1,1,0,none));
-    opcode_info.put(
       OP_nop.ordinal(),
       new JSOpCode("nop",1,0,0,none));
                                                                         opcode_info.put(

@@ -232,7 +232,7 @@ public class JSContext {
     }
 
     /* Initialize the new shape property.
-       The object property at p->prop[sh.prop_count] is uninitialized */
+       The object property at p.prop[sh.prop_count] is uninitialized */
     if (sh.is_hashed) {
       sh.hash = new_shape_hash;
     }
@@ -458,23 +458,35 @@ public class JSContext {
     return stack_size;
   }
 
-  static JSValue JS_NewObjectFromShape(JSContext ctx, JSShape sh, JSClassID classID) {
+  static JSValue JS_NewObjectFromShape(JSContext ctx, JSShape sh, JSClassID class_id) {
     JSObject p = new JSObject();
+    p.class_id = class_id;
+    p.extensible = true;
+    p.is_exotic = false;
+    p.fast_array = false;
+    p.is_constructor = false;
+    p.is_uncatchable_error = false;
+    p.is_HTMLDDA = false;
+
+    p.shape = sh;
     p.shape = sh;
     p.prop = new JSProperty[sh.prop_size];
     for (int i = 0 ; i < sh.prop_size; i++) {
       p.prop[i] = new JSProperty();
     }
-    switch (classID) {
+    switch (class_id) {
       case JS_CLASS_OBJECT:
+        break;
+      case JS_CLASS_C_FUNCTION:
+        p.prop[0].u.value = JS_UNDEFINED;
         break;
       default:
 //        if (rt.class_array.get(classID.ordinal()).exotic != null) {
 //          p.is_exotic = true;
 //        }
     }
-
-    return new JSValue(JSTag.JS_TAG_OBJECT, p);
+    p.ref_count = 1;
+    return JS_MKPTR(JSTag.JS_TAG_OBJECT, p);
   }
 
   static JSValue JS_NewArray(JSContext ctx)

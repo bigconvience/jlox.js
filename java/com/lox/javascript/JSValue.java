@@ -247,9 +247,12 @@ public class JSValue {
         default:
           break;
       }
-      return JS_UNDEFINED;
+      /* cannot raise an exception */
+      p = JS_VALUE_GET_OBJ(JS_GetPrototypePrimitive(ctx, obj));
+      if (p==null)
+        return JS_UNDEFINED;
     } else {
-      p = get_proto_obj(obj);
+      p = JS_VALUE_GET_OBJ(obj);
     }
 
     while (true) {
@@ -466,7 +469,8 @@ public class JSValue {
   {
     StringBuffer b = new StringBuffer();
     b.ctx = ctx;
-    b.str = new JSString(buf, buf_len);
+    b.str = new JSString();
+    b.str.str = new String(buf);
     b.size = buf_len;
     b.len = buf_len;
     return string_buffer_end(b);

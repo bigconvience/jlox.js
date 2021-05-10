@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static com.lox.javascript.JSRuntime.JS_NewCustomContext;
+import static com.lox.javascript.LoxJS.JS_NewRuntime;
 import static com.lox.javascript.LoxJS.js_std_add_helpers;
 
 public class Lox {
@@ -53,7 +54,7 @@ public class Lox {
     if (source.length() == 0) {
       return;
     }
-    JSRuntime rt = new JSRuntime();
+    JSRuntime rt = JS_NewRuntime();
 
     JSContext ctx = JS_NewCustomContext(rt);
     js_std_add_helpers(ctx, 0, new String[0]);

@@ -58,11 +58,11 @@ public class LoxJS {
     return ret;
   }
 
-  public JSRuntime JS_NewRuntime() {
+  public static JSRuntime JS_NewRuntime() {
     return JS_NewRuntime2();
   }
 
-  JSRuntime JS_NewRuntime2() {
+  static JSRuntime JS_NewRuntime2() {
     JSRuntime rt = new JSRuntime();
     init_class_range(rt, js_std_class_def, JS_CLASS_OBJECT.ordinal(), js_std_class_def.length);
 

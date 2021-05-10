@@ -61,7 +61,8 @@ public class VM {
     p = funcObj.JS_VALUE_GET_OBJ();
 
     if (p.class_id != JSClassID.JS_CLASS_BYTECODE_FUNCTION) {
-
+      JSClassCall call_func;
+      call_func = rt.class_array[p.class_id.ordinal()].call;
     }
 
     b = p.u.func.function_bytecode;
@@ -447,7 +448,7 @@ public class VM {
 
           call_argv = get_values(stack_buf, sp, call_argc);
           sf.cur_pc = pc;
-          ret_val = JS_CallInternal(ctx, peek(stack_buf, sp - call_argc), JS_UNDEFINED,
+          ret_val = JS_CallInternal(ctx, peek(stack_buf, sp - call_argc - 1), JS_UNDEFINED,
             JS_UNDEFINED, call_argc, call_argv, 0);
           if ((JS_IsException(ret_val))) {
               on_exception();

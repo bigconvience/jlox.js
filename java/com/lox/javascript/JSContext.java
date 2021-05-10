@@ -430,8 +430,7 @@ public class JSContext {
     b.var_count = fd.vars.size();
     b.arg_count = fd.args.size();
     b.defined_arg_count = fd.defined_arg_count;
-
-
+    b.func_kind = fd.func_kind.ordinal();
     b.realm = ctx;
 
     if ((fd.js_mode & JS_MODE_STRIP) == 0) {

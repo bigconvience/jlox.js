@@ -23,7 +23,7 @@ import static com.lox.javascript.JS_PROP.*;
 public abstract class JSCFunction {
    public static JSCFunction js_print = new JSCFunction() {
       @Override
-      public JSValue JSCFunction(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
+      public JSValue call(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
          char[] str;
          Pointer<Integer> len = new Pointer<>();
          for (int i = 0; i < argc; i++) {
@@ -40,20 +40,20 @@ public abstract class JSCFunction {
 
    public static JSCFunction js_loadScript = new JSCFunction() {
       @Override
-      public JSValue JSCFunction(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
+      public JSValue call(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
          return null;
       }
    };
 
    public static JSCFunction js_function_proto = new JSCFunction() {
       @Override
-      JSValue JSCFunction(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
+      JSValue call(JSContext ctx, JSValue this_val, int argc, JSValue[] argv) {
          return JS_UNDEFINED;
       }
    };
 
 
-   abstract JSValue JSCFunction(JSContext ctx, final JSValue this_val, int argc, final JSValue[] argv);
+   abstract JSValue call(JSContext ctx, final JSValue this_val, int argc, final JSValue[] argv);
 
    static JSValue JS_NewCFunction(JSContext ctx, JSCFunction func, final String name,
                                   int length)

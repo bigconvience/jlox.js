@@ -91,8 +91,8 @@ public class JSFunctionDef extends Stmt {
   boolean arguments_allowed;
   boolean in_function_body;
 
-  JSFunctionKindEnum func_kind;
-  JSParseFunctionEnum func_type;
+  JSFunctionKindEnum func_kind = JSFunctionKindEnum.JS_FUNC_NORMAL;
+  JSParseFunctionEnum func_type = JSParseFunctionEnum.JS_PARSE_FUNC_STATEMENT;
 
   DynBuf pc2line;
   int source_len;

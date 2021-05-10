@@ -9,4 +9,5 @@ package com.lox.javascript;
  */
 public class JSCFunctionType {
   JSCFunction generic;
+  JSCFunctionMagic generic_magic;
 }

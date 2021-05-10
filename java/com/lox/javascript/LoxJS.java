@@ -7,10 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static com.lox.javascript.JSCFunction.*;
-import static com.lox.javascript.JSClassID.JS_CLASS_OBJECT;
+import static com.lox.javascript.JSClassCall.js_call_c_function;
+import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSContext.*;
-import static com.lox.javascript.JSRuntime.init_class_range;
-import static com.lox.javascript.JSStdClassDef.js_std_class_def;
+import static com.lox.javascript.JSRuntime.*;
+import static com.lox.javascript.JSStdClassDef.*;
 import static com.lox.javascript.JSValue.*;
 
 /**
@@ -30,6 +31,8 @@ public class LoxJS {
   public static final int JS_MODE_STRICT = (1 << 0);
   public static final int JS_MODE_STRIP  = (1 << 1);
   public static final int JS_MODE_MATH   = (1 << 2);
+
+  public static final int JS_CALL_FLAG_CONSTRUCTOR = (1 << 0);
 
   public static int evalFile(JSContext ctx, String filename, boolean module) throws IOException {
     int ret, evalFlags;
@@ -66,6 +69,7 @@ public class LoxJS {
     JSRuntime rt = new JSRuntime();
     init_class_range(rt, js_std_class_def, JS_CLASS_OBJECT.ordinal(), js_std_class_def.length);
 
+    rt.class_array[JS_CLASS_C_FUNCTION.ordinal()].call = js_call_c_function;
     return rt;
   }
 

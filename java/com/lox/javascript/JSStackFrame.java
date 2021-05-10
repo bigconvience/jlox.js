@@ -12,6 +12,7 @@ import java.util.List;
 public class JSStackFrame {
   JSStackFrame prev_frame;
   JSValue cur_func;
+  int arg_count;
   JSValue[] arg_buf;
   JSValue[] var_buf;
   List<JSVarRef> var_ref_list;

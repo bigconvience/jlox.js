@@ -9,6 +9,7 @@ package com.lox.javascript;
  */
 public enum JSClassID {
   /* classid tag        */    /* union usage   | properties */
+  JS_CLASS_DUMMY,
   JS_CLASS_OBJECT,        /* must be first */
   JS_CLASS_ARRAY,             /* u.array       | length */
   JS_CLASS_ERROR,

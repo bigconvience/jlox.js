@@ -42,10 +42,10 @@ public class VM {
   }
 
 
-  static JSValue JS_CallInternal(JSContext callerCtx, final JSValue funcObj,
-                                 final JSValue thisObject, final JSValue newTarget,
+  static JSValue JS_CallInternal(JSContext caller_ctx, final JSValue func_obj,
+                                 final JSValue this_obj, final JSValue newTarget,
                                  int argc, JSValue[] argv, int flags) {
-    JSRuntime rt = callerCtx.rt;
+    JSRuntime rt = caller_ctx.rt;
     JSContext ctx;
     List<JSValue> local_buf = new ArrayList<>();
     JSValue[] stack_buf;
@@ -58,16 +58,19 @@ public class VM {
     JSStackFrame sf = new JSStackFrame();
     int pc;
     List<JSVarRef> var_refs;
-    p = funcObj.JS_VALUE_GET_OBJ();
+    p = func_obj.JS_VALUE_GET_OBJ();
 
     if (p.class_id != JSClassID.JS_CLASS_BYTECODE_FUNCTION) {
-      JSClassCall call_func;
-      call_func = rt.class_array[p.class_id.ordinal()].call;
+      JSClassCall call_func = rt.class_array[p.class_id.ordinal()].call;
+      if (call_func == null) {
+        return JS_ThrowTypeError(caller_ctx, "not a function");
+      }
+      return call_func.JSClassCall(caller_ctx, func_obj, this_obj, argc, argv, flags);
     }
 
     b = p.u.func.function_bytecode;
     sf.js_mode = b.js_mode;
-    sf.cur_func = funcObj;
+    sf.cur_func = func_obj;
     sf.var_ref_list = new LinkedList<>();
     var_refs = p.u.func.var_refs;
 
@@ -457,7 +460,7 @@ public class VM {
               on_done();
           }
           for(i = -1; i < call_argc; i++)
-            JS_FreeValue(ctx, call_argv[i]);
+            JS_FreeValue(ctx, peek(stack_buf, sp - call_argc + i));
           sp -= call_argc + 1;
           push(stack_buf, sp++, ret_val);
          break;

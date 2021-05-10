@@ -8,5 +8,5 @@ package com.lox.javascript;
  * @date 2021/4/189:21 PM
  */
 public interface JSCFunctionMagic {
-  JSValue JSCFunctionMagic(JSContext ctx, final JSValue this_val, int argc, final JSValue[] argv, int magic);
+  JSValue call(JSContext ctx, final JSValue this_val, int argc, final JSValue[] argv, int magic);
 }

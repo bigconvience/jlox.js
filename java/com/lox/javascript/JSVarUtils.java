@@ -15,7 +15,7 @@ import static com.lox.javascript.JSVarKindEnum.*;
 public class JSVarUtils {
 
   public static int define_var(Resolver s, JSFunctionDef fd,
-                               JSAtom varName , JSVarDefEnum varDefType) {
+                               JSAtom varName, JSVarDefEnum varDefType) {
     JSVarDef vd;
     JSHoistedDef hf;
     JSContext ctx = s.ctx;
@@ -73,30 +73,28 @@ public class JSVarUtils {
         break;
 
       case JS_VAR_DEF_VAR:
+        vd = fd.findLexicalDef(varName);
+        if (vd != null) {
+          invalid_lexical_redefinition:
+          js_parse_error(s, "invalid redefinition of lexical identifier");
+        }
         if (fd.is_global_var) {
-          vd = fd.findLexicalDef(varName);
-          if (vd != null) {
-            invalid_lexical_redefinition:
+          hf = fd.findHoistedDef(varName);
+          if (hf != null && hf.is_lexical
+            && hf.scope_level == fd.scope_level && fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE) {
             js_parse_error(s, "invalid redefinition of lexical identifier");
           }
-          if (fd.is_global_var) {
-            hf = fd.findHoistedDef(varName);
-            if (hf != null && hf.is_lexical
-              && hf.scope_level == fd.scope_level && fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE) {
-              js_parse_error(s, "invalid redefinition of lexical identifier");
-            }
-            hf = fd.addHoistedDef(-1,  varName, -1, false);
-            idx = JSVarDef.GLOBAL_VAR_OFFSET;
-          } else {
-            idx = fd.findVar(varName);
-            if (idx >= 0) {
-              break;
-            }
-            idx = JSVarDef.add_var(ctx, fd, varName);
-            if (idx >= 0) {
-              vd = fd.vars.get(idx);
-              vd.func_pool_or_scope_idx = fd.scope_level;
-            }
+          hf = fd.addHoistedDef(-1, varName, -1, false);
+          idx = JSVarDef.GLOBAL_VAR_OFFSET;
+        } else {
+          idx = fd.findVar(varName);
+          if (idx >= 0) {
+            break;
+          }
+          idx = JSVarDef.add_var(ctx, fd, varName);
+          if (idx >= 0) {
+            vd = fd.vars.get(idx);
+            vd.func_pool_or_scope_idx = fd.scope_level;
           }
         }
         break;

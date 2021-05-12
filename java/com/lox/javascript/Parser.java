@@ -60,7 +60,6 @@ class Parser {
   public static void js_parse_program(Parser s) {
     JSFunctionDef fd = s.cur_func;
     int idx;
-    fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL);
 
     fd.is_global_var = (fd.eval_type == LoxJS.JS_EVAL_TYPE_GLOBAL) ||
       (fd.eval_type == LoxJS.JS_EVAL_TYPE_MODULE) ||

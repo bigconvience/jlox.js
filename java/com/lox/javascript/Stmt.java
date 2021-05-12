@@ -180,7 +180,7 @@ abstract class Stmt {
 
     @Override
     <R> R accept(Visitor<R> visitor) {
-      return null;
+      return visitor.visitVarDeclStmt(this);
     }
 
     final List<Var> vars;

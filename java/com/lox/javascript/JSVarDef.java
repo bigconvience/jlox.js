@@ -35,7 +35,7 @@ public class JSVarDef {
   {
     int i;
     for(i = fd.vars.size(); i-- > 0;) {
-      if (fd.vars.get(i).var_name == name && fd.vars.get(i).scope_level == 0)
+      if (fd.vars.get(i).var_name.equals(name) && fd.vars.get(i).scope_level == 0)
         return i;
     }
     return find_arg(ctx, fd, name);

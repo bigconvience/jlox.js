@@ -11,8 +11,7 @@ import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSClassID.JS_CLASS_FLOAT64_ARRAY;
 import static com.lox.javascript.JSCompare.js_same_value;
 import static com.lox.javascript.JSContext.set_value;
-import static com.lox.javascript.JSObject.find_own_property;
-import static com.lox.javascript.JSObject.free_property;
+import static com.lox.javascript.JSObject.*;
 import static com.lox.javascript.JSProperty.JS_CreateProperty;
 import static com.lox.javascript.JSProperty.check_define_prop_flags;
 import static com.lox.javascript.JSRuntime.*;
@@ -503,5 +502,28 @@ public class JSPropertyUtils {
     func = js_autoinit_func_table[js_autoinit_get_id(pr)];
     ret = func.JSAutoInitFunc(realm, p, prop, pr.u.init.opaque);
     return ret;
+  }
+
+  /* 'def_flags' is 0 or JS_PROP_CONFIGURABLE. */
+  /* XXX: could support exotic global object. */
+  static int JS_DefineGlobalFunction(JSContext ctx, JSAtom prop,
+                                     JSValue func, int def_flags)
+  {
+
+    JSObject p;
+    JSShapeProperty prs;
+    int flags;
+
+    p = JS_VALUE_GET_OBJ(ctx.global_obj);
+    prs = find_own_property1(p, prop);
+    flags = JS_PROP_HAS_VALUE | JS_PROP_THROW;
+    if (prs == null || (prs.flags & JS_PROP_CONFIGURABLE) != 0) {
+      flags |= JS_PROP_ENUMERABLE | JS_PROP_WRITABLE | def_flags |
+        JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_WRITABLE | JS_PROP_HAS_ENUMERABLE;
+    }
+    if (JS_DefineProperty(ctx, ctx.global_obj, prop, func,
+      JS_UNDEFINED, JS_UNDEFINED, flags) < 0)
+      return -1;
+    return 0;
   }
 }

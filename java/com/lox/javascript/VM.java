@@ -7,6 +7,7 @@ import java.util.*;
 import static com.lox.javascript.Config.*;
 import static com.lox.javascript.JSCompare.*;
 import static com.lox.javascript.JSContext.*;
+import static com.lox.javascript.JSPropertyUtils.JS_DefineGlobalFunction;
 import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
@@ -464,6 +465,30 @@ public class VM {
           sp -= call_argc + 1;
           push(stack_buf, sp++, ret_val);
          break;
+        case OP_fclosure:
+        {
+          JSValue bfunc = JS_DupValue(ctx, b.cpool[get_u32(code_buf, pc)]);
+          pc += 4;
+          JSVarRefWrapper jsVarRefWrapper = new JSVarRefWrapper();
+          jsVarRefWrapper.var_refs = var_refs;
+          JSValue closure = js_closure(ctx, bfunc, jsVarRefWrapper, sf);
+          push(stack_buf, sp++, closure);
+          if (JS_IsException(peek(stack_buf, sp - 1))) {
+            on_exception();
+          }
+        }
+        break;
+        case OP_define_func:
+        {
+          atom = get_atom(code_buf, pc);
+          flags = get_u32(code_buf, pc+4);
+          pc += 5;
+          if (JS_DefineGlobalFunction(ctx, atom, peek(stack_buf, sp-1), flags) != 0)
+            on_exception();
+          JS_FreeValue(ctx, peek(stack_buf, sp-1));
+          sp--;
+        }
+        break;
       }
     }
 

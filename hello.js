@@ -4,3 +4,4 @@ function test_op1()
     r = 1 + 2;
     print(r);
 }
+test_op1();

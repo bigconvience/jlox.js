@@ -207,6 +207,12 @@ public class JSValue {
     return js_new_string8(ctx, buf);
   }
 
+  public static JSValue JS_NewString(JSContext ctx, char[] buf) {
+    String value = new String(buf);
+    JSString str = new JSString(value);
+    return new JSValue(JSTag.JS_TAG_STRING, str);
+  }
+
   static JSValue js_new_string8(JSContext ctx, byte[] buf) {
     String value = new String(buf);
     JSString str = new JSString(value);

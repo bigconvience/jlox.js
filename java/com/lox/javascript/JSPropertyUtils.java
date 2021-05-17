@@ -61,7 +61,7 @@ public class JSPropertyUtils {
     }
     p = JS_VALUE_GET_OBJ(this_obj);
 
-    redo_prop_update:
+
     prs = find_own_property(ppr, p, prop);
     pr = ppr.val;
     if (prs != null) {
@@ -465,6 +465,9 @@ public class JSPropertyUtils {
     if (p != null) {
       JSProperty[] new_prop;
       new_prop = new JSProperty[new_size];
+      for (i = sh.prop_size; i < new_size; i++) {
+       new_prop[i] = new JSProperty();
+      }
       System.arraycopy(p.prop, 0, new_prop, 0, sh.prop_size);
       p.prop = new_prop;
     }

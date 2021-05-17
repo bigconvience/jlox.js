@@ -489,6 +489,10 @@ public class VM {
           sp--;
         }
         break;
+        case OP_drop:
+        JS_FreeValue(ctx, peek(stack_buf, sp-1));
+        sp--;
+        break;
       }
     }
 

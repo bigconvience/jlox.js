@@ -65,6 +65,12 @@ public class JSContext {
       JS_CFUNC_generic, 0,
       ctx.class_proto[JS_CLASS_OBJECT.ordinal()]);
 
+    ctx.class_proto[JS_CLASS_BYTECODE_FUNCTION.ordinal()] = JS_DupValue(ctx, ctx.function_proto);
+
+    /* the array prototype is an array */
+    ctx.class_proto[JS_CLASS_ARRAY.ordinal()] =
+      JS_NewObjectProtoClass(ctx, ctx.class_proto[JS_CLASS_OBJECT.ordinal()],
+        JS_CLASS_ARRAY);
     ctx.array_shape = js_new_shape2(ctx, JSValue.get_proto_obj(ctx.class_proto[JS_CLASS_ARRAY.ordinal()]),
       JS_PROP_INITIAL_HASH_SIZE, 1);
   }
@@ -508,8 +514,8 @@ public class JSContext {
 
   static JSValue JS_NewObjectProtoClass(JSContext ctx, final JSValue proto_val, JSClassID class_id) {
     JSShape sh;
-//    JSObject proto = get_proto_obj(proto_val);
-    sh = js_new_shape(ctx, null);
+    JSObject proto = get_proto_obj(proto_val);
+    sh = js_new_shape(ctx, proto);
     if (sh == null) {
       return JSValue.JS_EXCEPTION;
     }

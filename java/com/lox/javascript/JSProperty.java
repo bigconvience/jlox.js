@@ -141,7 +141,7 @@ public class JSProperty {
       prop_flags = flags & JS_PROP_C_W_E;
     }
     pr = add_property(ctx, p, prop, prop_flags);
-    if (pr != null)
+    if (pr == null)
       return -1;
     if ((flags & (JS_PROP_HAS_GET | JS_PROP_HAS_SET)) != 0) {
       pr.u.getset.getter = null;

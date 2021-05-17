@@ -135,7 +135,7 @@ public class VM {
           atom = new JSAtom(JUtils.get_u32(code_buf, pc));
           flags = code_buf[pc + 4];
           pc += 5;
-          if (ctx.JS_DefineGlobalVar(ctx, atom, flags) != 0) {
+          if (JS_DefineGlobalVar(ctx, atom, flags) != 0) {
 
           }
           break;

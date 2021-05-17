@@ -455,8 +455,8 @@ public class JSPropertyUtils {
                                          JSObject p, int count)
   {
     JSShape sh;
-    int new_size, new_hash_size, new_hash_mask, i;
-
+    int new_size, new_hash_size, new_hash_mask = 0, i;
+    int h;
 
     sh = psh;
     new_size = Math.min(count, sh.prop_size * 3 / 2);
@@ -471,23 +471,31 @@ public class JSPropertyUtils {
       System.arraycopy(p.prop, 0, new_prop, 0, sh.prop_size);
       p.prop = new_prop;
     }
-    new_hash_size = sh.prop_hash_mask + 1;
-    while (new_hash_size < new_size)
-      new_hash_size = 2 * new_hash_size;
-    if (new_hash_size != (sh.prop_hash_mask + 1)) {
-      int[] new_hash_array = new int[new_hash_size];
-      System.arraycopy(sh.prop_hash_mask, 0, new_hash_array, 0, new_hash_size);
-      sh.hash_array = new_hash_array;
-    }
-    JSShape old_sh;
-    /* resize the hash table and the properties */
-    old_sh = sh;
+
+    JSShape old_sh = sh;
     JSShapeProperty[] new_prop = new JSShapeProperty[new_size];
     for (i = old_sh.prop_count; i < new_size; i++) {
       new_prop[i] = new JSShapeProperty();
     }
     System.arraycopy(sh.prop, 0, new_prop, 0, old_sh.prop_count);
     sh.prop = new_prop;
+
+    new_hash_size = sh.prop_hash_mask + 1;
+    while (new_hash_size < new_size)
+      new_hash_size = 2 * new_hash_size;
+    if (new_hash_size != (sh.prop_hash_mask + 1)) {
+      int[] new_hash_array = new int[new_hash_size];
+      sh.hash_array = new_hash_array;
+
+      for(i = 0; i < sh.prop_count; i++) {
+        JSShapeProperty pr = sh.prop[i];
+        if (pr.atom.getVal() != JS_ATOM_NULL.getVal()) {
+          h = (pr.atom.getVal() & new_hash_mask);
+          pr.hash_next = prop_hash_end(sh)[h];
+          prop_hash_end(sh)[h] = i + 1;
+        }
+      }
+    }
 
     psh = sh;
     sh.prop_size = new_size;

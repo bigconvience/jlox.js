@@ -174,7 +174,7 @@ public class JSContext {
     return 0;
   }
 
-  int JS_DefineGlobalVar(JSContext ctx, JSAtom prop, int def_flags) {
+  static int JS_DefineGlobalVar(JSContext ctx, JSAtom prop, int def_flags) {
     JSObject p;
     JSShapeProperty prs;
     JSProperty pr;
@@ -182,12 +182,12 @@ public class JSContext {
     int flags;
 
     if ((def_flags & DEFINE_GLOBAL_LEX_VAR) != 0) {
-      p = global_var_obj.JS_VALUE_GET_OBJ();
+      p = ctx.global_var_obj.JS_VALUE_GET_OBJ();
       flags = JS_PROP.JS_PROP_ENUMERABLE | (def_flags & JS_PROP_WRITABLE) |
         JS_PROP.JS_PROP_CONFIGURABLE;
       val = JSValue.JS_UNINITIALIZED;
     } else {
-      p = global_obj.JS_VALUE_GET_OBJ();
+      p = ctx.global_obj.JS_VALUE_GET_OBJ();
       flags = JS_PROP.JS_PROP_ENUMERABLE | JS_PROP_WRITABLE |
         (def_flags & JS_PROP.JS_PROP_CONFIGURABLE);
       val = JSValue.JS_UNDEFINED;

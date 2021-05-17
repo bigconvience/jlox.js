@@ -1,7 +1,21 @@
-function test_op1()
-{
-    var r, a;
-    r = 1 + 2;
-    print(r);
+function assert(actual, expected, message) {
+    if (arguments.length == 1)
+        expected = true;
+
+    if (actual === expected)
+        return;
+
+    if (actual !== null && expected !== null
+    &&  typeof actual == 'object' && typeof expected == 'object'
+    &&  actual.toString() === expected.toString())
+        return;
+
+    throw Error("assertion failed: got |" + actual + "|" +
+                ", expected |" + expected + "|" +
+                (message ? " (" + message + ")" : ""));
 }
-test_op1();
+
+
+var r, a;
+r = 1 + 2;
+assert(r, 3, "1 + 2 === 3");

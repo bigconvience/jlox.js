@@ -21,7 +21,7 @@ public class JSHoistedDef extends JSVarDef {
       JSHoistedDef hf = s.hoisted_def.get(i);
       int has_closure = 0;
       boolean force_init = hf.force_init;
-      if (s.is_global_var && hf.var_name != JS_ATOM_NULL) {
+      if (s.is_global_var && hf.var_name.getVal() != JS_ATOM_NULL.getVal()) {
             /* we are in an eval, so the closure contains all the
                enclosing variables */
             /* If the outer function has a variable environment,
@@ -56,7 +56,7 @@ public class JSHoistedDef extends JSVarDef {
             dbuf_put_u32(bc, hf.var_name);
             dbuf_putc(bc, flags);
 
-            break;
+            continue;
           } else {
             if (hf.is_lexical) {
               flags |= JSContext.DEFINE_GLOBAL_LEX_VAR;

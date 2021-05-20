@@ -12,7 +12,9 @@ import static com.lox.javascript.JSAtomEnum.*;
 import static com.lox.javascript.JSCFunction.*;
 import static com.lox.javascript.JSCFunctionEnum.*;
 import static com.lox.javascript.JSClassID.*;
+import static com.lox.javascript.JSErrorEnum.JS_NATIVE_ERROR_COUNT;
 import static com.lox.javascript.JSObject.*;
+import static com.lox.javascript.JSPropertyUtils.JS_SetPropertyFunctionList;
 import static com.lox.javascript.JSPropertyUtils.resize_properties;
 import static com.lox.javascript.JSShape.*;
 import static com.lox.javascript.JSThrower.*;
@@ -45,12 +47,22 @@ public class JSContext {
   JSContext link;
   JSValue[] class_proto;
   JSRefCountHeader header = new JSRefCountHeader();
+  JSValue function_proto;
+  JSValue function_ctor;
+  JSValue array_ctor;
+  JSValue regexp_ctor;
+  JSValue promise_ctor;
+  JSValue[] native_error_proto = new JSValue[JS_NATIVE_ERROR_COUNT.ordinal()];
+  JSValue iterator_proto;
+  JSValue async_iterator_proto;
+  JSValue array_proto_values;
+  JSValue throw_type_error;
+  JSValue eval_obj;
   public JSValue global_obj;
   public JSValue global_var_obj;
   final JSRuntime rt;
   public int interrupt_counter;
   JSShape array_shape;
-  JSValue function_proto;
 
   public JSContext(JSRuntime rt) {
     this.rt = rt;
@@ -78,6 +90,16 @@ public class JSContext {
   static void JS_AddIntrinsicBaseObjects(JSContext ctx) {
     ctx.global_obj = JS_NewObject(ctx);
     ctx.global_var_obj = JS_NewObjectProto(ctx, JS_NULL);
+
+    /* Array */
+    JS_SetPropertyFunctionList(ctx, ctx.class_proto[JS_CLASS_ARRAY.ordinal()],
+      js_array_proto_funcs,
+      countof(js_array_proto_funcs));
+
+    /* needed to initialize arguments[Symbol.iterator] */
+    ctx.array_proto_values =
+      JS_GetProperty(ctx, ctx.class_proto[JS_CLASS_ARRAY.ordinal()], JS_ATOM_values.toJSAtom());
+
   }
 
   static int JS_SetGlobalVar(JSContext ctx, JSAtom prop, JSValue val, int flag) {
@@ -583,7 +605,7 @@ public class JSContext {
     func_obj = js_closure2(ctx, func_obj, b, cur_var_refs, sf);
 
     name_atom = b.func_name;
-    if (name_atom == JSAtom.JS_ATOM_NULL) {
+    if (name_atom.getVal() == JSAtom.JS_ATOM_NULL.getVal()) {
       name_atom = JSAtom.JS_ATOM_empty_string;
     }
     return func_obj;

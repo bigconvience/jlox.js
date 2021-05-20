@@ -4,14 +4,17 @@ import com.lox.clibrary.stdlib_h;
 
 import java.util.*;
 
+import static com.lox.clibrary.stdlib_h.*;
 import static com.lox.javascript.Config.*;
+import static com.lox.javascript.JSArgumentsUtils.js_build_arguments;
 import static com.lox.javascript.JSCompare.*;
 import static com.lox.javascript.JSContext.*;
-import static com.lox.javascript.JSPropertyUtils.JS_DefineGlobalFunction;
+import static com.lox.javascript.JSPropertyUtils.*;
 import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.*;
 import static com.lox.javascript.JSValue.*;
 import static com.lox.javascript.JUtils.*;
+import static com.lox.javascript.OPSpecialObjectEnum.*;
 import static com.lox.javascript.ShortOPCodeEnum.*;
 
 /*
@@ -178,7 +181,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() + op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib_h.abort();
+              abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
@@ -191,7 +194,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() - op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib_h.abort();
+              abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
@@ -204,7 +207,7 @@ public class VM {
             long r;
             r = op1.JS_VALUE_GET_INT() * op2.JS_VALUE_GET_INT();
             if ((int) r != r) {
-              stdlib_h.abort();
+              abort();
             }
             push(stack_buf, sp - 2, JSValue.JS_NewInt32(ctx, (int) r));
             sp--;
@@ -335,22 +338,22 @@ public class VM {
           pc += 2;
           push(stack_buf, sp, var_buf[idx]);
           sp++;
-        break;
+          break;
         case OP_put_loc:
           idx = JUtils.get_u16(code_buf, pc);
           pc += 2;
-          JSContext.set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
+          JSContext.set_value(ctx, var_buf[idx], peek(stack_buf, sp - 1));
           sp--;
           break;
         case OP_set_loc:
           idx = JUtils.get_u16(code_buf, pc);
           pc += 2;
-          JSContext.set_value(ctx, var_buf[idx], peek(stack_buf, sp-1));
+          JSContext.set_value(ctx, var_buf[idx], peek(stack_buf, sp - 1));
           break;
         case OP_goto:
           pc += get_u32(code_buf, pc);
           if (js_poll_interrupts(ctx))
-                  on_exception();
+            on_exception();
           break;
 
         case OP_goto16:
@@ -359,15 +362,14 @@ public class VM {
             on_exception();
           break;
         case OP_goto8:
-        pc += get_u8(code_buf, pc);
-        if (js_poll_interrupts(ctx))
-          on_exception();
-        break;
-        case OP_if_true:
-        {
+          pc += get_u8(code_buf, pc);
+          if (js_poll_interrupts(ctx))
+            on_exception();
+          break;
+        case OP_if_true: {
           int res;
 
-          op1 = peek(stack_buf, sp-1);
+          op1 = peek(stack_buf, sp - 1);
           pc += 4;
           if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
             res = JS_VALUE_GET_INT(op1);
@@ -382,10 +384,9 @@ public class VM {
             on_exception();
         }
         break;
-        case OP_if_false:
-        {
+        case OP_if_false: {
           int res;
-          op1 = peek(stack_buf, sp-1);
+          op1 = peek(stack_buf, sp - 1);
           pc += 4;
           if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
             res = JS_VALUE_GET_INT(op1);
@@ -400,11 +401,10 @@ public class VM {
             on_exception();
         }
         break;
-        case OP_if_true8:
-        {
+        case OP_if_true8: {
           int res;
 
-          op1 = peek(stack_buf, sp-1);
+          op1 = peek(stack_buf, sp - 1);
           pc += 1;
           if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
             res = JS_VALUE_GET_INT(op1);
@@ -413,16 +413,16 @@ public class VM {
           }
           sp--;
           if (res != 0) {
-            pc += get_u8(code_buf, pc-1) - 1;
+            pc += get_u8(code_buf, pc - 1) - 1;
           }
           if (js_poll_interrupts(ctx))
             on_exception();
         }
         break;
-        case OP_if_false8:
-        {
+        case OP_if_false8: {
           int res;
-          op1 = peek(stack_buf, sp-1);;
+          op1 = peek(stack_buf, sp - 1);
+          ;
           pc += 1;
           if (JS_VALUE_GET_TAG(op1).ordinal() <= JS_TAG_UNDEFINED.ordinal()) {
             res = JS_VALUE_GET_INT(op1);
@@ -431,7 +431,7 @@ public class VM {
           }
           sp--;
           if (res == 0) {
-            pc += get_u8(code_buf, pc-1) - 1;
+            pc += get_u8(code_buf, pc - 1) - 1;
           }
           if (js_poll_interrupts(ctx))
             on_exception();
@@ -455,18 +455,17 @@ public class VM {
           ret_val = JS_CallInternal(ctx, peek(stack_buf, sp - call_argc - 1), JS_UNDEFINED,
             JS_UNDEFINED, call_argc, call_argv, 0);
           if ((JS_IsException(ret_val))) {
-              on_exception();
+            on_exception();
           }
           if (opcode == OP_tail_call) {
-              on_done();
+            on_done();
           }
-          for(i = -1; i < call_argc; i++)
+          for (i = -1; i < call_argc; i++)
             JS_FreeValue(ctx, peek(stack_buf, sp - call_argc + i));
           sp -= call_argc + 1;
           push(stack_buf, sp++, ret_val);
-         break;
-        case OP_fclosure:
-        {
+          break;
+        case OP_fclosure: {
           JSValue bfunc = JS_DupValue(ctx, b.cpool[get_u32(code_buf, pc)]);
           pc += 4;
           JSVarRefWrapper jsVarRefWrapper = new JSVarRefWrapper();
@@ -478,20 +477,33 @@ public class VM {
           }
         }
         break;
-        case OP_define_func:
-        {
+        case OP_define_func: {
           atom = get_atom(code_buf, pc);
-          flags = get_u32(code_buf, pc+4);
+          flags = get_u32(code_buf, pc + 4);
           pc += 5;
-          if (JS_DefineGlobalFunction(ctx, atom, peek(stack_buf, sp-1), flags) != 0)
+          if (JS_DefineGlobalFunction(ctx, atom, peek(stack_buf, sp - 1), flags) != 0)
             on_exception();
-          JS_FreeValue(ctx, peek(stack_buf, sp-1));
+          JS_FreeValue(ctx, peek(stack_buf, sp - 1));
           sp--;
         }
         break;
         case OP_drop:
-        JS_FreeValue(ctx, peek(stack_buf, sp-1));
-        sp--;
+          JS_FreeValue(ctx, peek(stack_buf, sp - 1));
+          sp--;
+          break;
+        case OP_special_object: {
+          int arg = get_i32(code_buf, pc++);
+          OPSpecialObjectEnum special = OPSpecialObjectEnum.values()[arg];
+          switch (special) {
+            case OP_SPECIAL_OBJECT_ARGUMENTS:
+                    push(stack_buf, sp++, js_build_arguments(ctx, argc, argv));
+              if (JS_IsException(peek(stack_buf, sp - 1)))
+                on_exception();
+              break;
+            default:
+              abort();
+          }
+        }
         break;
       }
     }

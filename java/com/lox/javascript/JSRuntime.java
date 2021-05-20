@@ -11,6 +11,7 @@ import static com.lox.clibrary.string_h.strlen;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.clibrary.stdio_h.printf;
 import static com.lox.javascript.JSClassID.JS_CLASS_INIT_COUNT;
+import static com.lox.javascript.JSContext.JS_AddIntrinsicBaseObjects;
 import static com.lox.javascript.JSContext.JS_AddIntrinsicBasicObjects;
 import static com.lox.javascript.JSRuntimeUtils.js_realloc_rt;
 import static com.lox.javascript.JSString.js_alloc_string_rt;
@@ -62,7 +63,7 @@ public class JSRuntime {
   static JSContext JS_NewContext(JSRuntime rt) {
     JSContext ctx = JS_NewContextRaw(rt);
 
-    ctx.JS_AddIntrinsicBaseObjects(ctx);
+    JS_AddIntrinsicBaseObjects(ctx);
     return ctx;
   }
 

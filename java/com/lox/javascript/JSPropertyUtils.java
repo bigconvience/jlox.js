@@ -7,10 +7,12 @@ import static com.lox.javascript.JSArrayUtils.*;
 import static com.lox.javascript.JSAtom.*;
 import static com.lox.javascript.JSAutoInitFunc.js_autoinit_func_table;
 import static com.lox.javascript.JSAutoInitFunc.js_autoinit_get_id;
+import static com.lox.javascript.JSAutoInitIDEnum.JS_AUTOINIT_ID_PROP;
 import static com.lox.javascript.JSClassID.*;
-import static com.lox.javascript.JSClassID.JS_CLASS_FLOAT64_ARRAY;
+import static com.lox.javascript.JSClassID.*;
 import static com.lox.javascript.JSCompare.js_same_value;
 import static com.lox.javascript.JSContext.set_value;
+import static com.lox.javascript.JSDef.*;
 import static com.lox.javascript.JSObject.*;
 import static com.lox.javascript.JSProperty.JS_CreateProperty;
 import static com.lox.javascript.JSProperty.check_define_prop_flags;
@@ -18,7 +20,7 @@ import static com.lox.javascript.JSRuntime.*;
 import static com.lox.javascript.JSShape.get_shape_prop;
 import static com.lox.javascript.JSShape.prop_hash_end;
 import static com.lox.javascript.JSShapeProperty.js_shape_prepare_update;
-import static com.lox.javascript.JSTag.JS_TAG_OBJECT;
+import static com.lox.javascript.JSTag.*;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorNotAnObject;
 import static com.lox.javascript.JSThrower.JS_ThrowTypeErrorOrFalse;
 import static com.lox.javascript.JSToNumber.JS_NumberIsInteger;
@@ -455,7 +457,7 @@ public class JSPropertyUtils {
                                          JSObject p, int count)
   {
     JSShape sh;
-    int new_size, new_hash_size, new_hash_mask = 0, i;
+    int new_size, new_hash_size, new_hash_mask, i;
     int h;
 
     sh = psh;
@@ -484,6 +486,9 @@ public class JSPropertyUtils {
     while (new_hash_size < new_size)
       new_hash_size = 2 * new_hash_size;
     if (new_hash_size != (sh.prop_hash_mask + 1)) {
+      new_hash_mask = new_hash_size - 1;
+      sh.prop_hash_mask = new_hash_mask;
+
       int[] new_hash_array = new int[new_hash_size];
       sh.hash_array = new_hash_array;
 
@@ -536,5 +541,42 @@ public class JSPropertyUtils {
       JS_UNDEFINED, JS_UNDEFINED, flags) < 0)
       return -1;
     return 0;
+  }
+
+  static void JS_SetPropertyFunctionList(JSContext ctx, JSValue obj,
+                                 JSCFunctionListEntry[] tab, int len)
+  {
+    int i, prop_flags;
+
+    for (i = 0; i < len; i++) {
+      JSCFunctionListEntry e = tab[i];
+      JSAtom atom = find_atom(ctx, e.name);
+
+      switch (e.def_type) {
+        case JS_DEF_CFUNC:
+        case JS_DEF_CGETSET:
+        case JS_DEF_CGETSET_MAGIC:
+        case JS_DEF_PROP_STRING:
+        case JS_DEF_ALIAS:
+        case JS_DEF_OBJECT:
+          prop_flags = JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE | (e.prop_flags & JS_PROP_ENUMERABLE);
+          JS_DefineAutoInitProperty(ctx, obj, atom,
+            JS_AUTOINIT_ID_PROP,
+            e, prop_flags);
+          break;
+        case JS_DEF_PROP_INT32:
+        case JS_DEF_PROP_INT64:
+        case JS_DEF_PROP_DOUBLE:
+        case JS_DEF_PROP_UNDEFINED:
+        {
+          JSObject p = JS_VALUE_GET_OBJ(obj);
+          JS_InstantiateFunctionListItem(ctx, p, atom, e);
+        }
+        break;
+        default:
+          abort();
+      }
+      JS_FreeAtom(ctx, atom);
+    }
   }
 }
